@@ -6,7 +6,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "da-bubble": {
+    "vibo": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -72,10 +72,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "da-bubble:build:production"
+              "buildTarget": "vibo:build:production"
             },
             "development": {
-              "buildTarget": "da-bubble:build:development"
+              "buildTarget": "vibo:build:development"
             }
           },
           "defaultConfiguration": "development"

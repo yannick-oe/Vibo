@@ -12,8 +12,10 @@ import {
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 
+import { APP_NAME } from '../../../shared/app.constants';
+
 /**
- * Static full-width legal page describing how DABubble processes
+ * Static full-width legal page describing how Vibo processes
  * personal data.
  */
 @Component({
@@ -28,6 +30,8 @@ export class PrivacyComponent implements AfterViewInit {
   private readonly router = inject(Router);
 
   private readonly title = viewChild<ElementRef<HTMLHeadingElement>>('title');
+
+  protected readonly appName = APP_NAME;
 
 
   /**

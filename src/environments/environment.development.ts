@@ -5,11 +5,11 @@
  */
 export const environment = {
   firebaseConfig: {
-    apiKey: 'AIzaSyB7mlViryubpQvBOJiVYrlcyneZHda_ivY',
-    authDomain: 'dabubble-b918d.firebaseapp.com',
-    projectId: 'dabubble-b918d',
-    storageBucket: 'dabubble-b918d.firebasestorage.app',
-    messagingSenderId: '483141053813',
-    appId: '1:483141053813:web:cbbac136f092f91543373c',
+    apiKey: 'AIzaSyCU1MGvsNYJ1vlvrouWxdmdxiCJKCqkJfc',
+    authDomain: 'vibo-2ba80.firebaseapp.com',
+    projectId: 'vibo-2ba80',
+    storageBucket: 'vibo-2ba80.firebasestorage.app',
+    messagingSenderId: '606266455857',
+    appId: '1:606266455857:web:124c81ba713b310f836210',
   },
 };

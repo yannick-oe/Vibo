@@ -6,6 +6,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 
+import { APP_NAME } from '../app.constants';
 import { FooterComponent } from '../footer/footer.component';
 import { HeaderComponent } from '../header/header.component';
 
@@ -23,6 +24,8 @@ const LOGIN_URL_FRAGMENT = '/auth/login';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AuthLayoutComponent {
+  protected readonly appName = APP_NAME;
+
   private readonly router = inject(Router);
 
   protected readonly shouldShowCta = toSignal(

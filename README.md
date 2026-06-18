@@ -1,8 +1,8 @@
-# DABubble
+# Vibo
 
 > A Slack-inspired, real-time team chat application — Developer Akademie diploma project.
 
-DABubble is a responsive, accessible chat workspace built with Angular 21 and
+Vibo is a responsive, accessible chat workspace built with Angular 21 and
 Firebase. It supports channels, direct messages, threaded replies, emoji
 reactions, mentions and global search, with real-time updates across clients.
 
@@ -55,7 +55,7 @@ reactions, mentions and global search, with real-time updates across clients.
 ```bash
 # 1. Clone
 git clone <repository-url>
-cd DABubble
+cd vibo
 
 # 2. Install dependencies
 #    (.npmrc sets legacy-peer-deps=true so the @angular/fire RC installs cleanly)
@@ -76,7 +76,7 @@ npm start            # → http://localhost:4200
 
 ```bash
 # Production build
-npm run build        # output: dist/da-bubble/browser
+npm run build        # output: dist/vibo/browser
 
 # Deploy to Firebase Hosting (root path)
 firebase deploy --only hosting

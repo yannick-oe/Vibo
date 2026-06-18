@@ -1,0 +1,1 @@
+var a=[{path:"avatars/Elias-Neumann.png",label:"Elias Neumann"},{path:"avatars/Elise-Roth.png",label:"Elise Roth"},{path:"avatars/Frederik-Beck.png",label:"Frederik Beck"},{path:"avatars/Noah-Braun.png",label:"Noah Braun"},{path:"avatars/Sofia-M\xFCller.png",label:"Sofia M\xFCller"},{path:"avatars/Steffen-Hoffmann.png",label:"Steffen Hoffmann"}];export{a};

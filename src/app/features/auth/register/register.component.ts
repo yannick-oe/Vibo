@@ -18,6 +18,7 @@ import {
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
+import { APP_NAME } from '../../../shared/app.constants';
 import { PasswordInputComponent } from '../../../shared/password-input/password-input.component';
 import { RegistrationService } from '../../../services/registration.service';
 
@@ -72,6 +73,8 @@ export class RegisterComponent implements OnInit, AfterViewInit {
   private readonly router = inject(Router);
 
   private readonly title = viewChild<ElementRef<HTMLHeadingElement>>('title');
+
+  protected readonly appName = APP_NAME;
 
   protected readonly form = this.formBuilder.group({
     name: ['', [Validators.required, Validators.minLength(NAME_MIN_LENGTH)]],

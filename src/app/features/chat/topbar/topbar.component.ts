@@ -20,6 +20,7 @@ import {
   DialogShellComponent,
   anchorBelow,
 } from '../../../shared/dialog-shell/dialog-shell.component';
+import { APP_NAME } from '../../../shared/app.constants';
 
 const GUEST_NAME = 'Gast';
 
@@ -59,6 +60,8 @@ export class TopbarComponent {
     ),
     { initialValue: this.router.url },
   );
+
+  protected readonly appName = APP_NAME;
 
   protected readonly isMobile = this.layoutService.isMobile;
 

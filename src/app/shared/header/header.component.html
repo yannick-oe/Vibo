@@ -1,11 +1,11 @@
 <header class="header">
   <a class="header__brand" routerLink="/">
-    <img class="header__logo" src="logos/logo-text.svg" alt="DABubble" />
+    <img class="header__logo" src="logos/logo-text.svg" [alt]="appName" />
   </a>
 
   @if (shouldShowCta()) {
     <div class="header__cta">
-      <p class="header__cta-text">Neu bei DABubble?</p>
+      <p class="header__cta-text">Neu bei {{ appName }}?</p>
       <a class="header__cta-link" routerLink="/auth/register">Konto erstellen</a>
     </div>
   }

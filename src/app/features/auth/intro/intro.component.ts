@@ -12,6 +12,8 @@ import {
   viewChild,
 } from '@angular/core';
 
+import { APP_NAME } from '../../../shared/app.constants';
+
 const INTRO_PLAYED_KEY = 'dabubbleIntroPlayed';
 const HOLD_DURATION_MS = 800;
 const STEP_DURATION_MS = 500;
@@ -37,6 +39,8 @@ export class IntroComponent implements OnInit {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly logo = viewChild<ElementRef<HTMLDivElement>>('logo');
+
+  protected readonly appName = APP_NAME;
 
   protected readonly isVisible = signal(false);
 
