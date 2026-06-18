@@ -1,6 +1,6 @@
-# Design-System — DABubble
+# Design-System — Vibo
 
-> Verbindliche Design-Tokens für das DABubble-Projekt. Beim Bauen werden Farben/Größen **immer über diese Tokens** referenziert (keine Hardcode-Hex, keine Magic Numbers). Ressourcen sind vorgegeben (s. u.) und werden nicht selbst gebaut.
+> Verbindliche Design-Tokens für das Vibo-Projekt. Beim Bauen werden Farben/Größen **immer über diese Tokens** referenziert (keine Hardcode-Hex, keine Magic Numbers). Ressourcen sind vorgegeben (s. u.) und werden nicht selbst gebaut.
 > Quelle: Figma-Farbstile (exakt) + Component-Sheet (Typo-Skala, Button-Zustände ausgelesen).
 
 ---

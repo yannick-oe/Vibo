@@ -14,7 +14,7 @@ import {
 
 import { APP_NAME } from '../../../shared/app.constants';
 
-const INTRO_PLAYED_KEY = 'dabubbleIntroPlayed';
+const INTRO_PLAYED_KEY = 'vibo:introPlayed';
 const HOLD_DURATION_MS = 800;
 const STEP_DURATION_MS = 500;
 const TEXT_SLIDE_DURATION_MS = 1200;

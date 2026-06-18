@@ -14,6 +14,7 @@ import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MobileSearchViewComponent } from '../../search/mobile-search-view/mobile-search-view.component';
 import { ChannelCreateDialogComponent } from '../channel-create-dialog/channel-create-dialog.component';
+import { WORKSPACE_NAME } from '../../../shared/app.constants';
 
 const GUEST_NAME = 'Gast';
 const SORT_LOCALE = 'de';
@@ -50,6 +51,8 @@ export class WorkspaceMenuComponent {
   private readonly channelService = inject(ChannelService);
 
   private readonly userService = inject(UserService);
+
+  protected readonly workspaceName = WORKSPACE_NAME;
 
   protected readonly channels = this.channelService.channels;
 

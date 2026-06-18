@@ -29,10 +29,11 @@ import {
   SearchService,
   UserHit,
 } from '../../../services/search.service';
+import { WORKSPACE_NAME } from '../../../shared/app.constants';
 
 const DEBOUNCE_MS = 250;
 const MIN_TERM_LENGTH = 2;
-const DESKTOP_PLACEHOLDER = 'Devspace durchsuchen';
+const DESKTOP_PLACEHOLDER = `${WORKSPACE_NAME} durchsuchen`;
 const MOBILE_PLACEHOLDER = 'Gehe zu...';
 
 type SearchHit = ChannelHit | UserHit | MessageHit;

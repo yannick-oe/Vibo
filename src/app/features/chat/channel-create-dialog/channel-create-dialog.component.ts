@@ -31,6 +31,7 @@ import { ChannelService } from '../../../services/channel.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
+import { WORKSPACE_NAME } from '../../../shared/app.constants';
 
 const NAME_REQUIRED_ERROR = 'Bitte gib einen Channel-Namen ein.';
 const NAME_DUPLICATE_ERROR = 'Ein Channel mit diesem Namen existiert bereits.';
@@ -66,6 +67,8 @@ export class ChannelCreateDialogComponent implements AfterViewInit, OnDestroy {
   private readonly toastService = inject(ToastService);
 
   private readonly router = inject(Router);
+
+  protected readonly workspaceName = WORKSPACE_NAME;
 
   private readonly previouslyFocused = document.activeElement as HTMLElement | null;
 

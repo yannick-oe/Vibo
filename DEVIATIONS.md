@@ -72,7 +72,7 @@ standards, so they are not mistaken for defects in a future audit.
 - **Mobile splash logo size (no exact Figma mobile spec).** Below `$breakpoint-sm`
   (576px) the splash logo is reduced from 187×184px to **120×118px** (named
   variables `$logo-width-mobile` / `$logo-height-mobile`) and the wordmark to
-  `font-size('h2')`, so the centered logo + "DABubble" fits within 320px with no
+  `font-size('h2')`, so the centered logo + "Vibo" fits within 320px with no
   horizontal scroll. The handoff scale is measured at runtime, so it adapts
   automatically; reduced motion still skips the splash entirely. Confirm the 120px
   size against Figma when revisiting.

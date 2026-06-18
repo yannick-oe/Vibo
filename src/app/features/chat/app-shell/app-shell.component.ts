@@ -23,7 +23,7 @@ import { WorkspaceMenuComponent } from '../workspace-menu/workspace-menu.compone
 
 const OPEN_MENU_LABEL = 'Workspace-Menü öffnen';
 const CLOSE_MENU_LABEL = 'Workspace-Menü schließen';
-const WORKSPACE_OPEN_STORAGE_KEY = 'dabubble:workspace-open';
+const WORKSPACE_OPEN_STORAGE_KEY = 'vibo:workspaceOpen';
 const WORKSPACE_TITLE_ID = 'workspace-title';
 const MENU_TOGGLE_OPEN_ICON = 'icons/group-left.svg';
 const MENU_TOGGLE_CLOSED_ICON = 'icons/group-right.svg';

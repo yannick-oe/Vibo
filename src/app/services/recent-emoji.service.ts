@@ -3,7 +3,7 @@
  */
 import { Injectable, signal } from '@angular/core';
 
-const RECENT_EMOJIS_STORAGE_KEY = 'dabubble:recent-emojis';
+const RECENT_EMOJIS_STORAGE_KEY = 'vibo:recentEmojis';
 const DEFAULT_RECENT: [string, string] = ['✅', '🙌'];
 
 /**
