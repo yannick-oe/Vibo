@@ -24,6 +24,12 @@
     overflow-wrap: break-word;
   }
 
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: v.space('md');
+  }
+
   .btn-icon {
     &:hover {
       background-color: v.color('white');

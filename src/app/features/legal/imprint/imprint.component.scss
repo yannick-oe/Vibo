@@ -17,6 +17,13 @@
   margin-top: v.space('md');
 }
 
+.imprint-card__section {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('md');
+  align-self: stretch;
+}
+
 .imprint-card__subtitle {
   color: v.color('primary');
   font-size: v.font-size('h3');

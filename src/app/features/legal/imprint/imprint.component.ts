@@ -12,8 +12,6 @@ import {
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 
-import { APP_NAME } from '../../../shared/app.constants';
-
 /**
  * Static legal page identifying the Vibo operators. The back arrow
  * returns to the previous page, falling back to the login screen.
@@ -30,8 +28,6 @@ export class ImprintComponent implements AfterViewInit {
   private readonly router = inject(Router);
 
   private readonly title = viewChild<ElementRef<HTMLHeadingElement>>('title');
-
-  protected readonly appName = APP_NAME;
 
 
   /**
