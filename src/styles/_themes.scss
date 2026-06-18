@@ -5,6 +5,10 @@
     --color-#{$key}: #{$value};
   }
   --overlay-scrim: rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+  --shadow-strong: 0 4px 12px rgba(0, 0, 0, 0.5);
   color-scheme: light;
 }
 
@@ -13,6 +17,10 @@
     --color-#{$key}: #{$value};
   }
   --overlay-scrim: rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--color-lines);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--color-lines);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--color-lines);
+  --shadow-strong: 0 4px 12px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--color-lines);
   color-scheme: dark;
 }
 
@@ -25,4 +33,17 @@
       border-color v.$transition-base,
       color v.$transition-base;
   }
+}
+
+[data-theme='dark'] img[src^='icons/'] {
+  filter: invert(1);
+}
+
+[data-theme='dark'] img[src*='-hover'],
+[data-theme='dark'] img[src*='-white'],
+[data-theme='dark'] img[src*='send'],
+[data-theme='dark'] img[src*='google'],
+[data-theme='dark'] img[src*='emoji-'],
+[data-theme='dark'] img[src*='like'] {
+  filter: none;
 }

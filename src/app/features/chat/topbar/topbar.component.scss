@@ -59,6 +59,7 @@
 
     .topbar__chevron {
       content: url('../../../../../public/icons/arrow-down-hover.svg');
+      filter: none;
     }
   }
 }
@@ -93,10 +94,12 @@
   &--profile:hover img {
     content: url('../../../../../public/icons/account-circle-hover.svg');
     transform: scale(1.03);
+    filter: none;
   }
 
   &--logout:hover img {
     content: url('../../../../../public/icons/logout-hover.svg');
+    filter: none;
   }
 
   img {

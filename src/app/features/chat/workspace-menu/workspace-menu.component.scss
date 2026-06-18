@@ -18,6 +18,7 @@
 
   > .btn-icon:hover img {
     content: url('../../../../../public/icons/edit-square-hover.svg');
+    filter: none;
   }
 }
 
@@ -47,6 +48,7 @@
 
   > .btn-icon:hover img {
     content: url('../../../../../public/icons/add-hover.svg');
+    filter: none;
   }
 }
 
@@ -69,14 +71,17 @@
 
     .workspace__caret {
       content: url('../../../../../public/icons/arrow-drop-down-hover.svg');
+      filter: none;
     }
 
     .workspace__section-icon[src*="workspaces.svg"] {
       content: url('../../../../../public/icons/workspaces-hover.svg');
+      filter: none;
     }
 
     .workspace__section-icon[src*="account-circle.svg"] {
       content: url('../../../../../public/icons/account-circle-hover.svg');
+      filter: none;
     }
   }
 }
@@ -148,6 +153,7 @@
 
     .workspace__item-icon {
       content: url('../../../../../public/icons/tag-hover.svg');
+      filter: none;
     }
   }
 
@@ -158,6 +164,7 @@
 
     .workspace__item-icon {
       content: url('../../../../../public/icons/tag-hover.svg');
+      filter: none;
     }
   }
 
@@ -167,6 +174,7 @@
 
       .workspace__item-icon {
         content: url('../../../../../public/icons/add-circle-hover.svg');
+        filter: none;
       }
     }
   }

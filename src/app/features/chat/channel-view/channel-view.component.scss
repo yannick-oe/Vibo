@@ -43,10 +43,12 @@
 
     .channel__title-icon {
       content: url('../../../../../public/icons/tag-hover.svg');
+      filter: none;
     }
 
     .channel__caret {
       content: url('../../../../../public/icons/arrow-down-hover.svg');
+      filter: none;
     }
   }
 }
@@ -119,6 +121,7 @@
   &:hover {
     img {
       content: url('../../../../../public/icons/add-person-hover.svg');
+      filter: none;
     }
   }
 

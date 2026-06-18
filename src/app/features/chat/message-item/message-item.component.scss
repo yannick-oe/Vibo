@@ -193,6 +193,10 @@
 
 .message__edit-btn--save .message__edit-btn-icon { filter: brightness(0) invert(1); }
 
+:host-context([data-theme='dark']) .message__edit-btn--save .message__edit-btn-icon {
+  filter: brightness(0);
+}
+
 @include m.respond-compact {
   .message__edit-btn {
     width: v.$btn-height-sm;

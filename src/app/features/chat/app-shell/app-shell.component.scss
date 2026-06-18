@@ -55,6 +55,10 @@
   height: v.$icon-md;
 }
 
+:host-context([data-theme='dark']) .shell__menu-toggle:hover .shell__menu-toggle-icon {
+  filter: invert(1);
+}
+
 .shell__menu-toggle-label {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
