@@ -16,6 +16,10 @@ export interface DirectMessageDoc {
   participantIds: [string, string];
   /** Creation time; serverTimestamp() sentinel on write, Timestamp on read. */
   createdAt: Timestamp | FieldValue;
+  /** Time of the latest message; denormalized so the sidebar detects unread. */
+  lastMessageAt?: Timestamp | FieldValue;
+  /** Author of the latest message; denormalized for unread detection. */
+  lastMessageAuthorId?: string;
 }
 
 /**

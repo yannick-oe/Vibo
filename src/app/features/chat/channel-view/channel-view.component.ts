@@ -21,7 +21,8 @@ import { UserDoc } from '../../../models/user.model';
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
 import { LayoutService } from '../../../services/layout.service';
-import { MessageService, channelMessagesPath } from '../../../services/message.service';
+import { MessageService, channelMessagesPath, conversationDocPath } from '../../../services/message.service';
+import { ReadStateService } from '../../../services/read-state.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
@@ -64,6 +65,8 @@ export class ChannelViewComponent {
   private readonly channelService = inject(ChannelService);
 
   private readonly messageService = inject(MessageService);
+
+  private readonly readState = inject(ReadStateService);
 
   private readonly userService = inject(UserService);
 
@@ -128,12 +131,33 @@ export class ChannelViewComponent {
     channelMessagesPath(this.channelId()),
   );
 
+  private readonly conversationPath = computed(() =>
+    conversationDocPath(this.messagesCollectionPath()),
+  );
+
+  private readonly lastMessageId = computed(() => {
+    const list = this.messages();
+    return list.length ? list[list.length - 1].id : null;
+  });
+
 
   /**
-   * Focuses the composer on every channel switch.
+   * Focuses the composer on every channel switch and keeps the open channel
+   * marked read as it is opened and as new messages arrive.
    */
   constructor() {
     effect(() => this.handleChannelSwitch(this.channelId()));
+    effect(() => this.markRead());
+  }
+
+
+  /**
+   * Marks the open channel read once it has a message, advancing on every new
+   * one so the active channel always shows zero unread.
+   */
+  private markRead(): void {
+    if (!this.lastMessageId()) return;
+    void this.readState.markRead(this.conversationPath());
   }
 
 

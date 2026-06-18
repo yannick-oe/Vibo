@@ -18,7 +18,9 @@ import { switchMap } from 'rxjs';
 import { Message } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
 import { DirectMessageService } from '../../../services/direct-message.service';
+import { conversationDocPath } from '../../../services/message.service';
 import { PresenceService } from '../../../services/presence.service';
+import { ReadStateService } from '../../../services/read-state.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
@@ -48,6 +50,8 @@ export class DirectMessageViewComponent {
   readonly uid = input.required<string>();
 
   private readonly directMessageService = inject(DirectMessageService);
+
+  private readonly readState = inject(ReadStateService);
 
   private readonly userService = inject(UserService);
 
@@ -96,12 +100,35 @@ export class DirectMessageViewComponent {
       : null,
   );
 
+  private readonly conversationPath = computed(() => {
+    const path = this.messagesCollectionPath();
+    return path ? conversationDocPath(path) : null;
+  });
+
+  private readonly lastMessageId = computed(() => {
+    const list = this.messages();
+    return list.length ? list[list.length - 1].id : null;
+  });
+
 
   /**
-   * Focuses the composer on every conversation switch.
+   * Focuses the composer on every conversation switch and keeps the open
+   * conversation marked read as it is opened and as new messages arrive.
    */
   constructor() {
     effect(() => this.handleConversationSwitch(this.uid()));
+    effect(() => this.markRead());
+  }
+
+
+  /**
+   * Marks the open conversation read once it has a message, advancing on every
+   * new one so the active conversation always shows zero unread.
+   */
+  private markRead(): void {
+    const path = this.conversationPath();
+    if (!path || !this.lastMessageId()) return;
+    void this.readState.markRead(path);
   }
 
 

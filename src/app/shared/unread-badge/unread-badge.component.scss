@@ -1,0 +1,24 @@
+@use 'variables' as v;
+
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: v.space('lg');
+  flex-shrink: 0;
+}
+
+.unread {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: v.space('lg');
+  height: v.space('lg');
+  padding: 0 v.space('xs');
+  border-radius: v.$radius-pill;
+  background-color: v.color('primary');
+  color: v.color('white');
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  line-height: 1;
+}

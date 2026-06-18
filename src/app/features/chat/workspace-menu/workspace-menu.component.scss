@@ -129,6 +129,13 @@
   overflow: hidden;
 }
 
+.workspace__item-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 :host-context([data-theme='dark']) .workspace__item--active {
   @include m.glass(
     $tint: var(--glass-tint-active),
@@ -143,6 +150,7 @@
 .workspace__item {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   gap: v.space('md');
   padding: v.space('xs') v.space('md');
   border: none;

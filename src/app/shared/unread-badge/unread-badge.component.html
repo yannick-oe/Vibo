@@ -1,0 +1,3 @@
+@if (isUnread()) {
+  <span class="unread" [attr.aria-label]="ariaLabel()">{{ badgeText() }}</span>
+}

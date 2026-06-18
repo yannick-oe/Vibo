@@ -5,15 +5,22 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 import { UserDoc } from '../../../models/user.model';
+import { buildConversationId } from '../../../models/direct-message.model';
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
 import { LayoutService } from '../../../services/layout.service';
+import {
+  channelMessagesPath,
+  conversationDocPath,
+  directMessagesPath,
+} from '../../../services/message.service';
 import { PresenceService } from '../../../services/presence.service';
 import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MobileSearchViewComponent } from '../../search/mobile-search-view/mobile-search-view.component';
 import { ChannelCreateDialogComponent } from '../channel-create-dialog/channel-create-dialog.component';
+import { UnreadBadgeComponent } from '../../../shared/unread-badge/unread-badge.component';
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
 
 const GUEST_NAME = 'Gast';
@@ -40,6 +47,7 @@ interface SelfEntry {
     ProfileDialogComponent,
     RouterLink,
     RouterLinkActive,
+    UnreadBadgeComponent,
   ],
   templateUrl: './workspace-menu.component.html',
   styleUrl: './workspace-menu.component.scss',
@@ -71,6 +79,46 @@ export class WorkspaceMenuComponent {
   protected readonly presenceService = inject(PresenceService);
 
   protected readonly self = computed(() => this.buildSelfEntry());
+
+  protected readonly selfUid = computed(() => this.authService.currentUser()?.uid ?? null);
+
+
+  /**
+   * Conversation-document path of a channel, for its unread badge.
+   * @param channelId Firestore id of the channel.
+   */
+  protected channelConvPath(channelId: string): string {
+    return conversationDocPath(channelMessagesPath(channelId));
+  }
+
+
+  /**
+   * Messages-collection path of a channel, for its unread count.
+   * @param channelId Firestore id of the channel.
+   */
+  protected channelMsgPath(channelId: string): string {
+    return channelMessagesPath(channelId);
+  }
+
+
+  /**
+   * Messages-collection path of the conversation with a partner, or empty
+   * while signed out.
+   * @param partnerUid Uid of the conversation partner.
+   */
+  protected dmMsgPath(partnerUid: string): string {
+    const me = this.selfUid();
+    return me ? directMessagesPath(buildConversationId(me, partnerUid)) : '';
+  }
+
+
+  /**
+   * Conversation-document path of the conversation with a partner.
+   * @param partnerUid Uid of the conversation partner.
+   */
+  protected dmConvPath(partnerUid: string): string {
+    return conversationDocPath(this.dmMsgPath(partnerUid));
+  }
 
   protected readonly others = computed(() => this.sortOthers());
 

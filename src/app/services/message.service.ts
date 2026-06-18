@@ -4,8 +4,8 @@
 import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
 import {
   FieldPath,
+  FieldValue,
   Firestore,
-  addDoc,
   arrayRemove,
   arrayUnion,
   collection,
@@ -28,6 +28,17 @@ import { ToastService } from './toast.service';
 
 const MESSAGES_LOAD_ERROR = 'Nachrichten konnten nicht geladen werden.';
 const NOTIFICATION_SOUND_PATH = 'sounds/chat-notification.mp3';
+const MESSAGES_SEGMENT = '/messages';
+
+
+/**
+ * Strips the trailing "/messages" segment off a messages-collection path to
+ * get the owning conversation document (channel or direct conversation).
+ * @param messagesPath Path of a messages subcollection.
+ */
+export function conversationDocPath(messagesPath: string): string {
+  return messagesPath.slice(0, -MESSAGES_SEGMENT.length);
+}
 
 /**
  * Builds the messages subcollection path of a channel.
@@ -83,10 +94,23 @@ export class MessageService {
    */
   async sendMessage(collectionPath: string, text: string): Promise<void> {
     const message = this.buildMessage(text);
-    await runInInjectionContext(this.injector, () =>
-      addDoc(collection(this.firestore, collectionPath), message),
-    );
+    await runInInjectionContext(this.injector, () => {
+      const batch = writeBatch(this.firestore);
+      batch.set(doc(collection(this.firestore, collectionPath)), message);
+      batch.update(doc(this.firestore, conversationDocPath(collectionPath)), this.lastMessagePatch());
+      return batch.commit();
+    });
     this.playNotificationSound();
+  }
+
+
+  /**
+   * Builds the denormalized last-message patch stamped onto the conversation
+   * document in the same batch as a message create, so the sidebar can detect
+   * "new since I last read" from one small doc instead of streaming messages.
+   */
+  private lastMessagePatch(): { lastMessageAt: FieldValue; lastMessageAuthorId: string } {
+    return { lastMessageAt: serverTimestamp(), lastMessageAuthorId: this.authService.requireUid() };
   }
 
 
@@ -104,7 +128,10 @@ export class MessageService {
     await runInInjectionContext(this.injector, () => {
       const batch = writeBatch(this.firestore);
       batch.set(doc(collection(this.firestore, channelMessagesPath(channelId))), message);
-      batch.update(doc(this.firestore, `channels/${channelId}`), { memberIds: arrayUnion(uid) });
+      batch.update(doc(this.firestore, `channels/${channelId}`), {
+        memberIds: arrayUnion(uid),
+        ...this.lastMessagePatch(),
+      });
       return batch.commit();
     });
     this.playNotificationSound();
