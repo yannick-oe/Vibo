@@ -10,9 +10,10 @@
       </div>
     } @else {
       <div class="topbar__workspace">
-        <img class="topbar__brand-logo" src="logos/logo-text.svg" [alt]="appName" />
+        <img class="topbar__brand-logo" [src]="wordmarkSrc()" [alt]="appName" />
       </div>
     }
+    <app-theme-toggle />
     <button
       class="topbar__user topbar__user--mobile"
       type="button"
@@ -31,12 +32,13 @@
     </button>
   } @else {
     <div class="topbar__brand">
-      <img class="topbar__logo" src="logos/logo-text.svg" [alt]="appName" />
+      <img class="topbar__logo" [src]="wordmarkSrc()" [alt]="appName" />
     </div>
 
     <app-search-bar (userSelected)="openUserProfile($event)" />
 
     <div class="topbar__profile">
+      <app-theme-toggle />
       <button
         class="topbar__user"
         type="button"

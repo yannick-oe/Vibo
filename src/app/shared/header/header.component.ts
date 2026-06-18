@@ -1,10 +1,11 @@
 /**
  * @file Global page header with the Vibo brand and the register call-to-action.
  */
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { APP_NAME } from '../app.constants';
+import { ThemeService } from '../../services/theme.service';
 
 /**
  * Displays the brand logo top-left and a "Neu bei Vibo?" call-to-action
@@ -19,7 +20,11 @@ import { APP_NAME } from '../app.constants';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HeaderComponent {
+  private readonly themeService = inject(ThemeService);
+
   protected readonly appName = APP_NAME;
+
+  protected readonly wordmarkSrc = this.themeService.wordmarkSrc;
 
   readonly shouldShowCta = input(true);
 }

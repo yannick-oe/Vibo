@@ -21,6 +21,8 @@ import {
   anchorBelow,
 } from '../../../shared/dialog-shell/dialog-shell.component';
 import { APP_NAME, WORKSPACE_NAME } from '../../../shared/app.constants';
+import { ThemeService } from '../../../services/theme.service';
+import { ThemeToggleComponent } from '../../../shared/theme-toggle/theme-toggle.component';
 
 const GUEST_NAME = 'Gast';
 
@@ -35,7 +37,7 @@ type TopbarState = 'closed' | 'menu';
  */
 @Component({
   selector: 'app-topbar',
-  imports: [DialogShellComponent, ProfileDialogComponent, SearchBarComponent],
+  imports: [DialogShellComponent, ProfileDialogComponent, SearchBarComponent, ThemeToggleComponent],
   templateUrl: './topbar.component.html',
   styleUrl: './topbar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +55,8 @@ export class TopbarComponent {
 
   private readonly threadService = inject(ThreadService);
 
+  private readonly themeService = inject(ThemeService);
+
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
@@ -62,6 +66,8 @@ export class TopbarComponent {
   );
 
   protected readonly appName = APP_NAME;
+
+  protected readonly wordmarkSrc = this.themeService.wordmarkSrc;
 
   protected readonly workspaceName = WORKSPACE_NAME;
 

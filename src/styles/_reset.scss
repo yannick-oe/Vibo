@@ -83,7 +83,7 @@ table {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-primary, #{v.color('primary')});
+  outline: 2px solid #{v.color('primary')};
   outline-offset: 2px;
 }
 

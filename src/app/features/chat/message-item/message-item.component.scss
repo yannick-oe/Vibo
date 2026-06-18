@@ -22,7 +22,7 @@
 }
 
 :host(.message--focus) {
-  background-color: rgba(v.color('primary'), 0.08);
+  background-color: color-mix(in srgb, #{v.color('primary')} 8%, transparent);
   border-radius: v.$radius-lg;
   transition: background-color v.$transition-slow;
 }

@@ -33,7 +33,9 @@
   flex-shrink: 0;
   width: v.$thread-panel-width;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: v.space('sm-md');
 
   @media (max-width: 1380px) {
     width: auto;

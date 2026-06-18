@@ -103,7 +103,7 @@
     }
   }
   
-  &:active { background-color: rgba(v.color('primary'), 0.08); }
+  &:active { background-color: color-mix(in srgb, #{v.color('primary')} 8%, transparent); }
 
   &.btn-sm {
     width: v.$btn-height-sm;

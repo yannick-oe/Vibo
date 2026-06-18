@@ -111,7 +111,7 @@ $form-error-reserved-height: v.font-size('min') * v.$line-height-base * $form-er
 
   &.is-valid {
     border-color: v.color('online');
-    &:focus { box-shadow: 0 0 0 3px rgba(v.color('online'), 0.18); }
+    &:focus { box-shadow: 0 0 0 3px color-mix(in srgb, #{v.color('online')} 18%, transparent); }
   }
 
   &.is-invalid {
@@ -203,7 +203,9 @@ $form-error-reserved-height: v.font-size('min') * v.$line-height-base * $form-er
       content: '';
       position: absolute;
       inset: 2px;
-      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='white' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+      background-color: v.color('white');
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23000' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23000' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
     }
   }
 

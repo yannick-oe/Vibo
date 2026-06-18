@@ -1,0 +1,28 @@
+@use 'variables' as v;
+
+:root {
+  @each $key, $value in v.$colors {
+    --color-#{$key}: #{$value};
+  }
+  --overlay-scrim: rgba(0, 0, 0, 0.3);
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  @each $key, $value in v.$colors-dark {
+    --color-#{$key}: #{$value};
+  }
+  --overlay-scrim: rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  *,
+  *::before,
+  *::after {
+    transition:
+      background-color v.$transition-base,
+      border-color v.$transition-base,
+      color v.$transition-base;
+  }
+}
