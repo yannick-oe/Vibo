@@ -11,3 +11,8 @@
 .DS_Store
 Thumbs.db
 *.log
+
+.claude/
+CLAUDE.md
+src/environments/environment.ts
+src/environments/environment.development.ts

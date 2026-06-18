@@ -1,123 +1,100 @@
 # Vibo
 
-> A Slack-inspired, real-time team chat application — Developer Akademie diploma project.
-
-Vibo is a responsive, accessible chat workspace built with Angular 21 and
-Firebase. It supports channels, direct messages, threaded replies, emoji
-reactions, mentions and global search, with real-time updates across clients.
-
-## Live demo
-
-- **Firebase Hosting:** https://dabubble-b918d.web.app
-- **Developer Akademie:** https://yannick-oetelshoven.developerakademie.net/da-bubble/browser/
-
-> Try it without an account via the **Guest login** on the sign-in screen.
-
-## Features
-
-- **Authentication** — email/password sign-up with avatar selection, login,
-  Google sign-in, guest access, and password reset.
-- **Channels** — create, browse, edit, and leave channels; add members;
-  case-insensitive duplicate-name protection.
-- **Direct messages** — one-to-one conversations with deterministic IDs.
-- **Threads** — reply to any message; thread previews with reply count and last
-  reply time.
-- **Reactions** — emoji reactions with a picker, quick reactions, and a
-  "who reacted" tooltip (Emojitwo artwork).
-- **Mentions** — `@user` and `#channel` autocomplete in the composer.
-- **Search** — global search across accessible channels and conversations.
-- **Message management** — edit your own messages (15-minute window), delete for
-  yourself or for everyone.
-- **Responsive** — works down to 320px; mobile bottom-sheets, full-screen mobile
-  search, and long-press actions on touch devices.
-- **Accessible** — semantic HTML, labelled inputs, keyboard operable, visible
-  focus, reduced-motion support (WCAG 2.1 AA target).
+Vibo is a real-time, Slack-inspired team chat application built as a personal showcase project.
 
 ## Tech stack
 
-- **Framework:** Angular 21 (standalone components, Signals, `@if`/`@for` control
-  flow, OnPush change detection)
-- **Language:** TypeScript (strict)
-- **Styling:** SCSS (7-1 architecture, BEM, design-token maps)
-- **Backend:** Firebase — Authentication, Cloud Firestore, Hosting
-- **Routing:** hash-based (`withHashLocation`) for static/subfolder hosting
+- **Angular 21** — standalone components, Signals, modern control flow (`@if` / `@for`), OnPush change detection
+- **TypeScript** (strict)
+- **SCSS** — 7-1 architecture, BEM, design-token maps
+- **Firebase** — Authentication and Cloud Firestore
+- **Routing** — hash-based (`withHashLocation`) for static and subfolder hosting
+
+## Features
+
+- **Channels** — create, browse, edit, join and leave; case-insensitive duplicate-name protection
+- **Direct messages** — one-to-one conversations with deterministic IDs
+- **Threads** — reply to any message, with reply-count and last-reply previews
+- **Reactions** — emoji reactions with a picker, quick reactions and a "who reacted" tooltip
+- **Real-time presence** — live online status synced across clients
+- **Authentication** — email/password, Google sign-in and one-tap guest login
+- **Search** — global search across accessible channels and conversations
+- **Responsive** — works down to 320px, with mobile bottom-sheets and long-press actions
+- **Accessible** — semantic HTML, labelled inputs, keyboard operable, visible focus and reduced-motion support (WCAG 2.1 AA target)
+
+## Live demo
+
+_Placeholder — live demo URL to be added._
+
+## Screenshots
+
+_Placeholder — screenshots to be added._
 
 ## Getting started
 
 ### Prerequisites
 
-- **Node.js** 20.19+ (or 22.12+) and npm
-- A **Firebase project** with Authentication (Email/Password + Google) and
-  Cloud Firestore enabled
+- Node.js 20.19+ (or 22.12+) and npm
+- A Firebase project with Authentication (Email/Password + Google) and Cloud Firestore enabled
 
 ### Setup
 
+1. Clone the repository and enter it:
+
+   ```bash
+   git clone <repository-url>
+   cd vibo
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Create your local Firebase config from the templates, then fill in your web config (Firebase console → Project settings → General → Your apps):
+
+   ```bash
+   cp src/environments/environment.example.ts src/environments/environment.ts
+   cp src/environments/environment.development.example.ts src/environments/environment.development.ts
+   ```
+
+4. Start the dev server:
+
+   ```bash
+   npm start
+   ```
+
+   The app runs at http://localhost:4200.
+
+### Firestore security rules
+
+The security rules live in `firestore.rules`. Deploy them with:
+
 ```bash
-# 1. Clone
-git clone <repository-url>
-cd vibo
-
-# 2. Install dependencies
-#    (.npmrc sets legacy-peer-deps=true so the @angular/fire RC installs cleanly)
-npm install
-
-# 3. Configure Firebase
-#    Copy the templates and fill in your Firebase web config:
-cp src/environments/environment.example.ts src/environments/environment.ts
-cp src/environments/environment.development.example.ts src/environments/environment.development.ts
-#    Then edit both files with the config from
-#    Firebase console → Project settings → General → Your apps.
-
-# 4. Run the dev server
-npm start            # → http://localhost:4200
-```
-
-### Build & deploy
-
-```bash
-# Production build
-npm run build        # output: dist/vibo/browser
-
-# Deploy to Firebase Hosting (root path)
-firebase deploy --only hosting
-
-# Deploy Firestore security rules
 firebase deploy --only firestore:rules
 ```
 
-> For a subfolder host, build with a matching base href, e.g.
-> `ng build --configuration production --base-href /da-bubble/browser/`.
+### Production build
+
+```bash
+npm run build
+```
 
 ## Project structure
 
-```
-src/
-  app/
-    features/      # auth, chat, legal, profile, search
-    services/      # Firestore/Auth data access (auth, channel, message, …)
-    guards/        # route guards (auth, registration-form)
-    models/        # typed data models
-    shared/        # reusable presentational components
-    app.config.ts  # providers (router, Firebase)
-    app.routes.ts  # route definitions
-  environments/    # Firebase config (gitignored; see *.example.ts)
-  styles/          # SCSS 7-1 architecture + design tokens
-public/            # static assets (icons, logos, avatars, emojis, fonts)
-firestore.rules    # Firestore security rules
-```
+- `src/app/features/` — feature areas (auth, chat, legal, profile, search)
+- `src/app/services/` — Firestore and Auth data access
+- `src/app/shared/` — reusable components and shared constants
+- `src/environments/` — Firebase config (real files are gitignored; copy from the `*.example.ts` templates)
+- `src/styles/` — SCSS 7-1 architecture and design tokens
+- `firestore.rules` — Firestore security rules
 
 ## Credits
 
-- Built as a diploma project at the **[Developer Akademie](https://developerakademie.com/)**.
-- Icons: **[Material Symbols](https://fonts.google.com/icons)** (Google Fonts).
-- Emoji artwork: **[Emojitwo](https://emojitwo.github.io/)**, licensed under
-  [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- Avatar illustrations provided by the Developer Akademie.
-
-## Authors
-
-- **Yannick Oetelshoven**
-- **Jan-Oliver Kämmerer**
+- Originally built as a diploma project at the [Developer Akademie](https://developerakademie.com/), together with Jan-Oliver Kämmerer.
+- Icons: [Material Symbols](https://fonts.google.com/icons) (Google Fonts).
+- Emoji artwork: [Emojitwo](https://emojitwo.github.io/), licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ## License
 
