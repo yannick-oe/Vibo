@@ -17,7 +17,7 @@ $dropdown-max-height: 480px;
 }
 
 .search-bar__input {
-  background-color: v.color('white');
+  @include m.glass;
   padding-right: calc(#{v.space('lg')} + #{v.$icon-md} + #{v.space('md')});
 
   &::-webkit-search-decoration,
@@ -50,8 +50,7 @@ $dropdown-max-height: 480px;
   gap: v.space('xs');
   padding: v.space('sm-md');
   border-radius: v.$radius-lg;
-  background-color: v.color('white');
-  box-shadow: v.$shadow-lg;
+  @include m.glass;
   max-height: $dropdown-max-height;
   overflow-y: auto;
   @include m.scrollbar-thin;

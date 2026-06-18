@@ -86,7 +86,7 @@
 
 @mixin focus-ring($color: v.color('primary')) {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, #{$color} 22%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, #{$color} 22%, transparent), var(--glow-focus);
 }
 
 @mixin focus-ring-error {
@@ -123,6 +123,32 @@
   &::-webkit-scrollbar-thumb {
     background-color: v.color('lines');
     border-radius: v.$radius-pill;
+  }
+}
+
+// ─── Frosted Glass ────────────────────────────────────────────────────────────
+
+@mixin glass(
+  $tint: var(--glass-tint),
+  $border: var(--glass-border),
+  $shadow: var(--glass-shadow),
+  $blur: var(--glass-blur),
+  $saturate: var(--glass-saturate)
+) {
+  background-color: v.color('white');
+  border: 1px solid $border;
+  box-shadow: $shadow, inset 0 1px 0 var(--glass-highlight);
+
+  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    background-color: $tint;
+    -webkit-backdrop-filter: blur($blur) saturate($saturate);
+    backdrop-filter: blur($blur) saturate($saturate);
+  }
+
+  @media (prefers-reduced-transparency: reduce), (prefers-reduced-motion: reduce) {
+    background-color: v.color('white');
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
 

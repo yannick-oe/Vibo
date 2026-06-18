@@ -20,8 +20,7 @@
   max-height: calc(100dvh - #{v.space('xl')});
   padding: v.space('xl-xxl');
   border-radius: v.$radius-xl;
-  background-color: v.color('white');
-  box-shadow: v.$shadow-lg;
+  @include m.glass;
   overflow-y: auto;
   @include m.scrollbar-thin;
 

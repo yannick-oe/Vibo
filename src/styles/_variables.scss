@@ -180,6 +180,7 @@ $dialog-widths: (
   @return map.get($dialog-widths, $key);
 }
 $topbar-height: 60px;
+$topbar-username-max-width: 180px;
 $auth-card-width: 600px;
 $auth-card-width-wide: 700px;
 $content-max-width: 800px;

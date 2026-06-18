@@ -129,6 +129,17 @@
   overflow: hidden;
 }
 
+:host-context([data-theme='dark']) .workspace__item--active {
+  @include m.glass(
+    $tint: var(--glass-tint-active),
+    $border: var(--glass-border-active),
+    $shadow: var(--glow-active),
+    $blur: var(--glass-blur-active),
+    $saturate: var(--glass-saturate-active)
+  );
+  color: v.color('black');
+}
+
 .workspace__item {
   display: inline-flex;
   align-items: center;

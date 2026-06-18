@@ -9,6 +9,15 @@
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
   --shadow-strong: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --aurora: radial-gradient(100% 70% at 12% -10%, color-mix(in srgb, var(--color-primary) 7%, transparent) 0%, transparent 55%);
+  --glass-tint: color-mix(in srgb, var(--color-white) 78%, transparent);
+  --glass-border: color-mix(in srgb, var(--color-lines) 85%, transparent);
+  --glass-highlight: rgba(255, 255, 255, 0.55);
+  --glass-shadow: var(--shadow-md);
+  --glass-blur: 18px;
+  --glass-saturate: 120%;
+  --glow-primary: 0 0 0 0 transparent;
+  --glow-focus: 0 0 0 0 transparent;
   color-scheme: light;
 }
 
@@ -21,6 +30,24 @@
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--color-lines);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--color-lines);
   --shadow-strong: 0 4px 12px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--color-lines);
+  --aurora:
+    radial-gradient(85% 75% at 8% -5%, color-mix(in srgb, var(--color-primary) 30%, transparent) 0%, transparent 62%),
+    radial-gradient(80% 75% at 95% 100%, color-mix(in srgb, var(--color-accent) 24%, transparent) 0%, transparent 60%);
+  --glass-tint: color-mix(in srgb, var(--color-white) 55%, transparent);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.1);
+  --glass-shadow: var(--shadow-lg);
+  --glass-blur: 24px;
+  --glass-saturate: 150%;
+  --glass-tint-active: color-mix(in srgb, var(--color-primary) 15%, var(--glass-tint));
+  --glass-border-active: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  --glass-blur-active: 30px;
+  --glass-saturate-active: 180%;
+  --glow-active:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 42%, transparent),
+    inset 0 0 22px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  --glow-primary: 0 0 18px color-mix(in srgb, var(--color-primary) 26%, transparent);
+  --glow-focus: 0 0 14px color-mix(in srgb, var(--color-primary) 30%, transparent);
   color-scheme: dark;
 }
 

@@ -13,6 +13,7 @@
   height: 100dvh;
   overflow: hidden;
   background-color: v.color('bg');
+  background-image: var(--aurora);
 }
 
 .shell__panels {
@@ -72,8 +73,7 @@
   flex-shrink: 0;
   margin-left: v.space('lg');
   border-radius: v.$radius-lg;
-  background-color: v.color('white');
-  box-shadow: v.$shadow-sm;
+  @include m.glass;
   overflow: hidden;
   transition: width v.$transition-slow, margin-left v.$transition-slow, opacity v.$transition-slow;
 

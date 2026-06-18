@@ -47,6 +47,7 @@
 .btn-primary {
   background-color: v.color('primary');
   color: v.color('white');
+  box-shadow: var(--glow-primary);
 
   &:hover   { background-color: v.color('primary-hover'); }
   &:active  { background-color: v.color('primary-active'); }

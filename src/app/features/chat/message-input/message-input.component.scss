@@ -7,9 +7,8 @@
   flex-direction: column;
   gap: v.space('sm');
   padding: v.space('md') v.space('lg');
-  border: 1px solid v.color('lines');
   border-radius: v.$radius-lg;
-  background-color: v.color('white');
+  @include m.glass;
 
   &:focus-within {
     border-color: v.color('primary');

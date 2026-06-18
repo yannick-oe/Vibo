@@ -13,7 +13,6 @@
         <img class="topbar__brand-logo" [src]="wordmarkSrc()" [alt]="appName" />
       </div>
     }
-    <app-theme-toggle />
     <button
       class="topbar__user topbar__user--mobile"
       type="button"
@@ -38,7 +37,6 @@
     <app-search-bar (userSelected)="openUserProfile($event)" />
 
     <div class="topbar__profile">
-      <app-theme-toggle />
       <button
         class="topbar__user"
         type="button"
@@ -46,7 +44,7 @@
         [attr.aria-expanded]="state() === 'menu'"
         (click)="openMenu($event)"
       >
-        <span class="topbar__user-name">{{ userName() }}</span>
+        <span class="topbar__user-name" [title]="userName()">{{ userName() }}</span>
         <span class="topbar__avatar-wrap">
           <img
             class="topbar__avatar"
@@ -64,16 +62,40 @@
 
 @if (state() === 'menu') {
   <app-dialog-shell [anchor]="menuAnchor()" size="menu" labelledBy="topbar-menu-title" (closed)="close()">
-    <h2 class="sr-only" id="topbar-menu-title">Profilmenü</h2>
-    <div class="topbar__menu" role="menu">
-      <button class="topbar__menu-item topbar__menu-item--profile" type="button" role="menuitem" (click)="openProfile()">
-        <img src="icons/account-circle.svg" alt="" aria-hidden="true" />
-        Profil
-      </button>
-      <button class="topbar__menu-item topbar__menu-item--logout" type="button" role="menuitem" (click)="logout()">
-        <img src="icons/logout.svg" alt="" aria-hidden="true" />
-        Log out
-      </button>
+    <div class="topbar__menu">
+      <div class="topbar__menu-header">
+        <img class="topbar__menu-avatar" [src]="avatarSrc()" [alt]="avatarAlt()" (error)="useAvatarFallback($event)" />
+        <span class="topbar__menu-name" id="topbar-menu-title" [title]="userName()">{{ userName() }}</span>
+      </div>
+      <div class="topbar__menu-items" role="menu">
+        <button class="topbar__menu-item topbar__menu-item--profile" type="button" role="menuitem" (click)="openProfile()">
+          <img src="icons/account-circle.svg" alt="" aria-hidden="true" />
+          Profil
+        </button>
+        <button
+          class="topbar__menu-item topbar__menu-item--theme"
+          type="button"
+          role="menuitemcheckbox"
+          [attr.aria-checked]="isDark()"
+          (click)="toggleTheme()"
+        >
+          @if (isDark()) {
+            <svg class="topbar__menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+            </svg>
+          } @else {
+            <svg class="topbar__menu-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+            </svg>
+          }
+          {{ themeLabel() }}
+        </button>
+        <button class="topbar__menu-item topbar__menu-item--logout" type="button" role="menuitem" (click)="logout()">
+          <img src="icons/logout.svg" alt="" aria-hidden="true" />
+          Log out
+        </button>
+      </div>
     </div>
   </app-dialog-shell>
 }

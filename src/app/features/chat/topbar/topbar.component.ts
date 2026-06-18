@@ -22,9 +22,10 @@ import {
 } from '../../../shared/dialog-shell/dialog-shell.component';
 import { APP_NAME, WORKSPACE_NAME } from '../../../shared/app.constants';
 import { ThemeService } from '../../../services/theme.service';
-import { ThemeToggleComponent } from '../../../shared/theme-toggle/theme-toggle.component';
 
 const GUEST_NAME = 'Gast';
+const DARK_MODE_LABEL = 'Dark Mode';
+const LIGHT_MODE_LABEL = 'Light Mode';
 
 type TopbarState = 'closed' | 'menu';
 
@@ -37,7 +38,7 @@ type TopbarState = 'closed' | 'menu';
  */
 @Component({
   selector: 'app-topbar',
-  imports: [DialogShellComponent, ProfileDialogComponent, SearchBarComponent, ThemeToggleComponent],
+  imports: [DialogShellComponent, ProfileDialogComponent, SearchBarComponent],
   templateUrl: './topbar.component.html',
   styleUrl: './topbar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,6 +69,12 @@ export class TopbarComponent {
   protected readonly appName = APP_NAME;
 
   protected readonly wordmarkSrc = this.themeService.wordmarkSrc;
+
+  protected readonly isDark = this.themeService.isDark;
+
+  protected readonly themeLabel = computed(() =>
+    this.isDark() ? LIGHT_MODE_LABEL : DARK_MODE_LABEL,
+  );
 
   protected readonly workspaceName = WORKSPACE_NAME;
 
@@ -118,6 +125,14 @@ export class TopbarComponent {
    */
   protected close(): void {
     this.state.set('closed');
+  }
+
+
+  /**
+   * Toggles light/dark mode, leaving the menu open so the change is visible.
+   */
+  protected toggleTheme(): void {
+    this.themeService.toggle();
   }
 
 
