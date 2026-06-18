@@ -68,6 +68,6 @@
 
   <rect x="40" y="40" width="432" height="432" rx="116" fill="none" stroke="url(#border)" stroke-width="11" filter="url(#glow)"/>
 </svg>
-<text id="wm" x="226" y="120" font-family="Nunito, 'Trebuchet MS', sans-serif" font-weight="800" font-size="138" letter-spacing="-2" dominant-baseline="central" fill="#0F0A2A">Vibo</text>
+<text id="wm" x="226" y="120" font-family="Nunito, 'Trebuchet MS', sans-serif" font-weight="800" font-size="138" letter-spacing="-2" dominant-baseline="central" fill="#FFFFFF">Vibo</text>
 </g>
 </svg>

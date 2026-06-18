@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// DABubble production rules. Default deny: anything not explicitly
+// Vibo production rules. Default deny: anything not explicitly
 // allowed below is rejected. Deployed via `firebase deploy --only
 // firestore:rules` (see firebase.json); the model is documented in
 // CLAUDE.md.
