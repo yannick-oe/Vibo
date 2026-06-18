@@ -40,8 +40,8 @@
 .header__cta {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: v.space('xs');
+  align-items: center;
+  gap: v.space('sm');
 
   @include m.respond-md {
     display: none;
@@ -49,9 +49,24 @@
 }
 
 .header__cta-text {
-  color: v.color('black');
+  color: v.color('text-gray');
 }
 
 .header__cta-link {
+  padding: 0;
+  border: none;
   font-size: v.font-size('body');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('primary');
+
+  &:hover {
+    color: v.color('primary-hover');
+    font-weight: v.$font-weight-semibold;
+    border: none;
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
 }
