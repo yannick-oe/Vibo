@@ -1,0 +1,93 @@
+<section class="auth-card register-card">
+  <header class="auth-card__head">
+    <button class="btn btn-icon" type="button" aria-label="Zurück" (click)="goBack()">
+      <img src="icons/arrow-left.svg" alt="" aria-hidden="true" />
+    </button>
+    <h1 #title class="register-card__title" tabindex="-1">Konto erstellen</h1>
+  </header>
+
+  <p class="register-card__intro">
+    Mit deinem Namen und deiner E-Mail-Adresse hast du dein neues DABubble-Konto.
+  </p>
+
+  <form class="register-card__form" [formGroup]="form" (ngSubmit)="continueToAvatar()">
+    <div class="form-field">
+      <label class="sr-only" for="register-name">Name und Nachname</label>
+      <div class="form-input-wrapper form-input-wrapper--leading">
+        <img class="form-input-icon icon-person" [src]="isNameFocused ? 'icons/person.svg' : 'icons/person-grey.svg'" alt="" aria-hidden="true" />
+        <input
+          id="register-name"
+          class="form-input"
+          type="text"
+          formControlName="name"
+          autocomplete="name"
+          placeholder="Name und Nachname"
+          aria-describedby="register-name-error"
+          [attr.aria-invalid]="isInvalid('name')"
+          (focus)="isNameFocused = true"
+          (blur)="isNameFocused = false"
+        />
+      </div>
+      <p class="form-error" id="register-name-error" aria-live="polite">{{ errorMessage('name') }}</p>
+    </div>
+
+    <div class="form-field">
+      <label class="sr-only" for="register-email">E-Mail-Adresse</label>
+      <div class="form-input-wrapper form-input-wrapper--leading">
+        <img class="form-input-icon" [src]="isEmailFocused ? 'icons/mail.svg' : 'icons/mail-grey.svg'" alt="" aria-hidden="true" />
+        <input
+          id="register-email"
+          class="form-input"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          placeholder="beispielname&#64;email.com"
+          aria-describedby="register-email-error"
+          [attr.aria-invalid]="isInvalid('email')"
+          (focus)="isEmailFocused = true"
+          (blur)="isEmailFocused = false"
+        />
+      </div>
+      <p class="form-error" id="register-email-error" aria-live="polite">{{ errorMessage('email') }}</p>
+    </div>
+
+    <div class="form-field">
+      <label class="sr-only" for="register-password">Passwort</label>
+      <app-password-input
+        inputId="register-password"
+        formControlName="password"
+        placeholder="Passwort"
+        autocomplete="new-password"
+        [leadingIcon]="isPasswordFocused ? 'icons/lock.svg' : 'icons/lock-grey.svg'"
+        describedBy="register-password-error"
+        [isInvalid]="isInvalid('password')"
+        (focus)="isPasswordFocused = true"
+        (blur)="isPasswordFocused = false"
+      />
+      <p class="form-error" id="register-password-error" aria-live="polite">{{ errorMessage('password') }}</p>
+    </div>
+
+    <div class="form-field">
+      <label class="form-checkbox-label" for="register-privacy">
+        <input
+          id="register-privacy"
+          class="form-checkbox"
+          type="checkbox"
+          formControlName="privacy"
+          aria-describedby="register-privacy-error"
+          [attr.aria-invalid]="isInvalid('privacy')"
+        />
+        <span>
+          Ich stimme der
+          <a routerLink="/legal/privacy" (click)="stopEvent($event)">Datenschutzerklärung</a>
+          zu.
+        </span>
+      </label>
+      <p class="form-error" id="register-privacy-error" aria-live="polite">{{ errorMessage('privacy') }}</p>
+    </div>
+
+    <div class="register-card__actions">
+      <button class="btn btn-primary" type="submit" [disabled]="form.invalid">Weiter</button>
+    </div>
+  </form>
+</section>

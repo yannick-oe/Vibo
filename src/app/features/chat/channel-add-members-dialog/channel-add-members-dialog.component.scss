@@ -1,0 +1,121 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$results-max-height: 240px;
+
+.add-members__head {
+  @include m.flex-between;
+
+  gap: v.space('md');
+}
+
+.add-members__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+  min-width: 0;
+}
+
+.add-members__title {
+  font-size: v.font-size('h4');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.add-members__context {
+  font-size: v.font-size('min');
+  color: v.color('primary');
+  @include m.text-ellipsis;
+}
+
+.add-members__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: v.space('sm');
+}
+
+.add-members__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: v.space('sm');
+  padding: v.space('xs') v.space('sm-md');
+  border-radius: v.$radius-pill;
+  background-color: v.color('bg');
+  font-size: v.font-size('min');
+  color: v.color('black');
+}
+
+.add-members__chip-avatar {
+  width: v.$avatar-xs;
+  height: v.$avatar-xs;
+  border-radius: v.$radius-round;
+  object-fit: cover;
+}
+
+.add-members__chip-remove {
+  @include m.flex-center;
+
+  width: v.$icon-md;
+  height: v.$icon-md;
+  border: none;
+  border-radius: v.$radius-round;
+  background: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: v.color('white');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  img {
+    width: v.$icon-sm;
+    height: v.$icon-sm;
+  }
+}
+
+.add-members__results {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: v.space('xs');
+  max-height: $results-max-height;
+  overflow-y: auto;
+  @include m.scrollbar-thin;
+}
+
+.add-members__result {
+  display: inline-flex;
+  align-items: center;
+  gap: v.space('md');
+  padding: v.space('xs') v.space('md');
+  border: none;
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+  font-size: v.font-size('body');
+  color: v.color('black');
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+.add-members__result-avatar {
+  width: v.$avatar-md;
+  height: v.$avatar-md;
+  border-radius: v.$radius-round;
+  object-fit: cover;
+}
+
+.add-members__actions {
+  display: flex;
+  justify-content: flex-end;
+}

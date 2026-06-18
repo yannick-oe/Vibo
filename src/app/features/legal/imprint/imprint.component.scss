@@ -1,0 +1,34 @@
+@use 'variables' as v;
+
+:host {
+  display: contents;
+}
+
+.imprint-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: v.space-fluid('md', 'lg');
+  text-align: left;
+}
+
+.imprint-card__title {
+  color: v.color('primary');
+  margin-top: v.space('md');
+}
+
+.imprint-card__subtitle {
+  color: v.color('primary');
+  font-size: v.font-size('h3');
+  margin-top: v.space('lg');
+}
+
+.imprint-card__address {
+  font-style: normal;
+  line-height: v.$line-height-base;
+}
+
+.imprint-card__note {
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+}

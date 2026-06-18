@@ -1,0 +1,241 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$form-error-reserved-lines: 2;
+$form-error-reserved-height: v.font-size('min') * v.$line-height-base * $form-error-reserved-lines;
+
+// ─── Field Wrapper ────────────────────────────────────────────────────────────
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+}
+
+// ─── Label ───────────────────────────────────────────────────────────────────
+
+.form-label {
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('black');
+}
+
+// ─── Input Wrapper (for icon slots) ───────────────────────────────────────────
+
+.form-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  cursor: pointer;
+
+  &:hover {
+    .form-input:not(:focus):not(:disabled) {
+      border: 1px solid v.color('text-gray');
+    }
+  }
+
+  .form-input {
+    cursor: pointer;
+    
+    &:focus {
+      cursor: text;
+    }
+  }
+
+  &--leading .form-input { padding-left: v.space('lg') + v.$icon-md + v.space('md'); }
+
+  &--trailing .form-input {
+    padding-right: v.space('sm-md') + v.$btn-height-sm + v.space('xs');
+  }
+
+  .form-input-icon {
+    position: absolute;
+    left: v.space('lg');
+    width: v.$icon-md;
+    height: v.$icon-md;
+    pointer-events: none;
+    color: v.color('text-gray');
+  }
+
+  .form-input-action {
+    position: absolute;
+    right: v.space('sm-md');
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: v.$btn-height-sm;
+    height: v.$btn-height-sm;
+    border: none;
+    border-radius: v.$radius-round;
+    background: none;
+    cursor: pointer;
+    transition: background-color v.$transition-base;
+
+    &:hover { background-color: v.color('white'); }
+
+    &:focus-visible { @include m.focus-ring; }
+
+    img {
+      width: v.$icon-md;
+      height: v.$icon-md;
+    }
+  }
+}
+
+// ─── Input & Textarea ────────────────────────────────────────────────────────
+
+.form-input {
+  width: 100%;
+  height: v.$input-height;
+  padding: 0 v.space('md');
+  border: 1.5px solid transparent;
+  border-radius: v.$radius-pill;
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-medium;
+  color: v.color('black');
+  background-color: v.color('bg');
+  transition:
+    border-color v.$transition-base,
+    box-shadow v.$transition-base;
+
+  &::placeholder {
+    color: v.color('text-gray');
+    font-weight: v.$font-weight-regular;
+  }
+
+  &:focus {
+    border-color: v.color('primary');
+    outline: none;
+  }
+
+  &.is-valid {
+    border-color: v.color('online');
+    &:focus { box-shadow: 0 0 0 3px rgba(v.color('online'), 0.18); }
+  }
+
+  &.is-invalid {
+    border-color: v.color('error');
+    &:focus { box-shadow: v.$shadow-focus-error; }
+  }
+
+  &:disabled {
+    background-color: v.color('bg');
+    color: v.color('text-gray');
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  &--outlined {
+    background-color: v.color('white');
+    border-color: v.color('lines');
+  }
+}
+
+.form-textarea {
+  height: auto;
+  min-height: 96px;
+  padding: v.space('sm-md') v.space('md');
+  border-radius: v.$radius-md;
+  resize: vertical;
+  line-height: v.$line-height-base;
+}
+
+// ─── Messages ────────────────────────────────────────────────────────────────
+
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: v.space('xs');
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-medium;
+  color: v.color('error-text');
+  min-height: 18px;
+}
+
+.form-field .form-error {
+  align-items: flex-start;
+  min-height: 1.778rem;
+  line-height: v.$line-height-base;
+}
+
+.form-success {
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-medium;
+  color: v.color('online');
+  min-height: 18px;
+}
+
+.form-hint {
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+}
+
+// ─── Checkbox ────────────────────────────────────────────────────────────────
+
+.form-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  cursor: pointer;
+  user-select: none;
+  font-size: v.font-size('min');
+  color: v.color('black');
+}
+
+.form-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid v.color('lines');
+  border-radius: v.$radius-xs;
+  background-color: v.color('white');
+  flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  position: relative;
+  transition: border-color v.$transition-base, background-color v.$transition-base;
+
+  &:checked {
+    background-color: v.color('primary');
+    border-color: v.color('primary');
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='white' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+  }
+
+  &:focus-visible { @include m.focus-ring; }
+}
+
+// ─── Radio ───────────────────────────────────────────────────────────────────
+
+.form-radio {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid v.color('lines');
+  border-radius: v.$radius-round;
+  background-color: v.color('white');
+  flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  position: relative;
+  transition: border-color v.$transition-base;
+
+  &:checked {
+    border-color: v.color('primary');
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border-radius: v.$radius-round;
+      background-color: v.color('primary');
+    }
+  }
+
+  &:focus-visible { @include m.focus-ring; }
+}

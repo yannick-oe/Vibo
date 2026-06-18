@@ -1,0 +1,55 @@
+<section class="dm">
+  <h1 class="sr-only">{{ displayName() }}</h1>
+  <header class="dm__head">
+    <button
+      class="dm__partner"
+      type="button"
+      aria-label="Profil anzeigen"
+      [attr.aria-expanded]="profileOpen()"
+      (click)="profileOpen.set(true)"
+    >
+      <span class="dm__avatar-wrap">
+        <img class="dm__avatar" [src]="partnerAvatar()" alt="" aria-hidden="true" />
+        <span class="dm__status" [class.dm__status--offline]="!presenceService.isOnline(uid())" aria-hidden="true"></span>
+      </span>
+      <span class="dm__name">{{ displayName() }}</span>
+    </button>
+  </header>
+
+  @if (messages().length === 0) {
+    <div class="dm__empty">
+      <img class="dm__empty-avatar" [src]="partnerAvatar()" alt="" aria-hidden="true" />
+      <h2 class="dm__empty-name">{{ displayName() }}</h2>
+      @if (isSelf()) {
+        <p class="dm__empty-text">
+          <strong class="dm__empty-lead">Dieser Raum ist nur für dich da.</strong>
+          Mache dir Notizen, liste deine To-dos auf oder bewahre Links und Dateien griffbereit
+          auf. Du kannst hier auch gerne Dinge mit dir selbst besprechen.
+        </p>
+      } @else {
+        <p class="dm__empty-text">
+          Diese Unterhaltung findet nur zwischen
+          <span class="dm__empty-mention">&#64;{{ partnerName() }}</span> und dir statt.
+        </p>
+      }
+    </div>
+  } @else {
+    <div class="dm__list">
+      <app-message-list
+        [messages]="messages()"
+        [resetKey]="uid()"
+        [openThreadId]="openThreadMessageId()"
+        [collectionPath]="messagesCollectionPath()"
+        (threadRequested)="toggleThread($event)"
+      />
+    </div>
+  }
+
+  <div class="dm__composer">
+    <app-message-input [placeholder]="composerPlaceholder()" (send)="sendMessage($event)" />
+  </div>
+</section>
+
+@if (profileOpen()) {
+  <app-profile-dialog [uid]="uid()" (closed)="profileOpen.set(false)" />
+}

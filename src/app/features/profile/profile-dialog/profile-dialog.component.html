@@ -1,0 +1,88 @@
+<app-dialog-shell [anchor]="anchor()" labelledBy="profile-dialog-title" size="profile" (closed)="closed.emit()">
+  <header class="profile__head">
+    <h2 class="profile__title" id="profile-dialog-title">
+      {{ mode() === 'edit' ? 'Dein Profil bearbeiten' : 'Profil' }}
+    </h2>
+    <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="closed.emit()">
+      <img src="icons/close.svg" alt="" aria-hidden="true" />
+    </button>
+  </header>
+
+  @if (mode() === 'view') {
+    <img class="profile__avatar" [src]="avatarSrc()" alt="" aria-hidden="true" />
+
+    <div class="profile__name-row">
+      <h3 class="profile__name">{{ displayName() }}</h3>
+      @if (isSelf()) {
+        <button class="profile__edit-link" type="button" (click)="startEdit()">Bearbeiten</button>
+      }
+    </div>
+
+    <p class="profile__status" [class.profile__status--away]="!isSelf()">
+      <span class="profile__status-dot" aria-hidden="true"></span>
+      {{ statusLabel() }}
+    </p>
+
+    @if (email(); as mailAddress) {
+      <div class="profile__mail">
+        <div class="profile__mail-label">
+          <img src="icons/mail.svg" alt="" aria-hidden="true" />
+          E-Mail-Adresse
+        </div>
+        <a class="profile__mail-value" [href]="'mailto:' + mailAddress">{{ mailAddress }}</a>
+      </div>
+    }
+
+    @if (!isSelf()) {
+      <footer class="profile__actions">
+        <button class="btn btn-primary" type="button" (click)="message()">
+          <img src="icons/comment-white.svg" alt="" aria-hidden="true" />
+          Nachricht
+        </button>
+      </footer>
+    }
+  } @else {
+    <img class="profile__avatar" [src]="optionSrc(selectedAvatar())" alt="" aria-hidden="true" />
+
+    <ul class="profile__avatar-options">
+      @for (option of avatars; track option.path) {
+        <li>
+          <button
+            class="profile__avatar-option"
+            type="button"
+            [class.profile__avatar-option--selected]="selectedAvatar() === option.path"
+            [attr.aria-label]="'Avatar ' + option.label + ' auswählen'"
+            [attr.aria-pressed]="selectedAvatar() === option.path"
+            (click)="selectAvatar(option.path)"
+          >
+            <img [src]="optionSrc(option.path)" alt="" aria-hidden="true" />
+          </button>
+        </li>
+      }
+    </ul>
+
+    <div class="form-field">
+      <label class="form-label profile__label" for="profile-name">
+        <img src="icons/account-circle.svg" alt="" aria-hidden="true" />
+        Vollständiger Name
+      </label>
+      <input
+        id="profile-name"
+        class="form-input form-input--outlined"
+        type="text"
+        [value]="nameDraft()"
+        (input)="onNameInput($event)"
+        aria-describedby="profile-name-error"
+        [attr.aria-invalid]="nameError() !== ''"
+      />
+      <p class="form-error" id="profile-name-error">{{ nameError() }}</p>
+    </div>
+
+    <footer class="profile__actions profile__actions--edit">
+      <button class="btn btn-secondary" type="button" (click)="cancelEdit()">Abbrechen</button>
+      <button class="btn btn-primary" type="button" [disabled]="!canSave()" (click)="save()">
+        Speichern
+      </button>
+    </footer>
+  }
+</app-dialog-shell>

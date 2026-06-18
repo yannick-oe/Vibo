@@ -1,0 +1,46 @@
+<section class="auth-card avatar-card">
+  <header class="auth-card__head auth-card__head--start">
+    <button class="btn btn-icon" type="button" aria-label="Zurück" (click)="goBack()">
+      <img src="icons/arrow-left.svg" alt="" aria-hidden="true" />
+    </button>
+    <h1 #title class="avatar-card__title" tabindex="-1">Wähle deinen Avatar</h1>
+  </header>
+
+  <div class="avatar-card__preview">
+    <img [src]="previewPath()" alt="Aktuell gewählter Avatar" />
+  </div>
+
+  <p class="avatar-card__name">{{ userName() }}</p>
+
+  <div class="avatar-card__picker">
+    <p class="avatar-card__hint">Aus der Liste wählen</p>
+    <ul class="avatar-card__list">
+      @for (avatar of avatars; track avatar.path) {
+        <li>
+          <button
+            class="avatar-card__option"
+            type="button"
+            [class.avatar-card__option--selected]="isSelected(avatar.path)"
+            [attr.aria-pressed]="isSelected(avatar.path)"
+            [attr.aria-label]="'Avatar ' + avatar.label + ' wählen'"
+            (click)="select(avatar.path)"
+          >
+            <img [src]="avatar.path" alt="" aria-hidden="true" />
+          </button>
+        </li>
+      }
+    </ul>
+  </div>
+
+  <div class="avatar-card__actions">
+    <p class="form-error" role="alert">{{ generalError() }}</p>
+    <button
+      class="btn btn-primary"
+      type="button"
+      [disabled]="isPending() || isSuccess()"
+      (click)="submit()"
+    >
+      Weiter
+    </button>
+  </div>
+</section>

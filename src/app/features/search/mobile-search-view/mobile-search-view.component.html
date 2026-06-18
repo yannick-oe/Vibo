@@ -1,0 +1,19 @@
+<app-dialog-shell size="search" labelledBy="mobile-search-title" (closed)="closed.emit()">
+  <header class="search-view__head">
+    <h2 class="search-view__title" id="mobile-search-title">Search</h2>
+    <button
+      class="btn btn-icon btn-sm"
+      type="button"
+      aria-label="Suche schließen"
+      (click)="closed.emit()"
+    >
+      <img src="icons/close.svg" alt="" aria-hidden="true" />
+    </button>
+  </header>
+
+  <app-search-bar
+    [fullscreen]="true"
+    (userSelected)="userSelected.emit($event)"
+    (picked)="closed.emit()"
+  />
+</app-dialog-shell>

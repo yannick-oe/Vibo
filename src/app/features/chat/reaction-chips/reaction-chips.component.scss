@@ -1,0 +1,113 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+:host {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: v.space('sm');
+  max-width: 100%;
+}
+
+.chips__chip,
+.chips__more {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: v.space('xs');
+  padding: v.space('xs') v.space('sm-md');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-pill;
+  background-color: v.color('white');
+  cursor: pointer;
+  font-size: v.font-size('min');
+  color: v.color('black');
+  transition: border-color v.$transition-fast, background-color v.$transition-fast;
+
+  &:hover {
+    border-color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+.chips__chip--active {
+  border-color: v.color('primary');
+  background-color: v.color('bg');
+}
+
+.chips__count {
+  font-size: v.font-size('min');
+}
+
+.chips__emoji {
+  width: v.$icon-sm;
+  height: v.$icon-sm;
+}
+
+.chips__tooltip-emoji {
+  width: v.$icon-sm;
+  height: v.$icon-sm;
+}
+
+.chips__tooltip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: v.space('xs');
+  position: absolute;
+  bottom: calc(100% + #{v.space('xs')});
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: v.$z-tooltip;
+  padding: v.space('xs') v.space('md');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-sm;
+  background-color: v.color('white');
+  box-shadow: v.$shadow-md;
+  font-size: v.font-size('min');
+  color: v.color('black');
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity v.$transition-fast;
+}
+
+.chips__chip:hover .chips__tooltip,
+.chips__chip:focus-visible .chips__tooltip {
+  opacity: 1;
+}
+
+.chips__add {
+  @include m.flex-center;
+
+  width: v.$icon-lg;
+  height: v.$icon-lg;
+  border: none;
+  border-radius: v.$radius-round;
+  background: none;
+  cursor: pointer;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  img {
+    width: v.$icon-sm;
+    height: v.$icon-sm;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chips__tooltip {
+    transition: none;
+  }
+}

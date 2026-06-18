@@ -1,0 +1,213 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$results-max-height: 240px;
+
+.create-channel {
+  position: fixed;
+  inset: 0;
+  z-index: v.$z-modal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: v.space('md');
+  background-color: v.$overlay-scrim;
+}
+
+.create-channel__dialog {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('lg');
+  width: min(v.dialog-width('default'), 100%);
+  max-height: calc(100dvh - #{v.space('xl')});
+  padding: v.space('xl-xxl');
+  border-radius: v.$radius-xl;
+  background-color: v.color('white');
+  box-shadow: v.$shadow-lg;
+  overflow-y: auto;
+  transform-origin: center;
+  animation: balloon-inflate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  @include m.scrollbar-thin;
+
+  @include m.respond-sm {
+    padding: v.space('lg');
+    border-radius: v.$radius-md;
+  }
+}
+
+.create-channel__head {
+  @include m.flex-between;
+
+  gap: v.space('md');
+}
+
+.create-channel__title {
+  font-size: v.font-size('h4');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.create-channel__intro {
+  font-size: v.font-size('body');
+  color: v.color('text-gray');
+  line-height: v.$line-height-base;
+}
+
+.create-channel__form {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('lg');
+}
+
+.create-channel__label {
+  font-size: v.font-size('body');
+}
+
+.create-channel__optional {
+  color: v.color('text-gray');
+  font-weight: v.$font-weight-regular;
+}
+
+.create-channel__modes {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('md');
+  border: none;
+  padding: 0;
+}
+
+.create-channel__mode {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm-md');
+  cursor: pointer;
+  font-size: v.font-size('body');
+  color: v.color('black');
+}
+
+.create-channel__workspace {
+  color: v.color('primary');
+}
+
+.create-channel__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: v.space('sm');
+}
+
+.create-channel__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: v.space('sm');
+  padding: v.space('xs') v.space('sm-md');
+  border-radius: v.$radius-pill;
+  background-color: v.color('bg');
+  font-size: v.font-size('min');
+  color: v.color('black');
+}
+
+.create-channel__chip-avatar {
+  width: v.$avatar-xs;
+  height: v.$avatar-xs;
+  border-radius: v.$radius-round;
+  object-fit: cover;
+}
+
+.create-channel__chip-remove {
+  @include m.flex-center;
+
+  width: v.$icon-md;
+  height: v.$icon-md;
+  border: none;
+  border-radius: v.$radius-round;
+  background: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: v.color('white');
+  }
+
+  img {
+    width: v.$icon-sm;
+    height: v.$icon-sm;
+  }
+}
+
+.create-channel__results {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: v.space('xs');
+  max-height: $results-max-height;
+  overflow-y: auto;
+  @include m.scrollbar-thin;
+}
+
+.create-channel__result {
+  display: inline-flex;
+  align-items: center;
+  gap: v.space('md');
+  padding: v.space('xs') v.space('md');
+  border: none;
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+  font-size: v.font-size('body');
+  color: v.color('black');
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+}
+
+.create-channel__result-avatar {
+  width: v.$avatar-md;
+  height: v.$avatar-md;
+  border-radius: v.$radius-round;
+  object-fit: cover;
+}
+
+.create-channel__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@keyframes balloon-inflate {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-channel__dialog {
+    animation: none;
+  }
+}
+
+@include m.sheet-keyframes;
+
+@include m.respond-md {
+  .create-channel {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .create-channel__dialog {
+    @include m.sheet-card;
+
+    padding: v.space('md') v.space('md') v.space('lg');
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-channel__dialog {
+    animation: none;
+  }
+}

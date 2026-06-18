@@ -1,0 +1,87 @@
+<div class="actions" role="toolbar" aria-label="Nachrichtenaktionen">
+  @for (emoji of quickEmojis(); track emoji) {
+    <button
+      class="actions__btn"
+      type="button"
+      [attr.aria-label]="'Mit ' + emoji + ' reagieren'"
+      (click)="reacted.emit(emoji)"
+    >
+      @if (assetFor(emoji); as asset) {
+        <img [src]="asset" alt="" aria-hidden="true" />
+      } @else {
+        <span aria-hidden="true">{{ emoji }}</span>
+      }
+    </button>
+  }
+
+  <button
+    class="actions__btn"
+    type="button"
+    aria-label="Emoji auswählen"
+    (click)="pickerRequested.emit(); $event.stopPropagation()"
+  >
+    <img src="icons/add-reaction.svg" alt="" aria-hidden="true" />
+  </button>
+
+  @if (isThreadable()) {
+    <button
+      class="actions__btn"
+      type="button"
+      aria-label="Thread starten"
+      [attr.aria-expanded]="isThreadOpen()"
+      (click)="threadToggled.emit()"
+    >
+      <img src="icons/comment.svg" alt="" aria-hidden="true" />
+    </button>
+  }
+
+  @if (isOwn()) {
+    <span class="actions__menu-wrap">
+      <button
+        #menuTrigger
+        class="actions__btn"
+        type="button"
+        aria-label="Weitere Optionen"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="menuState() !== 'closed'"
+        (click)="toggleMenu(); $event.stopPropagation()"
+        (touchend)="toggleMenuTouch($event)"
+      >
+        <img src="icons/more-vert.svg" alt="" aria-hidden="true" />
+      </button>
+
+      @if (menuState() === 'menu') {
+        <div class="actions__menu" role="menu">
+          @if (canEdit()) {
+            <button class="actions__menu-item" type="button" role="menuitem" (click)="emitAndClose('edit')">
+              Nachricht bearbeiten
+            </button>
+          }
+          <button
+            class="actions__menu-item"
+            type="button"
+            role="menuitem"
+            (click)="openConfirm()"
+            (touchend)="openConfirmTouch($event)"
+          >
+            Nachricht löschen
+          </button>
+        </div>
+      }
+
+      @if (menuState() === 'confirm') {
+        <div class="actions__menu" role="menu" aria-label="Löschen bestätigen">
+          <button class="actions__menu-item" type="button" role="menuitem" (click)="emitAndClose('forMe')">
+            Für mich löschen
+          </button>
+          <button class="actions__menu-item" type="button" role="menuitem" (click)="emitAndClose('forAll')">
+            Für alle löschen
+          </button>
+          <button class="actions__menu-item" type="button" role="menuitem" (click)="closeMenu()">
+            Abbrechen
+          </button>
+        </div>
+      }
+    </span>
+  }
+</div>

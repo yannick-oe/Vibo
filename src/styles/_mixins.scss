@@ -1,0 +1,184 @@
+@use 'variables' as v;
+
+// ─── Responsive — max-width (mobile-first downward) ──────────────────────────
+
+@mixin respond-xs {
+  @media (max-width: #{v.$breakpoint-xs}) { @content; }
+}
+
+@mixin respond-compact {
+  @media (max-width: #{v.$breakpoint-compact}) { @content; }
+}
+
+@mixin respond-sm {
+  @media (max-width: #{v.$breakpoint-sm}) { @content; }
+}
+
+@mixin respond-md {
+  @media (max-width: #{v.$breakpoint-md}) { @content; }
+}
+
+@mixin respond-lg {
+  @media (max-width: #{v.$breakpoint-lg}) { @content; }
+}
+
+@mixin respond-xl {
+  @media (max-width: #{v.$breakpoint-xl}) { @content; }
+}
+
+// ─── Responsive — min-width (desktop-first upward) ───────────────────────────
+
+@mixin from-md {
+  @media (min-width: #{v.$breakpoint-md}) { @content; }
+}
+
+@mixin from-lg {
+  @media (min-width: #{v.$breakpoint-lg}) { @content; }
+}
+
+// ─── Flex Utilities ───────────────────────────────────────────────────────────
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+@mixin flex-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin flex-column-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+// ─── Surface Card ─────────────────────────────────────────────────────────────
+
+@mixin card($radius: v.$radius-md, $shadow: v.$shadow-md) {
+  background-color: v.color('white');
+  border-radius: $radius;
+  box-shadow: $shadow;
+}
+
+// ─── Focus Ring ───────────────────────────────────────────────────────────────
+
+@mixin focus-ring($color: v.color('primary')) {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba($color, 0.22);
+}
+
+@mixin focus-ring-error {
+  @include focus-ring(v.color('error'));
+}
+
+// ─── Text Helpers ─────────────────────────────────────────────────────────────
+
+@mixin text-ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@mixin line-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// ─── Scroll ───────────────────────────────────────────────────────────────────
+
+@mixin scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+@mixin scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: v.color('lines') transparent;
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb {
+    background-color: v.color('lines');
+    border-radius: v.$radius-pill;
+  }
+}
+
+// ─── Status Dot ───────────────────────────────────────────────────────────────
+
+@mixin status-dot($color: v.color('online'), $size: 10px) {
+  width: $size;
+  height: $size;
+  border-radius: v.$radius-round;
+  background-color: $color;
+  border: 2px solid v.color('white');
+  flex-shrink: 0;
+}
+
+// ─── Visually Hidden (Accessibility) ─────────────────────────────────────────
+
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+// ─── Mobile Bottom Sheet ──────────────────────────────────────────────────────
+
+@mixin sheet-card {
+  width: 100%;
+  max-width: 100%;
+  max-height: calc(100dvh - #{v.space('xxl')});
+  border-radius: v.$radius-xl v.$radius-xl 0 0;
+  animation: sheet-slide-up v.$transition-slow both;
+
+  &::before {
+    content: '';
+    align-self: center;
+    flex-shrink: 0;
+    width: v.space('xxl');
+    height: v.space('xs');
+    margin-bottom: v.space('sm');
+    border-radius: v.$radius-pill;
+    background-color: v.color('lines');
+  }
+}
+
+@mixin sheet-keyframes {
+  @keyframes sheet-slide-up {
+    from {
+      transform: translateY(100%);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+}

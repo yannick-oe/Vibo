@@ -1,0 +1,88 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$logo-width: 187px;
+$logo-height: 184px;
+$logo-width-mobile: 120px;
+$logo-height-mobile: 118px;
+
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: v.$z-overlay;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(180deg, v.color('primary-hover'), v.color('primary'));
+}
+
+.intro__logo-container {
+  display: flex;
+  align-items: center;
+  will-change: transform;
+  transform: translateX(calc(50% - #{$logo-width} / 2));
+  transition: transform 500ms ease-in-out;
+
+  &.intro--step1 {
+    transform: translateX(0);
+  }
+}
+
+.intro__logo {
+  flex: 0 0 $logo-width;
+  width: $logo-width;
+  height: $logo-height;
+  display: block;
+}
+
+.intro__text {
+  padding-left: v.space('lg');
+  font-family: v.$font-base;
+  font-size: v.font-size('display');
+  font-weight: v.$font-weight-bold;
+  color: v.color('white');
+  white-space: nowrap;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 500ms ease-in-out;
+}
+
+.intro__logo-container.intro--step2 .intro__text {
+  clip-path: inset(0 0 0 0);
+}
+
+@include m.respond-sm {
+  .intro__logo-container {
+    transform: translateX(calc(50% - #{$logo-width-mobile} / 2));
+  }
+
+  .intro__logo {
+    flex-basis: $logo-width-mobile;
+    width: $logo-width-mobile;
+    height: $logo-height-mobile;
+  }
+
+  .intro__text {
+    font-size: v.font-size('h2');
+  }
+}
+
+.intro--moving {
+  opacity: 0;
+  transition: opacity var(--intro-fade-ms) ease-out var(--intro-fade-delay-ms);
+
+  .intro__logo-container {
+    transform: translate(var(--intro-dx), var(--intro-dy)) scale(var(--intro-scale));
+    transition: transform var(--intro-move-ms) ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro,
+  .intro__logo-container,
+  .intro__text,
+  .intro--moving,
+  .intro--moving .intro__logo-container {
+    transition: none;
+  }
+}

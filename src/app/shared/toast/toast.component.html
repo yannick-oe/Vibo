@@ -1,0 +1,10 @@
+<div class="toast-region" aria-live="polite">
+  @if (toast(); as currentToast) {
+    <p class="toast">
+      @if (currentToast.icon) {
+        <img class="toast__icon" [src]="currentToast.icon" alt="" aria-hidden="true" />
+      }
+      {{ currentToast.message }}
+    </p>
+  }
+</div>

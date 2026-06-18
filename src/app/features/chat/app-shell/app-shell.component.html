@@ -1,0 +1,34 @@
+<div class="shell">
+  <app-topbar />
+
+  <div class="shell__panels">
+    <button
+      class="shell__menu-toggle"
+      type="button"
+      aria-controls="shell-workspace"
+      [attr.aria-expanded]="isWorkspaceOpen()"
+      (click)="toggleWorkspace()"
+    >
+      <img class="shell__menu-toggle-icon" [src]="toggleIcon()" alt="" aria-hidden="true" />
+      <span class="shell__menu-toggle-label">{{ toggleLabel() }}</span>
+    </button>
+
+    <aside
+      class="shell__workspace"
+      id="shell-workspace"
+      [class.shell__workspace--closed]="!isWorkspaceOpen()"
+    >
+      <app-workspace-menu />
+    </aside>
+
+    <main class="shell__chat">
+      <router-outlet />
+    </main>
+
+    <aside class="shell__thread" [class.shell__thread--open]="isThreadOpen()">
+      @if (isThreadOpen()) {
+        <app-thread-panel />
+      }
+    </aside>
+  </div>
+</div>

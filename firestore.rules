@@ -1,0 +1,197 @@
+rules_version = '2';
+
+// DABubble production rules. Default deny: anything not explicitly
+// allowed below is rejected. Deployed via `firebase deploy --only
+// firestore:rules` (see firebase.json); the model is documented in
+// CLAUDE.md.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function channelMembers(channelId) {
+      return get(/databases/$(database)/documents/channels/$(channelId)).data.memberIds;
+    }
+
+    // Post-batch membership: join-on-send writes the message and the
+    // membership in one batch, so message creates check the state the
+    // batch produces.
+    function channelMembersAfter(channelId) {
+      return getAfter(/databases/$(database)/documents/channels/$(channelId)).data.memberIds;
+    }
+
+    function isChannelMember(channelId) {
+      return signedIn() && request.auth.uid in channelMembers(channelId);
+    }
+
+    // Message/reply documents are only hard-deleted during the
+    // client-side teardown of a channel whose last member leaves.
+    function isSoleChannelMember(channelId) {
+      return signedIn() && channelMembers(channelId) == [request.auth.uid];
+    }
+
+    function affectedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // createdAt is pinned to the server clock (or earlier) so the
+    // 15-minute edit window below cannot be extended by future-dating.
+    function validMessageCreate() {
+      return request.resource.data.authorId == request.auth.uid
+        && request.resource.data.createdAt <= request.time;
+    }
+
+    function editsOwnTextInWindow() {
+      return resource.data.authorId == request.auth.uid
+        && !('deletedAt' in resource.data)
+        && affectedKeys().hasOnly(['text'])
+        && request.time < resource.data.createdAt + duration.value(15, 'm');
+    }
+
+    // "Für alle löschen": the author clears text and reactions and
+    // stamps the tombstone; no time limit by design.
+    function setsTombstone() {
+      return resource.data.authorId == request.auth.uid
+        && affectedKeys().hasOnly(['deletedAt', 'deletedBy', 'text', 'reactions'])
+        && request.resource.data.deletedAt == request.time
+        && request.resource.data.deletedBy == request.auth.uid
+        && request.resource.data.text == ''
+        && request.resource.data.reactions == {};
+    }
+
+    function togglesReactionsOnly() {
+      return affectedKeys().hasOnly(['reactions']);
+    }
+
+    // "Für mich löschen": a user may only append their own uid.
+    function appendsSelfToHiddenFor() {
+      return affectedKeys().hasOnly(['hiddenFor'])
+        && request.resource.data.hiddenFor.hasAll(resource.data.get('hiddenFor', []))
+        && request.resource.data.hiddenFor.size() == resource.data.get('hiddenFor', []).size() + 1
+        && request.auth.uid in request.resource.data.hiddenFor
+        && !(request.auth.uid in resource.data.get('hiddenFor', []));
+    }
+
+    // Reply authors denormalize the thread preview onto the parent
+    // message in the same batch as the reply create.
+    function bumpsReplyCounters() {
+      return affectedKeys().hasOnly(['replyCount', 'lastReplyAt'])
+        && request.resource.data.replyCount == resource.data.replyCount + 1
+        && request.resource.data.lastReplyAt == request.time;
+    }
+
+    function allowedMessageUpdate() {
+      return editsOwnTextInWindow()
+        || setsTombstone()
+        || togglesReactionsOnly()
+        || appendsSelfToHiddenFor();
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /channels/{channelId} {
+      function memberEditsChannel() {
+        return affectedKeys().hasOnly(['name', 'nameLower', 'description', 'memberIds'])
+          && request.resource.data.memberIds
+            .hasAll(resource.data.memberIds.removeAll([request.auth.uid]));
+      }
+
+      function joinsSelf() {
+        return affectedKeys().hasOnly(['memberIds'])
+          && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+          && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
+          && request.auth.uid in request.resource.data.memberIds
+          && !(request.auth.uid in resource.data.memberIds);
+      }
+
+      // The permanent default channel is seeded by any signed-in client on
+      // first registration. Allowed only at the fixed id 'general' and only
+      // with the frozen system-seed shape (no creator, no members), so no
+      // arbitrary channel can be created through this branch. The 'general'
+      // literal mirrors DEFAULT_CHANNEL_ID in channels.constants.ts.
+      function isDefaultChannelSeed() {
+        return channelId == 'general'
+          && request.resource.data.createdBy == 'system'
+          && request.resource.data.isDefault == true
+          && request.resource.data.memberIds == []
+          && request.resource.data.createdAt <= request.time;
+      }
+
+      // Channel names are workspace-public: search, the "#" address
+      // list and the duplicate-name check read all channels.
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && ((request.resource.data.createdBy == request.auth.uid
+              && request.auth.uid in request.resource.data.memberIds
+              && request.resource.data.createdAt <= request.time)
+          || isDefaultChannelSeed());
+
+      // Members edit name/description, add members and may remove
+      // themselves (leave); non-members may only add their own uid
+      // (join-on-send).
+      allow update: if signedIn()
+        && ((request.auth.uid in resource.data.memberIds && memberEditsChannel())
+          || joinsSelf());
+
+      allow delete: if signedIn() && resource.data.memberIds == [request.auth.uid];
+
+      match /messages/{messageId} {
+        allow read: if isChannelMember(channelId);
+        allow create: if signedIn()
+          && request.auth.uid in channelMembersAfter(channelId)
+          && validMessageCreate();
+        allow update: if isChannelMember(channelId)
+          && (allowedMessageUpdate() || bumpsReplyCounters());
+        allow delete: if isSoleChannelMember(channelId);
+
+        match /replies/{replyId} {
+          allow read: if isChannelMember(channelId);
+          allow create: if isChannelMember(channelId) && validMessageCreate();
+          allow update: if isChannelMember(channelId) && allowedMessageUpdate();
+          allow delete: if isSoleChannelMember(channelId);
+        }
+      }
+    }
+
+    // Conversation ids are deterministic — both participant uids sorted
+    // and joined with "_" (Firebase uids never contain underscores), so
+    // participation is validated from the id itself. This also covers
+    // the lazy existence check before the first message without
+    // granting reads on foreign conversations.
+    function isParticipant(conversationId) {
+      return signedIn() && request.auth.uid in conversationId.split('_');
+    }
+
+    match /directMessages/{conversationId} {
+      // Reads accept either proof of participation: the id (single-doc
+      // gets, incl. the lazy existence check on a missing doc) or the
+      // stored participantIds (provable for the global-search list
+      // query `where participantIds array-contains uid`).
+      allow read: if isParticipant(conversationId)
+        || (signedIn() && request.auth.uid in resource.data.participantIds);
+      allow delete: if isParticipant(conversationId);
+      allow create: if isParticipant(conversationId)
+        && request.resource.data.participantIds == conversationId.split('_');
+      allow update: if false;
+
+      match /messages/{messageId} {
+        allow read, delete: if isParticipant(conversationId);
+        allow create: if isParticipant(conversationId) && validMessageCreate();
+        allow update: if isParticipant(conversationId)
+          && (allowedMessageUpdate() || bumpsReplyCounters());
+
+        match /replies/{replyId} {
+          allow read, delete: if isParticipant(conversationId);
+          allow create: if isParticipant(conversationId) && validMessageCreate();
+          allow update: if isParticipant(conversationId) && allowedMessageUpdate();
+        }
+      }
+    }
+  }
+}

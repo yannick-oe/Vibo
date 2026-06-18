@@ -1,0 +1,133 @@
+<app-dialog-shell [anchor]="anchor()" labelledBy="channel-settings-title" (closed)="closed.emit()">
+  <header class="settings__head">
+    <h2 class="settings__title" id="channel-settings-title"># {{ channel().name }}</h2>
+    <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="closed.emit()">
+      <img src="icons/close.svg" alt="" aria-hidden="true" />
+    </button>
+  </header>
+
+  <section class="settings__card">
+    <div class="settings__card-head">
+      <span class="settings__label">Channel-Name</span>
+      @if (isMobile()) {
+        <button
+          class="settings__icon-btn"
+          type="button"
+          [attr.aria-label]="isEditingName() ? 'Channel-Name speichern' : 'Channel-Name bearbeiten'"
+          [disabled]="isEditingName() && isPending()"
+          (click)="isEditingName() ? saveName() : startNameEdit()"
+        >
+          <img [src]="isEditingName() ? 'icons/check-circle.svg' : 'icons/edit.svg'" alt="" aria-hidden="true" />
+        </button>
+      } @else if (isEditingName()) {
+        <button class="settings__link" type="button" [disabled]="isPending()" (click)="saveName()">
+          Speichern
+        </button>
+      } @else {
+        <button class="settings__link" type="button" (click)="startNameEdit()">Bearbeiten</button>
+      }
+    </div>
+    @if (isEditingName()) {
+      <label class="sr-only" for="settings-name">Channel-Name</label>
+      <div class="form-input-wrapper form-input-wrapper--leading">
+        <img class="form-input-icon" src="icons/tag-grey.svg" alt="" aria-hidden="true" />
+        <input
+          id="settings-name"
+          class="form-input form-input--outlined"
+          type="text"
+          [value]="nameDraft()"
+          (input)="syncDraft('name', $event)"
+          aria-describedby="settings-name-error"
+          [attr.aria-invalid]="nameError() !== ''"
+        />
+      </div>
+      <p class="form-error" id="settings-name-error">{{ nameError() }}</p>
+    } @else {
+      <p class="settings__value"># {{ channel().name }}</p>
+    }
+  </section>
+
+  <section class="settings__card">
+    <div class="settings__card-head">
+      <span class="settings__label">Beschreibung</span>
+      @if (isMobile()) {
+        <button
+          class="settings__icon-btn"
+          type="button"
+          [attr.aria-label]="isEditingDescription() ? 'Beschreibung speichern' : 'Beschreibung bearbeiten'"
+          [disabled]="isEditingDescription() && isPending()"
+          (click)="isEditingDescription() ? saveDescription() : startDescriptionEdit()"
+        >
+          <img [src]="isEditingDescription() ? 'icons/check-circle.svg' : 'icons/edit.svg'" alt="" aria-hidden="true" />
+        </button>
+      } @else if (isEditingDescription()) {
+        <button class="settings__link" type="button" [disabled]="isPending()" (click)="saveDescription()">
+          Speichern
+        </button>
+      } @else {
+        <button class="settings__link" type="button" (click)="startDescriptionEdit()">
+          Bearbeiten
+        </button>
+      }
+    </div>
+    @if (isEditingDescription()) {
+      <label class="sr-only" for="settings-description">Beschreibung</label>
+      <input
+        id="settings-description"
+        class="form-input form-input--outlined"
+        type="text"
+        [value]="descriptionDraft()"
+        (input)="syncDraft('description', $event)"
+        placeholder="Dein Text hier"
+      />
+    } @else {
+      <p class="settings__value">{{ channel().description }}</p>
+    }
+
+    @if (hasCreator()) {
+      <div class="settings__creator">
+        <span class="settings__label">Erstellt von</span>
+        <p class="settings__creator-name">{{ creatorName() }}</p>
+      </div>
+    }
+  </section>
+
+  @if (isMobile()) {
+    <section class="settings__card">
+      <h3 class="settings__members-title">Mitglieder</h3>
+      <ul class="settings__members">
+        @for (member of members(); track member.uid) {
+          <li>
+            <button
+              class="settings__member"
+              type="button"
+              [attr.aria-label]="'Profil von ' + member.name + ' anzeigen'"
+              (click)="memberSelected.emit(member.uid)"
+            >
+              <span class="settings__member-avatar-wrap">
+                <img class="settings__member-avatar" [src]="member.avatar" alt="" aria-hidden="true" />
+                <span
+                  class="settings__member-status"
+                  [class.settings__member-status--offline]="!presenceService.isOnline(member.uid)"
+                  aria-hidden="true"
+                ></span>
+              </span>
+              {{ member.name }}
+              <span class="sr-only">{{ presenceService.isOnline(member.uid) ? 'online' : 'offline' }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+      <button class="settings__member settings__member--add" type="button" (click)="addMembersRequested.emit()">
+        <img class="settings__member-add-icon" src="icons/add-person.svg" alt="" aria-hidden="true" />
+        Mitglieder hinzufügen
+      </button>
+    </section>
+  }
+
+  <footer class="settings__actions">
+    <button class="btn btn-primary" type="button" [disabled]="isPending()" (click)="leave()">
+      Channel verlassen
+    </button>
+  </footer>
+</app-dialog-shell>

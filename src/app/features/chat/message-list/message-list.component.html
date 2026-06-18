@@ -1,0 +1,20 @@
+<div class="message-list" #scrollContainer (scroll)="onScroll()">
+  @for (group of groups(); track group.key) {
+    <div class="message-list__separator" role="separator">
+      <span class="message-list__separator-label">{{ group.label }}</span>
+    </div>
+    <ul class="message-list__day">
+      @for (message of group.messages; track message.id) {
+        <li
+          app-message-item
+          [entry]="message"
+          [isThreadable]="true"
+          [isThreadOpen]="message.id === openThreadId()"
+          [messagePath]="messagePathFor(message)"
+          [reactionLimit]="reactionLimit()"
+          (openThread)="threadRequested.emit(message)"
+        ></li>
+      }
+    </ul>
+  }
+</div>

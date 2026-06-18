@@ -1,0 +1,36 @@
+@use 'variables' as v;
+
+:host {
+  display: contents;
+}
+
+.privacy-page {
+  width: 100%;
+  max-width: v.$content-max-width-wide;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: v.space('md');
+  padding-block: v.space-fluid('lg', 'xl-xxl');
+  text-align: left;
+
+  h2 {
+    color: v.color('primary');
+    font-size: v.font-size('h3');
+    margin-top: v.space('md');
+  }
+
+  p {
+    overflow-wrap: break-word;
+  }
+
+  .btn-icon {
+    &:hover {
+      background-color: v.color('white');
+    }
+  }
+}
+
+.privacy-page__title {
+  color: v.color('primary');
+}

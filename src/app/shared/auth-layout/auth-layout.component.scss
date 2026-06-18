@@ -1,0 +1,42 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.auth-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: v.color('bg');
+}
+
+.auth-page__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 v.space('md');
+}
+
+.auth-page__mobile-cta {
+  display: none;
+
+  @include m.respond-md {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: v.space('sm');
+    padding-bottom: v.space('md');
+    padding-top: v.space('md');
+    text-align: center;
+  }
+}
+
+.auth-page__mobile-cta-text {
+  color: v.color('black');
+}

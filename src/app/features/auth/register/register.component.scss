@@ -1,0 +1,32 @@
+@use 'variables' as v;
+
+:host {
+  display: contents;
+}
+
+.register-card {
+  display: flex;
+  flex-direction: column;
+  gap: v.space-fluid('lg', 'xl-xxl');
+  text-align: center;
+}
+
+.register-card__title {
+  color: v.color('primary');
+}
+
+.register-card__form {
+  display: flex;
+  flex-direction: column;
+  gap: v.space-fluid('md', 'md-lg');
+  text-align: left;
+}
+
+.register-card__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.icon-person {
+  transform: scale(0.8);
+}

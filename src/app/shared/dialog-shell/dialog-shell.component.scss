@@ -1,0 +1,133 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.dialog-shell {
+  position: fixed;
+  inset: 0;
+  z-index: v.$z-modal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: v.space('md');
+  background-color: v.$overlay-scrim;
+}
+
+.dialog-shell__card {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('lg');
+  width: min(v.dialog-width('default'), 100%);
+  max-height: calc(100dvh - #{v.space('xl')});
+  padding: v.space('xl-xxl');
+  border-radius: v.$radius-xl;
+  background-color: v.color('white');
+  box-shadow: v.$shadow-lg;
+  overflow-y: auto;
+  @include m.scrollbar-thin;
+
+  &--members {
+    width: min(v.dialog-width('members'), 100%);
+    padding: v.space('xl');
+  }
+
+  &--add-members {
+    width: min(v.dialog-width('add-members'), 100%);
+    padding: v.space('xl');
+  }
+
+  &--profile {
+    width: min(v.dialog-width('profile'), 100%);
+    padding: v.space('xl');
+  }
+
+  &--menu {
+    width: auto;
+    padding: v.space('sm-md');
+    transform-origin: top right;
+    animation: balloon-inflate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @include m.respond-sm {
+    padding: v.space('lg');
+    border-radius: v.$radius-md;
+  }
+
+  &--anchor-left {
+    position: absolute;
+    border-top-left-radius: 0;
+    transform-origin: top left;
+    animation: balloon-inflate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  &--anchor-right {
+    position: absolute;
+    border-top-right-radius: 0;
+    transform-origin: top right;
+    animation: balloon-inflate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+}
+
+.dialog-shell--anchored {
+  padding: 0;
+}
+
+@keyframes balloon-inflate {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog-shell__card--menu,
+  .dialog-shell__card--anchor-left,
+  .dialog-shell__card--anchor-right {
+    animation: none;
+  }
+}
+
+@include m.sheet-keyframes;
+
+@include m.respond-md {
+  .dialog-shell {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .dialog-shell__card,
+  .dialog-shell__card--members,
+  .dialog-shell__card--add-members,
+  .dialog-shell__card--profile,
+  .dialog-shell__card--menu {
+    @include m.sheet-card;
+
+    position: static;
+    padding: v.space('md') v.space('md') v.space('lg');
+  }
+
+  .dialog-shell--search {
+    top: 72px;
+  }
+
+  .dialog-shell__card--search {
+    height: calc(100dvh - 72px);
+    max-height: none;
+    border-radius: 0;
+    animation: none;
+
+    &::before {
+      display: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog-shell__card {
+    animation: none;
+  }
+}

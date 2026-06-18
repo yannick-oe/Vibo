@@ -1,0 +1,81 @@
+<header class="topbar">
+  @if (isMobile()) {
+    @if (showBack()) {
+      <button class="topbar__back" type="button" aria-label="Zurück" (click)="back()">
+        <img src="icons/arrow-left.svg" alt="" aria-hidden="true" />
+      </button>
+      <div class="topbar__workspace">
+        <img class="topbar__workspace-logo" src="logos/workspace-logo.svg" alt="" aria-hidden="true" />
+        <span class="topbar__workspace-name">Devspace</span>
+      </div>
+    } @else {
+      <div class="topbar__workspace">
+        <img class="topbar__brand-logo" src="logos/logo-text.svg" alt="DABubble" />
+      </div>
+    }
+    <button
+      class="topbar__user topbar__user--mobile"
+      type="button"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="state() === 'menu'"
+      (click)="openMenu($event)"
+    >
+      <span class="topbar__avatar-wrap">
+        <img
+          class="topbar__avatar topbar__avatar--mobile"
+          [src]="avatarSrc()"
+          [alt]="avatarAlt()"
+          (error)="useAvatarFallback($event)"
+        />
+      </span>
+    </button>
+  } @else {
+    <div class="topbar__brand">
+      <img class="topbar__logo" src="logos/logo-text.svg" alt="DABubble" />
+    </div>
+
+    <app-search-bar (userSelected)="openUserProfile($event)" />
+
+    <div class="topbar__profile">
+      <button
+        class="topbar__user"
+        type="button"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="state() === 'menu'"
+        (click)="openMenu($event)"
+      >
+        <span class="topbar__user-name">{{ userName() }}</span>
+        <span class="topbar__avatar-wrap">
+          <img
+            class="topbar__avatar"
+            [src]="avatarSrc()"
+            [alt]="avatarAlt()"
+            (error)="useAvatarFallback($event)"
+          />
+          <span class="topbar__status" aria-hidden="true"></span>
+        </span>
+        <img class="topbar__chevron" src="icons/arrow-down.svg" alt="" aria-hidden="true" />
+      </button>
+    </div>
+  }
+</header>
+
+@if (state() === 'menu') {
+  <app-dialog-shell [anchor]="menuAnchor()" size="menu" labelledBy="topbar-menu-title" (closed)="close()">
+    <h2 class="sr-only" id="topbar-menu-title">Profilmenü</h2>
+    <div class="topbar__menu" role="menu">
+      <button class="topbar__menu-item topbar__menu-item--profile" type="button" role="menuitem" (click)="openProfile()">
+        <img src="icons/account-circle.svg" alt="" aria-hidden="true" />
+        Profil
+      </button>
+      <button class="topbar__menu-item topbar__menu-item--logout" type="button" role="menuitem" (click)="logout()">
+        <img src="icons/logout.svg" alt="" aria-hidden="true" />
+        Log out
+      </button>
+    </div>
+  </app-dialog-shell>
+}
+
+@if (profileUid(); as uid) {
+  <app-profile-dialog [uid]="uid" [anchor]="menuAnchor()" (closed)="profileUid.set(null)" />
+}

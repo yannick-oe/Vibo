@@ -1,0 +1,16 @@
+<div class="auth-page">
+  <app-header [shouldShowCta]="shouldShowCta()" />
+
+  <main class="auth-page__main">
+    <router-outlet />
+  </main>
+
+  @if (shouldShowCta()) {
+    <div class="auth-page__mobile-cta">
+      <p class="auth-page__mobile-cta-text">Neu bei DABubble?</p>
+      <a class="btn btn-secondary auth-page__mobile-cta-link" routerLink="/auth/register">Konto erstellen</a>
+    </div>
+  }
+
+  <app-footer />
+</div>

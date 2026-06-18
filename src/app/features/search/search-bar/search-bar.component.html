@@ -1,0 +1,92 @@
+<div class="search-bar">
+  <label class="sr-only" for="topbar-search">{{ placeholder() }}</label>
+  <input
+    #searchInput
+    id="topbar-search"
+    class="form-input search-bar__input"
+    type="search"
+    [formControl]="searchControl"
+    [placeholder]="placeholder()"
+    role="combobox"
+    [attr.aria-expanded]="results() !== null"
+    [attr.aria-activedescendant]="
+      results() !== null && flatHits().length > 0 ? 'search-hit-' + activeIndex() : null
+    "
+    (keydown)="onKeydown($event)"
+  />
+  <img class="search-bar__icon" src="icons/search.svg" alt="" aria-hidden="true" />
+</div>
+
+@if (results(); as found) {
+  <div class="search-bar__dropdown">
+    <ul class="search-bar__list" role="listbox">
+      @if (found.channels.length > 0) {
+        <li class="search-bar__group" role="presentation">Channels</li>
+        @for (hit of found.channels; track hit.id; let index = $index) {
+          <li>
+            <button
+              class="search-bar__option"
+              type="button"
+              role="option"
+              [id]="'search-hit-' + flatIndex('channels', index)"
+              [class.search-bar__option--active]="flatIndex('channels', index) === activeIndex()"
+              [attr.aria-selected]="flatIndex('channels', index) === activeIndex()"
+              (click)="pick(hit)"
+            >
+              <img class="search-bar__hash" src="icons/tag.svg" alt="" aria-hidden="true" />
+              {{ hit.name }}
+            </button>
+          </li>
+        }
+      }
+      @if (found.users.length > 0) {
+        <li class="search-bar__group" role="presentation">Mitglieder</li>
+        @for (hit of found.users; track hit.uid; let index = $index) {
+          <li>
+            <button
+              class="search-bar__option"
+              type="button"
+              role="option"
+              [id]="'search-hit-' + flatIndex('users', index)"
+              [class.search-bar__option--active]="flatIndex('users', index) === activeIndex()"
+              [attr.aria-selected]="flatIndex('users', index) === activeIndex()"
+              (click)="pick(hit)"
+            >
+              <span class="search-bar__avatar-wrap">
+                <img class="search-bar__avatar" [src]="avatarSrc(hit)" alt="" aria-hidden="true" />
+                <span
+                  class="search-bar__status"
+                  [class.search-bar__status--offline]="!presenceService.isOnline(hit.uid)"
+                  aria-hidden="true"
+                ></span>
+              </span>
+              {{ hit.name }}
+            </button>
+          </li>
+        }
+      }
+      @if (found.messages.length > 0) {
+        <li class="search-bar__group" role="presentation">Nachrichten</li>
+        @for (hit of found.messages; track hit.id; let index = $index) {
+          <li>
+            <button
+              class="search-bar__option search-bar__option--message"
+              type="button"
+              role="option"
+              [id]="'search-hit-' + flatIndex('messages', index)"
+              [class.search-bar__option--active]="flatIndex('messages', index) === activeIndex()"
+              [attr.aria-selected]="flatIndex('messages', index) === activeIndex()"
+              (click)="pick(hit)"
+            >
+              <span class="search-bar__meta">{{ hit.authorName }} · {{ hit.contextLabel }}</span>
+              <span class="search-bar__snippet">{{ hit.snippet }}</span>
+            </button>
+          </li>
+        }
+      }
+      @if (flatHits().length === 0) {
+        <li class="search-bar__empty" role="presentation">Keine Ergebnisse</li>
+      }
+    </ul>
+  </div>
+}

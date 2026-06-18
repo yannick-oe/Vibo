@@ -1,0 +1,38 @@
+@use 'styles/variables' as v;
+@use 'styles/reset';
+@use 'styles/typography';
+@use 'styles/layout';
+@use 'styles/buttons';
+@use 'styles/forms';
+
+// ─── CSS Custom Properties ────────────────────────────────────────────────────
+
+:root {
+  --color-primary:         #{v.color('primary')};
+  --color-primary-hover:   #{v.color('primary-hover')};
+  --color-primary-active:  #{v.color('primary-active')};
+  --color-primary-light:   #{rgba(v.color('primary'), 0.1)};
+  --color-secondary:       #{v.color('primary-hover')};
+  --color-bg:              #{v.color('bg')};
+  --color-surface:         #{v.color('white')};
+  --color-surface-alt:     #{v.color('bg')};
+  --color-text:            #{v.color('black')};
+  --color-text-muted:      #{v.color('text-gray')};
+  --color-text-subtle:     #{v.color('text-gray')};
+  --color-border:          #{v.color('lines')};
+  --color-success:         #{v.color('online')};
+  --color-error:           #{v.color('error')};
+  --color-online:          #{v.color('online')};
+  --color-offline:         #{v.color('text-gray')};
+  --radius-sm:             #{v.$radius-sm};
+  --radius-md:             #{v.$radius-md};
+  --radius-lg:             #{v.$radius-lg};
+  --radius-pill:           #{v.$radius-pill};
+  --shadow-sm:             #{v.$shadow-sm};
+  --shadow-md:             #{v.$shadow-md};
+  --shadow-lg:             #{v.$shadow-lg};
+  --sidebar-width:         #{v.$sidebar-width};
+  --thread-panel-width:    #{v.$thread-panel-width};
+  --topbar-height:         #{v.$topbar-height};
+  --transition-base:       #{v.$transition-base};
+}

@@ -1,0 +1,143 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.composer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: v.space('sm');
+  padding: v.space('md') v.space('lg');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-lg;
+  background-color: v.color('white');
+
+  &:focus-within {
+    border-color: v.color('primary');
+  }
+}
+
+.composer__suggestions {
+  position: absolute;
+  bottom: calc(100% + #{v.space('xs')});
+  left: 0;
+  z-index: v.$z-dropdown;
+}
+
+.composer__input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.composer__backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+
+  font-family: v.$font-base;
+  font-size: v.font-size('body');
+  line-height: v.$line-height-base;
+  color: v.color('black');
+
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.composer__mention {
+  text-shadow: 0.4px 0 0 v.color('primary'), -0.4px 0 0 v.color('primary');
+  color: v.color('primary');
+}
+
+.composer__text {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  border: none;
+  resize: none;
+  background: transparent;
+  font-family: v.$font-base;
+  font-size: v.font-size('body');
+  color: transparent;
+  caret-color: v.color('black');
+  line-height: v.$line-height-base;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  @include m.scrollbar-thin;
+
+  &::placeholder {
+    color: v.color('text-gray');
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.composer__toolbar {
+  @include m.flex-between;
+}
+
+.composer__tools {
+  display: flex;
+  gap: v.space('sm');
+}
+
+.composer__picker-wrap {
+  position: relative;
+}
+
+.composer__picker {
+  position: absolute;
+  bottom: calc(100% + #{v.space('xs')});
+  left: 0;
+  z-index: v.$z-dropdown;
+}
+
+.composer__tool,
+.composer__send {
+  @include m.flex-center;
+
+  width: v.$btn-height-sm;
+  height: v.$btn-height-sm;
+  border: none;
+  border-radius: v.$radius-round;
+  background: none;
+  cursor: pointer;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  img {
+    width: v.$icon-md;
+    height: v.$icon-md;
+  }
+}
+
+.composer__send:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+@include m.respond-md {
+  .composer__suggestions {
+    right: 0;
+  }
+
+  .composer__picker {
+    left: calc(-1 * #{v.space('lg')});
+  }
+}

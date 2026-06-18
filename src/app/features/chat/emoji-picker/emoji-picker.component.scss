@@ -1,0 +1,41 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+:host {
+  display: block;
+}
+
+.picker {
+  display: grid;
+  grid-template-columns: repeat(6, auto);
+  gap: v.space('xs');
+  padding: v.space('sm-md');
+  border-radius: v.$radius-lg;
+  background-color: v.color('white');
+  box-shadow: v.$shadow-lg;
+}
+
+.picker__emoji {
+  @include m.flex-center;
+
+  width: v.$btn-height-sm;
+  height: v.$btn-height-sm;
+  border: none;
+  border-radius: v.$radius-sm;
+  background: none;
+  cursor: pointer;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+.picker__img {
+  width: v.$icon-md;
+  height: v.$icon-md;
+}

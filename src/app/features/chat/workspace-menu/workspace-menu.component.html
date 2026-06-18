@@ -1,0 +1,168 @@
+<nav class="workspace" aria-label="Workspace">
+  @if (isMobile()) {
+    <button class="workspace__search-trigger" type="button" (click)="isSearchOpen.set(true)">
+      Gehe zu...
+      <img class="workspace__search-icon" src="icons/search.svg" alt="" aria-hidden="true" />
+    </button>
+  }
+
+  <header class="workspace__head">
+    <img class="workspace__head-logo" src="logos/workspace-logo.svg" alt="" aria-hidden="true" />
+    <h2 class="workspace__title" id="workspace-title" tabindex="-1">Devspace</h2>
+    <a class="btn btn-icon btn-sm" routerLink="/app/new-message" aria-label="Neue Nachricht">
+      <img src="icons/edit-square.svg" alt="" aria-hidden="true" />
+    </a>
+  </header>
+
+  <section class="workspace__section">
+    <div class="workspace__section-head">
+      <button
+        class="workspace__section-toggle"
+        type="button"
+        aria-controls="workspace-channels"
+        [attr.aria-expanded]="isChannelsOpen()"
+        (click)="toggleChannels()"
+      >
+        <img
+          class="workspace__caret"
+          [class.workspace__caret--closed]="!isChannelsOpen()"
+          src="icons/arrow-drop-down.svg"
+          alt=""
+          aria-hidden="true"
+        />
+        <img class="workspace__section-icon" src="icons/workspaces.svg" alt="" aria-hidden="true" />
+        <span class="workspace__section-title">Channels</span>
+      </button>
+      <button class="btn btn-icon btn-sm" type="button" aria-label="Channel hinzufügen" (click)="openDialog()">
+        <img src="icons/add.svg" alt="" aria-hidden="true" />
+      </button>
+    </div>
+
+    <div class="workspace__collapsible" [class.workspace__collapsible--open]="isChannelsOpen()">
+      <ul class="workspace__list" id="workspace-channels">
+        @for (channel of channels(); track channel.id) {
+          <li>
+            <a
+              class="workspace__item"
+              [routerLink]="['/app/channel', channel.id]"
+              routerLinkActive="workspace__item--active"
+              #channelLink="routerLinkActive"
+              [attr.aria-current]="channelLink.isActive ? 'page' : null"
+            >
+              <img class="workspace__item-icon" src="icons/tag.svg" alt="" aria-hidden="true" />
+              {{ channel.name }}
+            </a>
+          </li>
+        }
+        <li>
+          <button
+            class="workspace__item workspace__item--add-channel"
+            [class.workspace__item--mobile-accent]="isMobile()"
+            type="button"
+            (click)="openDialog()"
+          >
+            <img
+              class="workspace__item-icon"
+              [src]="isMobile() ? 'icons/add-circle-hover.svg' : 'icons/add-circle.svg'"
+              alt=""
+              aria-hidden="true"
+            />
+            Channel hinzufügen
+          </button>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="workspace__section">
+    <div class="workspace__section-head">
+      <button
+        class="workspace__section-toggle"
+        type="button"
+        aria-controls="workspace-direct"
+        [attr.aria-expanded]="isDirectOpen()"
+        (click)="toggleDirect()"
+      >
+        <img
+          class="workspace__caret"
+          [class.workspace__caret--closed]="!isDirectOpen()"
+          src="icons/arrow-drop-down.svg"
+          alt=""
+          aria-hidden="true"
+        />
+        <img
+          class="workspace__section-icon"
+          src="icons/account-circle.svg"
+          alt=""
+          aria-hidden="true"
+        />
+        <span class="workspace__section-title">Direktnachrichten</span>
+      </button>
+    </div>
+
+    <div class="workspace__collapsible" [class.workspace__collapsible--open]="isDirectOpen()">
+      <ul class="workspace__list" id="workspace-direct">
+        @if (self(); as selfEntry) {
+          <li>
+            <a
+              class="workspace__item"
+              [routerLink]="['/app/dm', selfEntry.uid]"
+              routerLinkActive="workspace__item--active"
+              #selfDmLink="routerLinkActive"
+              [attr.aria-current]="selfDmLink.isActive ? 'page' : null"
+            >
+              <span class="workspace__avatar-wrap">
+                <img class="workspace__avatar" [src]="selfEntry.avatar" alt="" aria-hidden="true" />
+                <span
+                  class="workspace__status"
+                  [class.workspace__status--offline]="!presenceService.isOnline(selfEntry.uid)"
+                  aria-hidden="true"
+                ></span>
+              </span>
+              {{ selfEntry.name }}
+            </a>
+          </li>
+        }
+        @for (user of others(); track user.uid) {
+          <li>
+            <a
+              class="workspace__item"
+              [routerLink]="['/app/dm', user.uid]"
+              routerLinkActive="workspace__item--active"
+              #userDmLink="routerLinkActive"
+              [attr.aria-current]="userDmLink.isActive ? 'page' : null"
+            >
+              <span class="workspace__avatar-wrap">
+                <img class="workspace__avatar" [src]="avatarSrc(user.avatarPath)" alt="" aria-hidden="true" />
+                <span
+                  class="workspace__status"
+                  [class.workspace__status--offline]="!presenceService.isOnline(user.uid)"
+                  aria-hidden="true"
+                ></span>
+              </span>
+              {{ user.name }}
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+</nav>
+
+@if (isMobile()) {
+  <a class="workspace__fab" routerLink="/app/new-message" aria-label="Neue Nachricht">
+    <img src="icons/edit-square-white.svg" alt="" aria-hidden="true" />
+  </a>
+}
+
+@if (isDialogOpen()) {
+  <app-channel-create-dialog (closed)="closeDialog()" />
+}
+
+@if (isSearchOpen()) {
+  <app-mobile-search-view (closed)="isSearchOpen.set(false)" (userSelected)="onSearchUser($event)" />
+}
+
+@if (profileUid(); as uid) {
+  <app-profile-dialog [uid]="uid" (closed)="profileUid.set(null)" />
+}

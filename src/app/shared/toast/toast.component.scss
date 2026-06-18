@@ -1,0 +1,44 @@
+@use 'variables' as v;
+
+.toast-region {
+  position: fixed;
+  right: v.space('xl');
+  bottom: v.space('xl');
+  z-index: v.$z-toast;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  padding: v.space('sm-md') v.space('lg');
+  border-radius: v.$radius-pill;
+  background-color: v.color('primary');
+  color: v.color('white');
+  font-weight: v.$font-weight-semibold;
+  box-shadow: v.$shadow-lg;
+  animation: toast-slide-in v.$transition-slow;
+}
+
+.toast__icon {
+  width: v.$icon-md;
+  height: v.$icon-md;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

@@ -1,0 +1,115 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.new-message {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.new-message__head {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('md');
+  padding: v.space('lg') v.space('xl-xxl');
+  background-color: v.color('white');
+  box-shadow: v.$shadow-sm;
+  z-index: v.$z-raised;
+}
+
+.new-message__title {
+  font-size: v.font-size('h4');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.new-message__address {
+  position: relative;
+}
+
+.new-message__chip-area {
+  display: flex;
+  align-items: center;
+  min-height: v.$input-height;
+  padding: v.space('xs') v.space('md');
+  border: 1.5px solid v.color('lines');
+  border-radius: v.$radius-pill;
+  background-color: v.color('white');
+}
+
+.new-message__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: v.space('sm');
+  padding: v.space('xs') v.space('sm-md');
+  border-radius: v.$radius-pill;
+  background-color: v.color('bg');
+  font-size: v.font-size('body');
+  color: v.color('black');
+}
+
+.new-message__chip-avatar {
+  width: v.$avatar-xs;
+  height: v.$avatar-xs;
+  border-radius: v.$radius-round;
+  object-fit: cover;
+}
+
+.new-message__chip-hash {
+  width: v.$icon-sm;
+  height: v.$icon-sm;
+}
+
+.new-message__chip-remove {
+  @include m.flex-center;
+
+  width: v.$icon-md;
+  height: v.$icon-md;
+  border: none;
+  border-radius: v.$radius-round;
+  background: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: v.color('white');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  img {
+    width: v.$icon-sm;
+    height: v.$icon-sm;
+  }
+}
+
+.new-message__suggestions {
+  position: absolute;
+  top: calc(100% + #{v.space('xs')});
+  left: 0;
+  z-index: v.$z-dropdown;
+}
+
+.new-message__spacer {
+  flex: 1;
+  min-height: 0;
+}
+
+.new-message__composer {
+  padding: 0 v.space('xl-xxl') v.space('lg');
+}
+@include m.respond-md {
+  .new-message__head {
+    padding: v.space('md');
+  }
+
+  .new-message__composer {
+    padding: 0 v.space('md') v.space('md');
+  }
+}

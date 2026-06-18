@@ -1,0 +1,151 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+// ─── Root ────────────────────────────────────────────────────────────────────
+
+html,
+body {
+  background-color: v.color('bg');
+}
+
+app-root {
+  display: block;
+  width: 100%;
+}
+
+// ─── Auth Layout ─────────────────────────────────────────────────────────────
+
+.page-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  width: 100%;
+  padding: v.space('md');
+  background-color: v.color('bg');
+}
+
+.auth-card {
+  background-color: v.color('white');
+  border-radius: v.$radius-xl;
+  box-shadow: v.$shadow-lg;
+  padding: v.space-fluid('xl', 'xxl') v.space('xl-xxl');
+  width: 100%;
+  max-width: v.$auth-card-width;
+
+  @include m.respond-sm {
+    padding: v.space('xl') v.space('lg');
+    border-radius: v.$radius-md;
+  }
+
+  &--wide {
+    max-width: v.$auth-card-width-wide;
+  }
+}
+
+.auth-card__head {
+  display: grid;
+  grid-template-columns: v.$btn-height minmax(0, 1fr) v.$btn-height;
+  align-items: center;
+
+  > .btn-icon {
+    grid-column: 1;
+  }
+
+  > h1 {
+    grid-column: 2;
+    text-align: center;
+    overflow-wrap: break-word;
+    hyphens: auto;
+
+    @include m.respond-sm {
+      font-size: v.font-size('h3');
+    }
+  }
+
+  &--start {
+    display: flex;
+    align-items: center;
+    gap: v.space('md');
+
+    > h1 { text-align: left; }
+  }
+}
+
+// ─── Cards ───────────────────────────────────────────────────────────────────
+
+.card {
+  background-color: v.color('white');
+  border-radius: v.$radius-md;
+  box-shadow: v.$shadow-sm;
+  overflow: hidden;
+}
+
+.card-sm  { border-radius: v.$radius-sm; }
+.card-lg  { border-radius: v.$radius-lg; }
+.card-shadow { box-shadow: v.$shadow-md; }
+
+// ─── Container ───────────────────────────────────────────────────────────────
+
+.container {
+  width: 100%;
+  max-width: v.$content-max-width;
+  margin-inline: auto;
+  padding-inline: v.space('md');
+}
+
+// ─── Flex Utilities ───────────────────────────────────────────────────────────
+
+.flex           { display: flex; }
+.flex-col       { display: flex; flex-direction: column; }
+.flex-center    { @include m.flex-center; }
+.flex-between   { @include m.flex-between; }
+.flex-start     { @include m.flex-start; }
+.flex-wrap      { flex-wrap: wrap; }
+.flex-1         { flex: 1; }
+.flex-shrink-0  { flex-shrink: 0; }
+.items-center   { align-items: center; }
+.items-start    { align-items: flex-start; }
+.items-end      { align-items: flex-end; }
+.justify-center { justify-content: center; }
+.justify-end    { justify-content: flex-end; }
+
+// ─── Gap Utilities ────────────────────────────────────────────────────────────
+
+.gap-1  { gap: v.space('xs'); }
+.gap-2  { gap: v.space('sm'); }
+.gap-3  { gap: v.space('sm-md'); }
+.gap-4  { gap: v.space('md'); }
+.gap-6  { gap: v.space('lg'); }
+.gap-8  { gap: v.space('xl'); }
+
+// ─── Grid Utilities ───────────────────────────────────────────────────────────
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: v.space('md');
+  @include m.respond-sm { grid-template-columns: 1fr; }
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: v.space('md');
+  @include m.respond-md { grid-template-columns: repeat(2, 1fr); }
+  @include m.respond-sm { grid-template-columns: 1fr; }
+}
+
+// ─── Overflow / Scroll ───────────────────────────────────────────────────────
+
+.overflow-hidden  { overflow: hidden; }
+.scroll-y         { overflow-y: auto; }
+.scroll-hidden    { @include m.scrollbar-hidden; }
+
+// ─── Visibility ───────────────────────────────────────────────────────────────
+
+.hidden            { display: none !important; }
+.sr-only           { @include m.visually-hidden; }
+
+.hidden-mobile  { @include m.respond-md { display: none !important; } }
+.hidden-desktop { @include m.from-md   { display: none !important; } }

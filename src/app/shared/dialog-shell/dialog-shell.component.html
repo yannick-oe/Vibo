@@ -1,0 +1,28 @@
+<div
+  class="dialog-shell"
+  [class.dialog-shell--anchored]="anchor() !== null"
+  [class.dialog-shell--search]="size() === 'search'"
+  (click)="onOverlayClick($event)"
+>
+  <section
+    #card
+    class="dialog-shell__card"
+    [class.dialog-shell__card--members]="size() === 'members'"
+    [class.dialog-shell__card--add-members]="size() === 'add-members'"
+    [class.dialog-shell__card--profile]="size() === 'profile'"
+    [class.dialog-shell__card--menu]="size() === 'menu'"
+    [class.dialog-shell__card--search]="size() === 'search'"
+    [class.dialog-shell__card--anchor-left]="anchor()?.left !== undefined"
+    [class.dialog-shell__card--anchor-right]="anchor()?.right !== undefined"
+    [style.top.px]="anchor()?.top ?? null"
+    [style.left.px]="anchor()?.left ?? null"
+    [style.right.px]="anchor()?.right ?? null"
+    [style.maxHeight]="anchoredMaxHeight()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="labelledBy()"
+    (keydown.tab)="trapFocus($event)"
+  >
+    <ng-content />
+  </section>
+</div>

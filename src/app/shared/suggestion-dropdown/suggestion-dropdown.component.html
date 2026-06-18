@@ -1,0 +1,35 @@
+<ul class="suggestions" role="listbox">
+  @for (suggestion of suggestions(); track suggestion.id; let index = $index) {
+    <li>
+      <button
+        class="suggestions__option"
+        type="button"
+        role="option"
+        [id]="idPrefix() + '-' + index"
+        [attr.aria-selected]="index === activeIndex()"
+        [class.suggestions__option--active]="index === activeIndex()"
+        (click)="picked.emit(suggestion)"
+      >
+        @if (suggestion.avatar) {
+          <span class="suggestions__avatar-wrap">
+            <img class="suggestions__avatar" [src]="suggestion.avatar" alt="" aria-hidden="true" />
+            @if (suggestion.online !== undefined) {
+              <span
+                class="suggestions__status"
+                [class.suggestions__status--offline]="!suggestion.online"
+                aria-hidden="true"
+              ></span>
+            }
+          </span>
+        }
+        @if (suggestion.isHash) {
+          <img class="suggestions__hash" src="icons/tag.svg" alt="" aria-hidden="true" />
+        }
+        {{ suggestion.label }}
+        @if (suggestion.online !== undefined) {
+          <span class="sr-only">{{ suggestion.online ? 'online' : 'offline' }}</span>
+        }
+      </button>
+    </li>
+  }
+</ul>

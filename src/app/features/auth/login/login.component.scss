@@ -1,0 +1,97 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+:host {
+  display: contents;
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: v.space-fluid('lg', 'xl-xxl');
+  text-align: center;
+
+  @include m.respond-md {
+    gap: v.space('md');
+  }
+}
+
+.login-card__title {
+  color: v.color('primary');
+}
+
+.login-card__form {
+  display: flex;
+  flex-direction: column;
+  gap: v.space-fluid('md', 'lg');
+
+  @include m.respond-md {
+    gap: v.space('sm');
+  }
+}
+
+.login-card__general {
+  justify-content: center;
+}
+
+.login-card__forgot {
+  align-self: center;
+
+  &:hover {
+    border-color: transparent;
+    background-color: v.color('bg');
+  }
+}
+
+.login-card__divider {
+  display: flex;
+  align-items: center;
+  gap: v.space('md');
+  color: v.color('black');
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: v.color('lines');
+  }
+}
+
+.login-card__google {
+  width: 100%;
+  background-color: v.color('bg');
+  font-weight: v.$font-weight-regular;
+  color: v.color('primary-hover');
+  border: 1.5px solid transparent;
+
+  &:hover {
+    color: v.color('primary');
+    font-weight: v.$font-weight-medium;
+    border-color: v.color('primary');
+  }
+
+  &:active {
+    color: v.color('primary-active');
+  }
+
+  @include m.respond-md {
+    margin-top: v.space('sm');
+  }
+}
+
+.login-card__google-icon {
+  width: v.$icon-lg;
+  height: v.$icon-lg;
+}
+
+.login-card__actions {
+  display: flex;
+  justify-content: center;
+  gap: v.space('xl');
+  flex-wrap: wrap;
+
+  @include m.respond-md {
+    margin-top: v.space('sm');
+  }
+}

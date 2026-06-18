@@ -1,0 +1,10 @@
+@if (isVisible()) {
+  <div class="intro" [class.intro--moving]="isMoving()" aria-hidden="true">
+    <div #logo class="intro__logo-container" 
+         [class.intro--step1]="step() >= 1" 
+         [class.intro--step2]="step() >= 2">
+      <img class="intro__logo" src="logos/logo.svg" alt="" />
+      <span class="intro__text">DABubble</span>
+    </div>
+  </div>
+}

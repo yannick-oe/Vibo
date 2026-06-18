@@ -1,0 +1,43 @@
+<section class="thread">
+  <header class="thread__head">
+    <div class="thread__title-group">
+      <h2 class="thread__title">Thread</h2>
+      <span class="thread__context">{{ contextLabel() }}</span>
+    </div>
+    <button class="btn btn-icon btn-sm" type="button" aria-label="Thread schließen" (click)="close()">
+      <img src="icons/close.svg" alt="" aria-hidden="true" />
+    </button>
+  </header>
+
+  <div class="thread__scroll" #replyScroll>
+    @if (origin(); as originMessage) {
+      <ul class="thread__origin">
+        <li
+          app-message-item
+          [entry]="originMessage"
+          [messagePath]="originPath()"
+          [reactionLimit]="reactionLimit"
+        ></li>
+      </ul>
+    }
+
+    <div class="thread__divider" role="separator">
+      <span class="thread__divider-label">{{ replyCountLabel() }}</span>
+    </div>
+
+    <ul class="thread__replies">
+      @for (reply of visibleReplies(); track reply.id) {
+        <li
+          app-message-item
+          [entry]="reply"
+          [messagePath]="replyPathFor(reply)"
+          [reactionLimit]="reactionLimit"
+        ></li>
+      }
+    </ul>
+  </div>
+
+  <div class="thread__composer">
+    <app-message-input [placeholder]="composerPlaceholder" (send)="sendReply($event)" />
+  </div>
+</section>

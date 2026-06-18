@@ -1,0 +1,105 @@
+<section class="channel">
+  <h1 class="sr-only">{{ channel()?.name }}</h1>
+  <header class="channel__head">
+    <button
+      class="channel__title"
+      type="button"
+      aria-label="Channel-Details öffnen"
+      [attr.aria-expanded]="dialog() === 'settings'"
+      (click)="openDialog('settings', $event)"
+    >
+      <img class="channel__title-icon" src="icons/tag.svg" alt="" aria-hidden="true" />
+      <span class="channel__name">{{ channel()?.name }}</span>
+      <img class="channel__caret" src="icons/arrow-down.svg" alt="" aria-hidden="true" />
+    </button>
+
+    <div class="channel__members">
+      <button
+        class="channel__members-list"
+        type="button"
+        aria-label="Mitglieder anzeigen"
+        [attr.aria-expanded]="dialog() === 'members'"
+        (click)="openDialog('members', $event)"
+      >
+        @for (member of headMembers(); track member.uid) {
+          <img
+            class="channel__member-avatar"
+            [src]="avatarSrc(member.avatarPath)"
+            alt=""
+            aria-hidden="true"
+          />
+        }
+        <span class="channel__member-count">{{ memberCount() }}</span>
+      </button>
+      <button
+        class="channel__add-member"
+        type="button"
+        aria-label="Mitglieder hinzufügen"
+        [attr.aria-expanded]="dialog() === 'add'"
+        (click)="openDialog('add', $event)"
+      >
+        <img src="icons/add-person.svg" alt="" aria-hidden="true" />
+      </button>
+    </div>
+  </header>
+
+  <div class="channel__list">
+    <app-message-list
+      [messages]="messages()"
+      [resetKey]="channelId()"
+      [openThreadId]="openThreadMessageId()"
+      [collectionPath]="messagesCollectionPath()"
+      (threadRequested)="toggleThread($event)"
+    />
+    @if (showIntro()) {
+      <div class="channel__intro">
+        <h2 class="channel__intro-title">
+          <img class="channel__intro-hash" src="icons/tag.svg" alt="" aria-hidden="true" />
+          {{ channel()?.name }}
+        </h2>
+        <p class="channel__intro-text">
+          Du hast diesen Channel heute erstellt. Das ist der Anfang des Channels
+          <span class="channel__intro-link">#{{ channel()?.name }}</span>.
+        </p>
+      </div>
+    }
+  </div>
+
+  <div class="channel__composer">
+    <app-message-input [placeholder]="composerPlaceholder()" (send)="sendMessage($event)" />
+  </div>
+</section>
+
+@if (channel(); as currentChannel) {
+  @switch (dialog()) {
+    @case ('settings') {
+      <app-channel-settings-dialog
+        [channel]="currentChannel"
+        [anchor]="dialogAnchor()"
+        (closed)="dialog.set(null)"
+        (memberSelected)="openProfile($event)"
+        (addMembersRequested)="dialog.set('add')"
+      />
+    }
+    @case ('members') {
+      <app-channel-members-dialog
+        [channel]="currentChannel"
+        [anchor]="dialogAnchor()"
+        (closed)="dialog.set(null)"
+        (addRequested)="dialog.set('add')"
+        (memberSelected)="openProfile($event)"
+      />
+    }
+    @case ('add') {
+      <app-channel-add-members-dialog
+        [channel]="currentChannel"
+        [anchor]="dialogAnchor()"
+        (closed)="dialog.set(null)"
+      />
+    }
+  }
+}
+
+@if (profileUid(); as uid) {
+  <app-profile-dialog [uid]="uid" (closed)="profileUid.set(null)" />
+}

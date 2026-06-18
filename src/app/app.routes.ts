@@ -1,0 +1,111 @@
+/**
+ * @file Application route table with lazy-loaded standalone components.
+ */
+import { Routes } from '@angular/router';
+
+import { authGuard, unauthGuard } from './guards/auth.guard';
+import { registrationFormGuard } from './guards/registration-form.guard';
+
+export const routes: Routes = [
+  {
+    path: '',
+    loadComponent: () =>
+      import('./shared/auth-layout/auth-layout.component').then(m => m.AuthLayoutComponent),
+    children: [
+      { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
+      {
+        path: 'auth',
+        children: [
+          {
+            path: 'login',
+            canActivate: [unauthGuard],
+            loadComponent: () =>
+              import('./features/auth/login/login.component').then(m => m.LoginComponent),
+          },
+          {
+            path: 'register',
+            canActivate: [unauthGuard],
+            loadComponent: () =>
+              import('./features/auth/register/register.component').then(m => m.RegisterComponent),
+          },
+          {
+            path: 'register/avatar',
+            canActivate: [registrationFormGuard],
+            loadComponent: () =>
+              import('./features/auth/avatar-picker/avatar-picker.component').then(
+                m => m.AvatarPickerComponent,
+              ),
+          },
+          {
+            path: 'forgot-password',
+            canActivate: [unauthGuard],
+            loadComponent: () =>
+              import('./features/auth/forgot-password/forgot-password.component').then(
+                m => m.ForgotPasswordComponent,
+              ),
+          },
+          {
+            path: 'reset-password',
+            loadComponent: () =>
+              import('./features/auth/reset-password/reset-password.component').then(
+                m => m.ResetPasswordComponent,
+              ),
+          },
+        ],
+      },
+      {
+        path: 'legal',
+        children: [
+          {
+            path: 'imprint',
+            loadComponent: () =>
+              import('./features/legal/imprint/imprint.component').then(m => m.ImprintComponent),
+          },
+          {
+            path: 'privacy',
+            loadComponent: () =>
+              import('./features/legal/privacy/privacy.component').then(m => m.PrivacyComponent),
+          },
+        ],
+      },
+    ],
+  },
+  {
+    path: 'app',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/chat/app-shell/app-shell.component').then(m => m.AppShellComponent),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/chat/channel-redirect/channel-redirect.component').then(
+            m => m.ChannelRedirectComponent,
+          ),
+      },
+      {
+        path: 'channel/:channelId',
+        loadComponent: () =>
+          import('./features/chat/channel-view/channel-view.component').then(
+            m => m.ChannelViewComponent,
+          ),
+      },
+      {
+        path: 'dm/:uid',
+        loadComponent: () =>
+          import('./features/chat/direct-message-view/direct-message-view.component').then(
+            m => m.DirectMessageViewComponent,
+          ),
+      },
+      {
+        path: 'new-message',
+        loadComponent: () =>
+          import('./features/chat/new-message/new-message.component').then(
+            m => m.NewMessageComponent,
+          ),
+      },
+    ],
+  },
+  { path: '**', redirectTo: 'auth/login' },
+];

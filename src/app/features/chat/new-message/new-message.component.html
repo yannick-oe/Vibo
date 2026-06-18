@@ -1,0 +1,69 @@
+<section class="new-message">
+  <header class="new-message__head">
+    <h1 class="new-message__title">Neue Nachricht</h1>
+
+    <div class="new-message__address">
+      @if (recipient(); as locked) {
+        <div class="new-message__chip-area">
+          <span class="new-message__chip">
+            @if (locked.kind === 'channel') {
+              <img class="new-message__chip-hash" src="icons/tag.svg" alt="" aria-hidden="true" />
+            } @else {
+              <img class="new-message__chip-avatar" [src]="locked.avatar" alt="" aria-hidden="true" />
+            }
+            {{ locked.label }}
+            <button
+              class="new-message__chip-remove"
+              type="button"
+              [attr.aria-label]="'Empfänger entfernen: ' + locked.label"
+              (click)="removeRecipient()"
+            >
+              <img src="icons/close.svg" alt="" aria-hidden="true" />
+            </button>
+          </span>
+        </div>
+      } @else {
+        <label class="sr-only" for="new-message-address">
+          An: #channel, oder &#64;jemand oder E-Mail Adresse
+        </label>
+        <input
+          #addressInput
+          id="new-message-address"
+          class="form-input form-input--outlined"
+          type="text"
+          [formControl]="addressControl"
+          placeholder="An: #channel, oder @jemand oder E-Mail Adresse"
+          role="combobox"
+          [attr.aria-expanded]="suggestions().length > 0"
+          [attr.aria-activedescendant]="
+            suggestions().length > 0 ? 'new-message-suggestion-' + activeIndex() : null
+          "
+          aria-describedby="new-message-address-error"
+          [attr.aria-invalid]="addressError() !== ''"
+          (keydown)="onAddressKeydown($event)"
+        />
+      }
+      <p class="form-error" id="new-message-address-error">{{ addressError() }}</p>
+
+      @if (suggestions().length > 0) {
+        <app-suggestion-dropdown
+          class="new-message__suggestions"
+          [suggestions]="suggestions()"
+          [activeIndex]="activeIndex()"
+          idPrefix="new-message-suggestion"
+          (picked)="pickSuggestion($event)"
+        />
+      }
+    </div>
+  </header>
+
+  <div class="new-message__spacer"></div>
+
+  <div class="new-message__composer">
+    <app-message-input
+      placeholder="Starte eine neue Nachricht"
+      [sendDisabled]="recipient() === null"
+      (send)="send($event)"
+    />
+  </div>
+</section>

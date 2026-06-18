@@ -1,0 +1,111 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+:host {
+  display: block;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: v.space('xs');
+  padding: v.space('xs') v.space('sm');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-pill v.$radius-pill 0 v.$radius-pill;
+  background-color: v.color('white');
+  box-shadow: v.$shadow-sm;
+}
+
+.actions__btn {
+  @include m.flex-center;
+
+  width: v.$icon-lg;
+  height: v.$icon-lg;
+  border: none;
+  border-radius: v.$radius-round;
+  background: none;
+  cursor: pointer;
+  font-size: v.font-size('body');
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  img {
+    width: v.$icon-sm;
+    height: v.$icon-sm;
+  }
+}
+
+.actions__menu-wrap {
+  position: relative;
+}
+
+.actions__menu {
+  position: absolute;
+  top: calc(100% + #{v.space('xs')} + 0.5px);
+  right: 0;
+  z-index: v.$z-dropdown;
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+  padding: v.space('sm');
+  border-radius: v.$radius-lg 0 v.$radius-lg v.$radius-lg;
+  background-color: v.color('white');
+  box-shadow: v.$shadow-lg;
+  white-space: nowrap;
+  transform-origin: top right;
+  animation: actions-menu-inflate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+
+  :host(.actions--own) & {
+    right: auto;
+    left: -120px;
+    border-radius: 0 v.$radius-lg v.$radius-lg v.$radius-lg;
+    transform-origin: top left;
+  }
+}
+
+@keyframes actions-menu-inflate {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actions__menu {
+    animation: none;
+  }
+}
+
+.actions__menu-item {
+  padding: v.space('sm') v.space('lg');
+  border: none;
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('black');
+  text-align: left;
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}

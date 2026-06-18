@@ -1,0 +1,60 @@
+<app-dialog-shell [anchor]="anchor()" labelledBy="channel-add-title" size="add-members" (closed)="closed.emit()">
+  <header class="add-members__head">
+    <div class="add-members__title-group">
+      <h2 class="add-members__title" id="channel-add-title">Leute hinzufügen</h2>
+      <span class="add-members__context"># {{ channel().name }}</span>
+    </div>
+    <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="closed.emit()">
+      <img src="icons/close.svg" alt="" aria-hidden="true" />
+    </button>
+  </header>
+
+  <div class="add-members__field">
+    <label class="sr-only" for="channel-add-search">Name eingeben</label>
+    <input
+      id="channel-add-search"
+      class="form-input form-input--outlined"
+      type="text"
+      [formControl]="searchControl"
+      placeholder="Name eingeben"
+    />
+  </div>
+
+  @if (selectedUsers().length > 0) {
+    <ul class="add-members__chips">
+      @for (user of selectedUsers(); track user.uid) {
+        <li class="add-members__chip">
+          <img class="add-members__chip-avatar" [src]="avatarSrc(user.avatarPath)" alt="" aria-hidden="true" />
+          {{ user.name }}
+          <button
+            class="add-members__chip-remove"
+            type="button"
+            [attr.aria-label]="'Entfernen: ' + user.name"
+            (click)="removeUser(user.uid)"
+          >
+            <img src="icons/close.svg" alt="" aria-hidden="true" />
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (candidates().length > 0) {
+    <ul class="add-members__results">
+      @for (user of candidates(); track user.uid) {
+        <li>
+          <button class="add-members__result" type="button" (click)="selectUser(user)">
+            <img class="add-members__result-avatar" [src]="avatarSrc(user.avatarPath)" alt="" aria-hidden="true" />
+            {{ user.name }}
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  <footer class="add-members__actions">
+    <button class="btn btn-primary" type="button" [disabled]="!canAdd()" (click)="add()">
+      Hinzufügen
+    </button>
+  </footer>
+</app-dialog-shell>

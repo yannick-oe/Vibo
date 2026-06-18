@@ -1,0 +1,75 @@
+<div class="composer">
+  @if (mention() !== null && suggestions().length > 0) {
+    <app-suggestion-dropdown
+      class="composer__suggestions"
+      [suggestions]="suggestions()"
+      [activeIndex]="activeIndex()"
+      [idPrefix]="suggestionIdPrefix"
+      (picked)="pickSuggestion($event)"
+    />
+  }
+
+  <div class="composer__input-wrapper">
+    <div #backdrop class="composer__backdrop" aria-hidden="true">@for (part of parsedText(); track $index) {@if (part.isMention) {<span class="composer__mention">{{ part.text }}</span>} @else {{{ part.text }}}}@if (text().endsWith('\n')) {<br />}</div>
+    <label class="sr-only" [for]="inputId">{{ placeholder() }}</label>
+    <textarea
+      #textarea
+      [id]="inputId"
+      class="composer__text"
+      rows="1"
+      [placeholder]="placeholder()"
+      [value]="text()"
+      role="combobox"
+      [attr.aria-expanded]="mention() !== null && suggestions().length > 0"
+      [attr.aria-activedescendant]="
+        mention() !== null && suggestions().length > 0
+          ? suggestionIdPrefix + '-' + activeIndex()
+          : null
+      "
+      (input)="onInput($event)"
+      (keydown)="onKeydown($event)"
+      (scroll)="onScroll($event)"
+    ></textarea>
+  </div>
+
+  <div class="composer__toolbar">
+    <div class="composer__tools">
+      <span class="composer__picker-wrap">
+        <button
+          class="composer__tool"
+          type="button"
+          aria-label="Emoji einfügen"
+          [attr.aria-expanded]="pickerOpen()"
+          (click)="pickerOpen.set(!pickerOpen()); $event.stopPropagation()"
+        >
+          <img src="icons/smile.svg" alt="" aria-hidden="true" />
+        </button>
+        @if (pickerOpen()) {
+          <app-emoji-picker
+            class="composer__picker"
+            (picked)="insertEmoji($event)"
+            (closed)="pickerOpen.set(false)"
+          />
+        }
+      </span>
+      <button
+        class="composer__tool"
+        type="button"
+        aria-label="Person erwähnen"
+        [attr.aria-expanded]="mention()?.type === '@'"
+        (click)="toggleMentionButton()"
+      >
+        <img src="icons/at.svg" alt="" aria-hidden="true" />
+      </button>
+    </div>
+    <button
+      class="composer__send"
+      type="button"
+      aria-label="Nachricht senden"
+      [disabled]="!canSend()"
+      (click)="submit()"
+    >
+      <img src="icons/send.svg" alt="" aria-hidden="true" />
+    </button>
+  </div>
+</div>

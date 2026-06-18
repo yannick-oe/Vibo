@@ -1,0 +1,95 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.thread__head {
+  @include m.flex-between;
+
+  gap: v.space('md');
+  padding: v.space('md') v.space('lg');
+  background-color: v.color('white');
+  box-shadow: v.$shadow-sm;
+  z-index: v.$z-raised;
+}
+
+.thread__title-group {
+  display: flex;
+  align-items: baseline;
+  gap: v.space('sm-md');
+  min-width: 0;
+}
+
+.thread__title {
+  font-size: v.font-size('h5');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.thread__context {
+  font-size: v.font-size('min');
+  color: v.color('primary');
+  @include m.text-ellipsis;
+}
+
+.thread__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: v.space('lg');
+  @include m.scrollbar-thin;
+}
+
+.thread__origin {
+  display: flex;
+  flex-direction: column;
+}
+
+.thread__divider {
+  display: flex;
+  align-items: center;
+  gap: v.space('md');
+  margin: v.space('lg') 0;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: v.color('lines');
+  }
+}
+
+.thread__divider-label {
+  font-size: v.font-size('min');
+  color: v.color('lines');
+  white-space: nowrap;
+}
+
+.thread__replies {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('lg');
+}
+
+.thread__composer {
+  padding: 0 v.space('lg') v.space('lg');
+}
+@include m.respond-md {
+  .thread__scroll {
+    padding: v.space('md');
+  }
+
+  .thread__composer {
+    padding: 0 v.space('md') v.space('md');
+  }
+}

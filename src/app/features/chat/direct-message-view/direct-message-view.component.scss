@@ -1,0 +1,136 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.dm {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.dm__head {
+  display: flex;
+  align-items: center;
+  padding: v.space('md') v.space('lg');
+  background-color: v.color('white');
+  box-shadow: v.$shadow-sm;
+  z-index: v.$z-raised;
+}
+
+.dm__partner {
+  display: flex;
+  align-items: center;
+  gap: v.space('md');
+  padding: v.space('xs') v.space('sm');
+  border: none;
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+}
+
+.dm__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dm__avatar {
+  width: v.$avatar-list;
+  height: v.$avatar-list;
+  border-radius: v.$radius-round;
+  object-fit: cover;
+}
+
+.dm__status {
+  @include m.status-dot;
+
+  position: absolute;
+  right: 0;
+  bottom: 0;
+
+  &--offline {
+    background-color: v.color('text-gray');
+  }
+}
+
+.dm__name {
+  font-size: v.font-size('h5');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.dm__empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: v.space('md');
+  padding: v.space('lg') v.space('xl-xxl');
+  overflow-y: auto;
+  @include m.scrollbar-thin;
+}
+
+.dm__empty-avatar {
+  width: v.$avatar-hero;
+  height: v.$avatar-hero;
+  border-radius: v.$radius-round;
+  object-fit: cover;
+}
+
+.dm__empty-name {
+  font-size: v.font-size('h4');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.dm__empty-text {
+  font-size: v.font-size('body');
+  line-height: v.$line-height-base;
+  color: v.color('text-gray');
+}
+
+.dm__empty-lead {
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.dm__empty-mention {
+  color: v.color('primary-active');
+  cursor: pointer;
+
+  &:hover {
+    color: v.color('primary');
+  }
+}
+
+.dm__list {
+  flex: 1;
+  min-height: 0;
+}
+
+.dm__composer {
+  padding: 0 v.space('xl-xxl') v.space('lg');
+}
+@include m.respond-md {
+  .dm__head {
+    padding: v.space('sm-md') v.space('md');
+  }
+
+  .dm__empty {
+    padding: v.space('md');
+  }
+
+  .dm__composer {
+    padding: 0 v.space('md') v.space('md');
+  }
+}
