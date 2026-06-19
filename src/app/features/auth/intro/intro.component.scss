@@ -86,3 +86,19 @@ $logo-height-mobile: 118px;
     transition: none;
   }
 }
+
+:host-context([data-theme='dark']) .intro {
+  background-color: v.color('bg');
+  background-image: var(--grain), var(--aurora);
+  background-repeat: repeat, no-repeat;
+}
+
+:host-context([data-theme='dark']) .intro__text {
+  color: v.color('black');
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :host-context([data-theme='dark']) .intro {
+    background-image: none;
+  }
+}

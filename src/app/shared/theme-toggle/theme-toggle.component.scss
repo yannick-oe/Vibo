@@ -1,0 +1,34 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.theme-toggle {
+  @include m.flex-center;
+
+  width: v.$btn-height;
+  height: v.$btn-height;
+  flex-shrink: 0;
+  border: none;
+  border-radius: v.$radius-round;
+  background: none;
+  color: v.color('black');
+  cursor: pointer;
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+.theme-toggle__label {
+  @include m.visually-hidden;
+}
+
+.theme-toggle__icon {
+  width: v.$icon-md;
+  height: v.$icon-md;
+}
