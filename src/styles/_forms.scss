@@ -31,7 +31,7 @@ $form-error-reserved-height: v.font-size('min') * v.$line-height-base * $form-er
 
   &:hover {
     .form-input:not(:focus):not(:disabled) {
-      border: 1px solid v.color('text-gray');
+      border: 1.5px solid v.color('text-gray');
     }
   }
 
@@ -89,12 +89,12 @@ $form-error-reserved-height: v.font-size('min') * v.$line-height-base * $form-er
   width: 100%;
   height: v.$input-height;
   padding: 0 v.space('md');
-  border: 1.5px solid transparent;
   border-radius: v.$radius-pill;
   font-size: v.font-size('body');
   font-weight: v.$font-weight-medium;
   color: v.color('black');
   background-color: v.color('bg');
+  border: 1.5px solid var(--field-border);
   transition:
     border-color v.$transition-base,
     box-shadow v.$transition-base;
@@ -128,7 +128,7 @@ $form-error-reserved-height: v.font-size('min') * v.$line-height-base * $form-er
 
   &--outlined {
     background-color: v.color('white');
-    border-color: v.color('lines');
+    border-color: var(--field-border);
   }
 }
 
@@ -186,7 +186,7 @@ $form-error-reserved-height: v.font-size('min') * v.$line-height-base * $form-er
 .form-checkbox {
   width: 18px;
   height: 18px;
-  border: 1.5px solid v.color('lines');
+  border: 1.5px solid var(--field-border);
   border-radius: v.$radius-xs;
   background-color: v.color('white');
   flex-shrink: 0;
@@ -217,7 +217,7 @@ $form-error-reserved-height: v.font-size('min') * v.$line-height-base * $form-er
 .form-radio {
   width: 18px;
   height: 18px;
-  border: 1.5px solid v.color('lines');
+  border: 1.5px solid var(--field-border);
   border-radius: v.$radius-round;
   background-color: v.color('white');
   flex-shrink: 0;

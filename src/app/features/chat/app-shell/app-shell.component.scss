@@ -15,6 +15,9 @@
   background-color: v.color('bg');
   background-image: var(--grain), var(--aurora);
   background-repeat: repeat, no-repeat;
+  background-size: auto, var(--aurora-size);
+  background-position: 0 0, center;
+  animation: var(--aurora-anim);
 }
 
 .shell__panels {

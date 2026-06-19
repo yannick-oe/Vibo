@@ -14,7 +14,9 @@ $logo-height-mobile: 118px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: linear-gradient(180deg, v.color('primary-hover'), v.color('primary'));
+  background-color: v.color('bg');
+  background-image: var(--grain), var(--aurora);
+  background-repeat: repeat, no-repeat;
 }
 
 .intro__logo-container {
@@ -41,7 +43,7 @@ $logo-height-mobile: 118px;
   font-family: v.$font-base;
   font-size: v.font-size('display');
   font-weight: v.$font-weight-bold;
-  color: v.color('white');
+  color: v.color('black');
   white-space: nowrap;
   clip-path: inset(0 100% 0 0);
   transition: clip-path 500ms ease-in-out;
@@ -87,18 +89,8 @@ $logo-height-mobile: 118px;
   }
 }
 
-:host-context([data-theme='dark']) .intro {
-  background-color: v.color('bg');
-  background-image: var(--grain), var(--aurora);
-  background-repeat: repeat, no-repeat;
-}
-
-:host-context([data-theme='dark']) .intro__text {
-  color: v.color('black');
-}
-
 @media (prefers-reduced-transparency: reduce) {
-  :host-context([data-theme='dark']) .intro {
+  .intro {
     background-image: none;
   }
 }

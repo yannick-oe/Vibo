@@ -83,7 +83,8 @@ $message-enter-shift: 6px;
   width: fit-content;
   padding: v.space('md') v.space('lg');
   border-radius: 0 v.$radius-xl v.$radius-xl v.$radius-xl;
-  background-color: v.color('bg');
+  background-color: var(--bubble-other-bg);
+  border: 1px solid var(--bubble-other-border);
   font-size: v.font-size('body');
   font-family: v.$font-base;
   line-height: v.$line-height-base;
@@ -98,8 +99,9 @@ $message-enter-shift: 6px;
 
   :host(.message--own) & {
     border-radius: v.$radius-xl 0 v.$radius-xl v.$radius-xl;
-    background-color: v.color('primary-hover');
-    color: v.color('white');
+    background-color: var(--bubble-own-bg);
+    border-color: transparent;
+    color: var(--bubble-own-text);
   }
 
   &--deleted,

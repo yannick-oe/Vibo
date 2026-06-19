@@ -3,6 +3,41 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Light-mode "frosted-aurora" redesign (2026-06-19, Phase 1 — token/mixin layer)
+- **Deliberate departure from the original DABubble light Figma.** Light mode was
+  re-authored as a "aurora through frosted glass at dawn" language: pale, low-chroma
+  indigo→violet→magenta tints behind white-dominant frost on the cool-white canvas
+  (`bg #ECEEFE`), crisp cool edges + soft cool (indigo-hint) shadows instead of the
+  dark theme's neon glows. Driven entirely from the shared `:root` light tokens in
+  [_themes.scss](src/styles/_themes.scss) + the existing `glass` mixin, so every
+  token-inheriting surface (shell, sidebar, search, composer, dialogs, profile
+  dropdown, auth card, inputs, bubbles) updates at once. Dark mode is unchanged.
+- **AA-safe token swaps (measured WCAG; never silently kept a failing colour):**
+  - `--field-border` **#7e82b0** replaces `lines #ADB0D9` for input / checkbox /
+    radio edges in light: `lines` on white was **2.10:1** (FAILS 1.4.11 3:1); `#7e82b0`
+    is **3.68:1 vs white / 3.19:1 vs bg**. (Dark keeps `lines`; dark filled inputs gain
+    a hairline — additive, non-regressive.)
+  - **Own message bubble** changed from solid `primary-hover` + white text
+    (**3.45:1 — FAILED** AA) to a pale-primary tint (`--bubble-own-bg`) + dark text
+    (`--bubble-own-text`), **16.6:1**. Other bubbles get a frost fill + crisp
+    `--bubble-other-border`.
+  - **Sidebar active item** (light) no longer changes `font-weight` (avoids reflow);
+    distinguished by a pale-primary fill (`--glass-tint-active`) + a crisp inset
+    primary ring (`--glow-active`), self-contained (no clippable outer bloom).
+- **`text-gray` is fragile on the aurora — kept off it.** `text-gray #686868` drops
+  below 4.5:1 at just **>4% aurora tint** (4.59:1 @4%, 4.44:1 @6%). All chat / panel /
+  form secondary text sits on the opaque white/frost layer (≥5.5:1), never on the
+  aurora. The aurora is kept pale and its dense lobes are positioned in the off-screen
+  corners. **Phase 2 flag:** the auth header caption ("Neu bei {{Vibo}}?", `text-gray`,
+  top-right) and the mobile CTA sit directly on the page aurora with no frost backing —
+  Phase 2 should give them a frost layer or a darker secondary-text token. Footer legal
+  links inherit a dark colour and are safe.
+- **Grain off in light** (`--grain: none`); the SVG-noise texture is dark-only.
+- **Aurora animates** via a token-driven, GPU-cheap background-position drift
+  (`--aurora-anim`, `$aurora-drift-duration 90s`), set to `none` under
+  `prefers-reduced-motion`; under `prefers-reduced-transparency`/`@supports not
+  (backdrop-filter)` panels fall back to a solid opaque frost (via the `glass` mixin).
+
 ## Project structure
 - **Feature-based folders instead of a flat `components/` folder.** Components
   live under `src/app/features/<feature>/<component>/` and `src/app/shared/`

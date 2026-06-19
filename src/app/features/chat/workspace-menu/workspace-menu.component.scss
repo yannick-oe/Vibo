@@ -182,9 +182,9 @@
   }
 
   &--active {
-    background-color: v.color('bg');
+    background-color: var(--glass-tint-active);
+    box-shadow: var(--glow-active);
     color: v.color('primary');
-    font-weight: v.$font-weight-semibold;
 
     .workspace__item-icon {
       content: url('../../../../../public/icons/tag-hover.svg');
