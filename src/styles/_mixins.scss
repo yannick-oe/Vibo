@@ -133,7 +133,8 @@
   $border: var(--glass-border),
   $shadow: var(--glass-shadow),
   $blur: var(--glass-blur),
-  $saturate: var(--glass-saturate)
+  $saturate: var(--glass-saturate),
+  $sheen: var(--glass-sheen)
 ) {
   background-color: v.color('white');
   border: 1px solid $border;
@@ -141,7 +142,7 @@
 
   @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     background-color: $tint;
-    background-image: var(--glass-sheen);
+    background-image: $sheen;
     -webkit-backdrop-filter: blur($blur) saturate($saturate);
     backdrop-filter: blur($blur) saturate($saturate);
   }

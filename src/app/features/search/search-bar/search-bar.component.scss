@@ -17,7 +17,7 @@ $dropdown-max-height: 480px;
 }
 
 .search-bar__input {
-  @include m.glass;
+  @include m.glass($sheen: var(--input-sheen));
   padding-right: calc(#{v.space('lg')} + #{v.$icon-md} + #{v.space('md')});
 
   &::-webkit-search-decoration,
@@ -149,7 +149,7 @@ $dropdown-max-height: 480px;
   min-height: 0;
 
   .search-bar__input {
-    border: 1px solid v.color('lines');
+    border: 1px solid var(--field-border);
   }
 
   .search-bar__dropdown {

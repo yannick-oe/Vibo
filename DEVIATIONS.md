@@ -3,6 +3,37 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Light-mode refresh — Phase 2 (2026-06-19, per-page/dialog sweep + 2 fixes)
+- **Secondary auth text no longer relies on aurora-corner positioning.** The "Neu bei
+  {{Vibo}}?" caption (`text-gray`) and the register CTA (`primary`) both failed AA at the
+  aurora's densest point (`text-gray` 4.03:1, `primary` 4.23:1 over a 13% primary lobe).
+  They now sit on a **light-only frost chip** (`.header__cta` / `.auth-page__mobile-cta`),
+  driven by `--cta-frost-bg/-shadow/-pad` (94%-white fill + crisp inset `--glass-border`
+  ring + cool `--glass-shadow`). At the densest aurora point the chip gives **text-gray
+  5.48:1 / primary 5.76:1**. The tokens are `transparent / none / 0` in dark, so the dark
+  header is byte-for-byte unchanged (no chip).
+- **Input sheen constrained.** The `glass` mixin gained a `$sheen` parameter; inputs
+  (`.composer`, `.search-bar__input`) pass `--input-sheen` = a faint white top-edge
+  highlight in light (no full-surface coloured wash) and `var(--glass-sheen)` in dark
+  (unchanged). Non-input panels keep the iridescent panel sheen.
+- **Datenschutz conformed to the Impressum frost-card treatment in LIGHT** (was bare content
+  directly on the page aurora). Done as a **light-only** override
+  (`:host-context(html:not([data-theme='dark'])) .privacy-page { @include m.glass; … }`) so the
+  **dark** Datenschutz page stays byte-for-byte the original bare full-width layout — light
+  matches Impressum, dark is untouched.
+- **Emoji picker + @/# mention picker conformed to the frost language in LIGHT only.** The
+  original solid card (`background-color white` + `box-shadow shadow-lg`) is kept as the base
+  (so **dark is byte-for-byte unchanged**) and the frost is layered on via the same
+  `:host-context(html:not([data-theme='dark']))` light override — no dark restore block, so no
+  stray border/box geometry in dark. The fullscreen search input border moved off the failing
+  `lines` (2.10:1) onto `--field-border` (3.68:1).
+- **Lighthouse (desktop, light, production build):** Accessibility **100**, Best Practices
+  **100**, SEO **100**, Performance **81** (limited by the eager Firebase bundle + a worst-case
+  static server, not by the CSS-only Phase-2 changes). `cumulative-layout-shift = 0`,
+  `total-blocking-time = 0 ms`, and the aurora `background-position` drift is **not** flagged
+  (`non-composited-animations` scored 1) — so per the perf gate it was left as-is (not moved
+  to a transform-based technique).
+
 ## Light-mode "frosted-aurora" redesign (2026-06-19, Phase 1 — token/mixin layer)
 - **Deliberate departure from the original DABubble light Figma.** Light mode was
   re-authored as a "aurora through frosted glass at dawn" language: pale, low-chroma

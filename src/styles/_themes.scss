@@ -40,6 +40,10 @@
   --bubble-own-text: var(--color-black);
   --bubble-other-bg: var(--color-bg);
   --bubble-other-border: #9498c4;
+  --input-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 12%);
+  --cta-frost-bg: color-mix(in srgb, var(--color-white) 94%, transparent);
+  --cta-frost-shadow: var(--glass-shadow), inset 0 0 0 1px var(--glass-border);
+  --cta-frost-pad: #{v.space('xs')} #{v.space('md')};
   color-scheme: light;
 }
 
@@ -87,6 +91,10 @@
   --bubble-own-text: var(--color-white);
   --bubble-other-bg: var(--color-bg);
   --bubble-other-border: var(--glass-border);
+  --input-sheen: var(--glass-sheen);
+  --cta-frost-bg: transparent;
+  --cta-frost-shadow: none;
+  --cta-frost-pad: 0;
   color-scheme: dark;
 }
 

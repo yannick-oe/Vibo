@@ -8,7 +8,7 @@
   gap: v.space('sm');
   padding: v.space('md') v.space('lg');
   border-radius: v.$radius-lg;
-  @include m.glass;
+  @include m.glass($sheen: var(--input-sheen));
 
   &:focus-within {
     border-color: v.color('primary');
