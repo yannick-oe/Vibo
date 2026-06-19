@@ -19,6 +19,7 @@ import { Timestamp } from '@angular/fire/firestore';
 
 import { ChatEntry, Message } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
+import { EffectsService } from '../../../services/effects.service';
 import { ReadEntry } from '../../../services/read-state.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
 import { MessageService } from '../../../services/message.service';
@@ -95,6 +96,8 @@ export class MessageItemComponent {
   private readonly messageService = inject(MessageService);
 
   private readonly recentEmojiService = inject(RecentEmojiService);
+
+  private readonly effectsService = inject(EffectsService);
 
   private readonly messageFocusService = inject(MessageFocusService);
 
@@ -214,19 +217,23 @@ export class MessageItemComponent {
 
 
   /**
-   * Toggles the signed-in user's reaction; new reactions become the quick
-   * emojis of the action bar.
-   * @param emoji Emoji character to toggle.
+   * Sets the signed-in user's single reaction to `emoji` (replacing any
+   * existing one, or toggling it off); adding a reaction records the quick
+   * emoji and plays the big-reaction effect for the two special emojis.
+   * @param emoji Emoji character to set.
    */
   protected async react(emoji: string): Promise<void> {
     const messagePath = this.messagePath();
     if (!messagePath || this.isDeleted()) return;
-    const uids = this.entry().reactions[emoji] ?? [];
-    if (!uids.includes(this.authService.currentUser()?.uid ?? '')) {
+    const reactions = this.entry().reactions;
+    const uid = this.authService.currentUser()?.uid ?? '';
+    const isAdding = !(reactions[emoji] ?? []).includes(uid);
+    if (isAdding) {
       this.recentEmojiService.record(emoji);
+      this.effectsService.playFor(emoji);
     }
     this.barOpen.set(false);
-    await this.runAction(() => this.messageService.toggleReaction(messagePath, emoji, uids));
+    await this.runAction(() => this.messageService.setReaction(messagePath, emoji, reactions));
   }
 
 

@@ -1,9 +1,9 @@
 /**
  * @file Emoji picker popover with the predefined Twemoji set.
  */
-import { ChangeDetectionStrategy, Component, ElementRef, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output } from '@angular/core';
 
-import { EMOJI_SET, emojiAsset, emojiName } from '../emoji-catalog';
+import { EMOJI_SET, emojiAsset, emojiName, reactionTriggerLabel } from '../emoji-catalog';
 
 /**
  * Popover with the predefined Twemoji emoji grid, shared by the reaction
@@ -26,6 +26,8 @@ export class EmojiPickerComponent {
 
   readonly closed = output<void>();
 
+  readonly isReactionTrigger = input(false);
+
   private readonly host = inject(ElementRef<HTMLElement>);
 
   protected readonly emojis = EMOJI_SET;
@@ -33,6 +35,17 @@ export class EmojiPickerComponent {
   protected readonly assetFor = emojiAsset;
 
   protected readonly nameFor = emojiName;
+
+
+  /**
+   * Accessible label of an emoji button: the reaction-trigger phrasing
+   * ("Mit … reagieren") when reacting to a message, the plain emoji name when
+   * inserting into text.
+   * @param emoji Emoji character of the button.
+   */
+  protected labelFor(emoji: string): string {
+    return this.isReactionTrigger() ? reactionTriggerLabel(emoji) : emojiName(emoji) ?? emoji;
+  }
 
 
   /**

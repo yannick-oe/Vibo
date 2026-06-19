@@ -118,6 +118,7 @@
 @if (reactionPickerOpen()) {
   <app-emoji-picker
     class="message__picker"
+    [isReactionTrigger]="true"
     (picked)="onReactionPicked($event)"
     (closed)="reactionPickerOpen.set(false)"
   />

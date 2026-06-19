@@ -3,6 +3,45 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Reactions: one per user + two big reactions with full-screen effects (2026-06-19)
+- **One reaction per user per message (was up to one per emoji).** A user now holds **at most
+  one** reaction on a message: reacting with a new emoji **replaces** the previous one, and
+  re-selecting the current one **removes** it. Enforced **client-side, atomically** — a single
+  `updateDoc` (`message.service.ts` → `setReaction`/`applyReaction`) removes the user's uid from
+  any reaction they already hold and adds it to the chosen one (variadic `FieldPath('reactions',
+  …)` field updates, so concurrent reactors are not clobbered; the field is deleted via
+  `deleteField()` only when the user was its sole reactor). No new write path — still the single
+  reaction update. The chip row, display caps (desktop 20 / mobile+thread 7 + "+x weitere") and
+  Twemoji rendering are unchanged; reaction keys remain unicode characters (no data migration).
+- **Firestore-rules note (not implemented, deliberate).** The one-per-user invariant is enforced
+  only on the client. It could later be hardened in `firestore.rules` (the `togglesReactionsOnly`
+  matrix already confines edits to the `reactions` map — a two-key switch only changes the
+  top-level `reactions` key, so it passes today), shipped via a separate `firebase deploy --only
+  firestore:rules`. Out of scope for this prompt; flagged here.
+- **Two "big" reactions with on-brand full-screen effects.** 🎉 (confetti) and 💖 (hearts, new
+  Twemoji `1f496`) are normal reactions in every respect (become the user's one reaction, show a
+  chip, count toward the cap) **and** play a one-shot full-screen effect for the **selecting user
+  only** — broadcasting to other participants is an explicit **later** enhancement, intentionally
+  not built (`EffectsService` doc-comments this). No Figma design exists for the effects; kept
+  strictly on-brand. Confetti uses the **aurora hues** (indigo → violet → magenta, i.e. the live
+  `--color-primary` → mix → `--color-accent` theme tokens); hearts are soft glowing hearts (accent
+  → accent/white) floating up. Colors are read at runtime from the active theme, so **light and
+  dark each get their own palette**.
+- **Implementation:** a single app-level `EffectsOverlayComponent` (mounted once in `app.ts`) owns
+  **one fixed full-viewport `<canvas>`** above all panels (`z-index: $z-tooltip`,
+  `pointer-events: none`, `aria-hidden`, empty until played → **CLS = 0**, no interaction
+  blocking). A bounded custom particle system (`effects-particles.ts`; **no library**, so nothing
+  to lazy-load; named counts `CONFETTI_COUNT` 110 / `HEARTS_COUNT` 22, hard `EFFECT_MAX_MS` 4000
+  cap) plays once per trigger and auto-clears. `prefers-reduced-motion` **and** (conservatively)
+  `prefers-reduced-transparency` **skip the effect entirely** — the reaction still registers and
+  the chip still appears (the skip happens in the overlay, not the write path).
+- **A11y labels.** Reaction triggers are real `<button>`s (keyboard, `:focus-visible`). The two
+  big reactions read German effect labels **"Mit Konfetti reagieren" / "Mit Herzen reagieren"**
+  (shared `reactionTriggerLabel`, used by the quick-reaction bar and the reaction picker; the
+  composer/edit picker stays neutral via the new `isReactionTrigger` flag). The catalog `name`
+  stays the literal emoji name ("Party-Tröte" / "Funkelndes Herz") for the image `alt` and the
+  who-reacted tooltip. The overlay canvas is decorative (`aria-hidden`).
+
 ## Legal pages unified + back-arrow → login (2026-06-19)
 - **Both legal pages share one constrained frost card, identical in light AND dark.** A new
   `.legal-card` (in `_layout.scss`: `@include m.glass` + `max-width: $legal-card-width` 660px ≈

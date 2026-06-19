@@ -12,6 +12,7 @@ import {
   collectionData,
   deleteField,
   doc,
+  DocumentReference,
   docData,
   increment,
   onSnapshot,
@@ -25,7 +26,8 @@ import {
 } from '@angular/fire/firestore';
 import { Observable, catchError, of } from 'rxjs';
 
-import { Message, MessageDoc, Reply, ReplyDoc } from '../models/message.model';
+import { Message, MessageDoc, ReactionMap, Reply, ReplyDoc } from '../models/message.model';
+import { userReaction } from '../models/reactions';
 import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
 
@@ -201,20 +203,17 @@ export class MessageService {
 
 
   /**
-   * Toggles the signed-in user's reaction with the given emoji in one
-   * atomic update; the field is removed when the last reactor leaves.
+   * Sets the signed-in user's single reaction to `emoji` in one atomic update:
+   * the user is removed from any reaction they already hold and added to the
+   * chosen one, or removed entirely when re-selecting their current reaction.
    * @param messagePath Firestore path of the message document.
-   * @param emoji Emoji character of the reaction.
-   * @param reactorUids Uids currently reacting with this emoji.
+   * @param emoji Chosen reaction emoji character.
+   * @param reactions Current reaction map of the message.
    */
-  async toggleReaction(messagePath: string, emoji: string, reactorUids: string[]): Promise<void> {
+  async setReaction(messagePath: string, emoji: string, reactions: ReactionMap): Promise<void> {
     const uid = this.authService.requireUid();
-    const reacted = reactorUids.includes(uid);
-    const removesLast = reacted && reactorUids.length === 1;
-    const value = removesLast ? deleteField() : reacted ? arrayRemove(uid) : arrayUnion(uid);
-    await runInInjectionContext(this.injector, () =>
-      updateDoc(doc(this.firestore, messagePath), new FieldPath('reactions', emoji), value),
-    );
+    const ref = doc(this.firestore, messagePath);
+    await runInInjectionContext(this.injector, () => applyReaction(ref, reactions, emoji, uid));
   }
 
 
@@ -356,4 +355,43 @@ function mapMessages(snapshot: QuerySnapshot): Message[] {
     id: document.id,
     hasPendingWrites: document.metadata.hasPendingWrites,
   }));
+}
+
+
+/**
+ * Applies the one-reaction-per-user change in a single atomic update: removes
+ * the user from their current reaction and adds them to the chosen one,
+ * removes only (toggle off) when re-selecting it, or adds when they hold none.
+ * @param ref Message document reference.
+ * @param reactions Current reaction map.
+ * @param emoji Chosen reaction emoji.
+ * @param uid Signed-in user's uid.
+ */
+function applyReaction(ref: DocumentReference, reactions: ReactionMap, emoji: string, uid: string): Promise<void> {
+  const current = userReaction(reactions, uid);
+  if (current && current !== emoji) {
+    return updateDoc(ref, field(current), removeReactor(reactions[current], uid), field(emoji), arrayUnion(uid));
+  }
+  if (current) return updateDoc(ref, field(current), removeReactor(reactions[current], uid));
+  return updateDoc(ref, field(emoji), arrayUnion(uid));
+}
+
+
+/**
+ * Builds the document field path of a reaction emoji under the reactions map.
+ * @param emoji Reaction emoji character.
+ */
+function field(emoji: string): FieldPath {
+  return new FieldPath('reactions', emoji);
+}
+
+
+/**
+ * Field value that removes a uid from a reaction, deleting the field entirely
+ * when that uid was its last reactor.
+ * @param uids Current reactors of the emoji.
+ * @param uid Uid to remove.
+ */
+function removeReactor(uids: string[], uid: string): FieldValue {
+  return uids.length === 1 && uids[0] === uid ? deleteField() : arrayRemove(uid);
 }
