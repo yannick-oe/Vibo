@@ -4,7 +4,7 @@
  */
 import { Injectable, computed, signal } from '@angular/core';
 
-export const DEFAULT_AVATAR_PATH = 'avatars/profile.png';
+export const DEFAULT_AVATAR_PATH = 'avatars/gast.jpeg';
 
 export const REMOTE_AVATAR_PREFIX = 'http';
 

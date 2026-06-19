@@ -9,10 +9,10 @@ export interface AvatarOption {
 }
 
 export const AVATAR_OPTIONS: readonly AvatarOption[] = [
-  { path: 'avatars/Elias-Neumann.png', label: 'Elias Neumann' },
-  { path: 'avatars/Elise-Roth.png', label: 'Elise Roth' },
-  { path: 'avatars/Frederik-Beck.png', label: 'Frederik Beck' },
-  { path: 'avatars/Noah-Braun.png', label: 'Noah Braun' },
-  { path: 'avatars/Sofia-Müller.png', label: 'Sofia Müller' },
-  { path: 'avatars/Steffen-Hoffmann.png', label: 'Steffen Hoffmann' },
+  { path: 'avatars/avatar-1.jpeg', label: '1' },
+  { path: 'avatars/avatar-2.jpeg', label: '2' },
+  { path: 'avatars/avatar-3.jpeg', label: '3' },
+  { path: 'avatars/avatar-4.jpeg', label: '4' },
+  { path: 'avatars/avatar-5.jpeg', label: '5' },
+  { path: 'avatars/avatar-6.jpeg', label: '6' },
 ];

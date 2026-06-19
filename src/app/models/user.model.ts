@@ -14,7 +14,7 @@ export interface UserDoc {
   name: string;
   /** Account e-mail; null for guest (anonymous) accounts. */
   email: string | null;
-  /** Local public asset path (e.g. avatars/profile.png) — never an external URL. */
+  /** Local public asset path (e.g. avatars/avatar-1.jpeg) — never an external URL. */
   avatarPath: string;
   /** Creation time; serverTimestamp() sentinel on write, Timestamp on read. */
   createdAt: Timestamp | FieldValue;
