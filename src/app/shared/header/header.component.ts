@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
 
 import { APP_NAME } from '../app.constants';
 import { ThemeService } from '../../services/theme.service';
+import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 
 /**
  * Displays the brand logo top-left and a "Neu bei Vibo?" call-to-action
@@ -14,7 +15,7 @@ import { ThemeService } from '../../services/theme.service';
  */
 @Component({
   selector: 'app-header',
-  imports: [RouterLink],
+  imports: [RouterLink, ThemeToggleComponent],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

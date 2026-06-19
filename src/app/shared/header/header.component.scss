@@ -37,6 +37,14 @@
   }
 }
 
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: v.space('lg');
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .header__cta {
   display: flex;
   flex-direction: column;

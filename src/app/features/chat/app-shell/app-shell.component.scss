@@ -13,7 +13,8 @@
   height: 100dvh;
   overflow: hidden;
   background-color: v.color('bg');
-  background-image: var(--aurora);
+  background-image: var(--grain), var(--aurora);
+  background-repeat: repeat, no-repeat;
 }
 
 .shell__panels {

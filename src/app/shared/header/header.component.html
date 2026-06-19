@@ -3,10 +3,13 @@
     <img class="header__logo" [src]="wordmarkSrc()" [alt]="appName" />
   </a>
 
-  @if (shouldShowCta()) {
-    <div class="header__cta">
-      <p class="header__cta-text">Neu bei {{ appName }}?</p>
-      <a class="header__cta-link" routerLink="/auth/register">Konto erstellen</a>
-    </div>
-  }
+  <div class="header__actions">
+    @if (shouldShowCta()) {
+      <div class="header__cta">
+        <p class="header__cta-text">Neu bei {{ appName }}?</p>
+        <a class="header__cta-link" routerLink="/auth/register">Konto erstellen</a>
+      </div>
+    }
+    <app-theme-toggle />
+  </div>
 </header>

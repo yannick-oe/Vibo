@@ -13,7 +13,8 @@
   min-height: 100vh;
   min-height: 100dvh;
   background-color: v.color('bg');
-  background-image: var(--aurora);
+  background-image: var(--grain), var(--aurora);
+  background-repeat: repeat, no-repeat;
 }
 
 .auth-page__main {

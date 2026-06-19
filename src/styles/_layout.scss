@@ -26,9 +26,8 @@ app-root {
 }
 
 .auth-card {
-  background-color: v.color('white');
+  @include m.glass($shadow: v.$shadow-lg);
   border-radius: v.$radius-xl;
-  box-shadow: v.$shadow-lg;
   padding: v.space-fluid('xl', 'xxl') v.space('xl-xxl');
   width: 100%;
   max-width: v.$auth-card-width;
