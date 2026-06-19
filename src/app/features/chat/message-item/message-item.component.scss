@@ -5,6 +5,10 @@ $message-enter-duration: 180ms;
 $message-enter-easing: ease-out;
 $message-enter-scale-from: 0.97;
 $message-enter-shift: 6px;
+$message-delete-duration: 220ms;
+$message-delete-easing: ease-out;
+$tombstone-pop-scale-from: 0.9;
+$message-hide-scale-to: 0.92;
 
 :host {
   position: relative;
@@ -103,13 +107,14 @@ $message-enter-shift: 6px;
     border-color: transparent;
     color: var(--bubble-own-text);
   }
+}
 
-  &--deleted,
-  :host(.message--own) &--deleted {
-    background-color: v.color('bg');
-    color: v.color('text-gray');
-    font-style: italic;
-  }
+.message__tombstone {
+  margin: 0;
+  padding: v.space('xs') 0;
+  font-size: v.font-size('body');
+  font-style: italic;
+  color: var(--msg-deleted-text);
 }
 
 .message__mention {
@@ -308,6 +313,40 @@ $message-enter-shift: 6px;
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .message__tombstone--pop {
+    animation: tombstone-pop $message-delete-duration $message-delete-easing both;
+  }
+
+  :host(.message--hiding) {
+    animation: message-hide $message-delete-duration $message-delete-easing both;
+  }
+}
+
+@keyframes tombstone-pop {
+  from {
+    opacity: 0;
+    transform: scale($tombstone-pop-scale-from);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes message-hide {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: scale($message-hide-scale-to);
   }
 }
 

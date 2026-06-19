@@ -10,7 +10,7 @@
   </div>
 
   @if (isDeleted()) {
-    <p class="message__bubble message__bubble--deleted">Diese Nachricht wurde gelöscht</p>
+    <p class="message__tombstone" [class.message__tombstone--pop]="justDeleted()">Nachricht gelöscht</p>
   } @else if (isEditing()) {
     <div class="message__edit">
       <label class="sr-only" [for]="editFieldId">Nachricht bearbeiten</label>

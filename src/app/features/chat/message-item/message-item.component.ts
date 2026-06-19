@@ -9,13 +9,13 @@ import {
   ElementRef,
   LOCALE_ID,
   computed,
+  effect,
   inject,
   input,
   output,
   signal,
   viewChild,
 } from '@angular/core';
-import { Timestamp } from '@angular/fire/firestore';
 
 import { ChatEntry, Message } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
@@ -28,6 +28,7 @@ import { resolveAvatarPath } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { buildMessageSegments } from '../message-segments';
+import { delay, prefersReducedMotion, resolveDate } from './message-item.util';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
 import { MessageActionsComponent } from '../message-actions/message-actions.component';
 import { ReactionChipsComponent } from '../reaction-chips/reaction-chips.component';
@@ -39,6 +40,7 @@ const ACTION_ERROR = 'Die Aktion konnte nicht ausgeführt werden.';
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const LONG_PRESS_MS = 500;
 const DESKTOP_REACTION_LIMIT = 20;
+const DELETE_POP_MS = 220;
 
 /**
  * One message row per the Figma chat frames: avatar, author meta, bubble,
@@ -59,6 +61,7 @@ const DESKTOP_REACTION_LIMIT = 20;
     '[class.message--focus]': 'focusHighlight()',
     '[class.message--bar-open]': 'barOpen()',
     '[class.message--enter]': 'enterAnimate()',
+    '[class.message--hiding]': 'isHiding()',
     '[id]': '"message-" + entry().id',
     '(touchstart)': 'startLongPress()',
     '(touchend)': 'cancelLongPress()',
@@ -111,7 +114,15 @@ export class MessageItemComponent {
 
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private hasObservedDeletion = false;
+
+  private wasDeleted = false;
+
   protected readonly barOpen = signal(false);
+
+  protected readonly justDeleted = signal(false);
+
+  protected readonly isHiding = signal(false);
 
   protected readonly editFieldId = `message-edit-${MessageItemComponent.instanceCounter++}`;
 
@@ -165,6 +176,20 @@ export class MessageItemComponent {
   protected readonly renderSegments = computed(() =>
     buildMessageSegments(this.entry().text, this.userService.users().map(user => user.name)),
   );
+
+
+  /**
+   * Plays the tombstone pop only on a genuine not-deleted → deleted transition
+   * during this session; a message that loads already deleted does not pop.
+   */
+  constructor() {
+    effect(() => {
+      const deleted = this.isDeleted();
+      if (this.hasObservedDeletion && deleted && !this.wasDeleted) this.justDeleted.set(true);
+      this.hasObservedDeletion = true;
+      this.wasDeleted = deleted;
+    });
+  }
 
 
   /**
@@ -312,13 +337,19 @@ export class MessageItemComponent {
 
 
   /**
-   * Hides the message for the signed-in user only.
+   * Hides the message for the signed-in user only; plays a brief collapse-out
+   * first (unless reduced motion), then writes the hide — reverting the
+   * collapse if the write fails so the row never stays stuck invisible.
    */
   protected async onDeleteForMe(): Promise<void> {
     this.barOpen.set(false);
     const messagePath = this.messagePath();
     if (!messagePath) return;
-    await this.runAction(() => this.messageService.hideForMe(messagePath));
+    const animates = !prefersReducedMotion();
+    this.isHiding.set(animates);
+    if (animates) await delay(DELETE_POP_MS);
+    const hidden = await this.runAction(() => this.messageService.hideForMe(messagePath));
+    if (!hidden) this.isHiding.set(false);
   }
 
 
@@ -334,14 +365,17 @@ export class MessageItemComponent {
 
 
   /**
-   * Runs a Firestore action; failures surface as a toast.
+   * Runs a Firestore action; failures surface as a toast. Returns whether it
+   * succeeded so callers can roll back optimistic UI.
    * @param action Asynchronous message operation.
    */
-  private async runAction(action: () => Promise<void>): Promise<void> {
+  private async runAction(action: () => Promise<void>): Promise<boolean> {
     try {
       await action();
+      return true;
     } catch {
       this.toastService.show(ACTION_ERROR);
+      return false;
     }
   }
 
@@ -363,14 +397,4 @@ export class MessageItemComponent {
     if (!('lastReplyAt' in entry) || !entry.lastReplyAt) return '';
     return formatDate(resolveDate(entry.lastReplyAt), TIME_FORMAT, this.locale);
   }
-}
-
-
-/**
- * Converts a Firestore timestamp to a Date; pending serverTimestamp()
- * sentinels (just-sent messages) resolve to now.
- * @param value Timestamp field value from a message document.
- */
-function resolveDate(value: ChatEntry['createdAt']): Date {
-  return value instanceof Timestamp ? value.toDate() : new Date();
 }

@@ -3,6 +3,48 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Soft-delete tombstone refresh + delete pop animation (2026-06-19)
+Deletion was **already a soft delete** before this change — `deleteForAll` sets
+`deletedAt`/`deletedBy` and clears `text: ''` + `reactions: {}` in one update, and `firestore.rules`
+already permits exactly that (`setsTombstone` → `affectedKeys().hasOnly(['deletedAt','deletedBy',
+'text','reactions'])`). So **no rules change was needed** (no `firestore:rules` deploy). This change
+only reworks the tombstone's presentation and adds a pop animation:
+- **Tombstone is now a plain muted line, not a bubble.** "Für alle löschen" renders the message
+  position as `.message__tombstone` — a muted-italic **"Nachricht gelöscht"** with no bubble
+  background/border/radius, no reactions, no hover action bar, no edit/delete. This **deviates from
+  the earlier DA tombstone** ("Diese Nachricht wurde gelöscht", italic `text-gray` inside a muted
+  `bg` bubble): the wording is terser and the bubble chrome is dropped for a cleaner placeholder.
+  A deleted **thread root** still shows the tombstone at the top with replies intact (thread link
+  survives while `replyCount > 0`).
+- **AA both themes via a dedicated token.** The tombstone text uses `--msg-deleted-text` (light
+  `#54546e`, dark `text-gray`) — measured **6.35:1** on the `bg`/hover row and **7.32:1** on white
+  in light, **7.35–8.05:1** in dark (all ≥ 4.5). `text-gray` on the light `bg` is only 4.84:1, so a
+  darker token gives comfortable headroom on every row state.
+- **"Für mich löschen" semantics unchanged** (per-user `hiddenFor` hide; counters/other users
+  unaffected) — it just gains a collapse-out pop before the list drops the row.
+- **Pop animation (no Figma design).** On a genuine not-deleted → deleted transition (detected by a
+  per-row `effect`, so messages that load already-deleted from history do **not** pop), the
+  tombstone scale/fades in (`tombstone-pop`); "Für mich" plays a collapse-out (`message-hide`) then
+  writes the hide — and **reverts the collapse if the write fails** (`runAction` now returns success;
+  `isHiding` is reset on failure) so a failed/offline hide never strands a blank full-height row.
+  One named duration (`$message-delete-duration` / `DELETE_POP_MS` = 220ms; the SCSS and TS constants
+  must stay in sync). Transform/opacity only → **CLS 0**; the keyframes are gated under
+  `@media (prefers-reduced-motion: no-preference)` and the "Für mich" delay is skipped under reduced
+  motion, so reduced-motion ⇒ **instant** tombstone / removal, reaction-free. The optional sparkle
+  was **not** added (the existing effects canvas is full-viewport; a localized per-message sparkle is
+  out of scope and would risk a non-tasteful full-screen flash).
+- **Height reflow is natural, not layout-animated — a deliberate CLS-0 trade-off.** The task asked
+  that "the height change animates smoothly so nothing jumps." The pop is **transform/opacity only**
+  (like the existing message-entrance animation), so the bubble→tombstone (and "Für mich" removal)
+  **height delta reflows naturally** rather than via an animated layout property. This is chosen to
+  preserve the project's hard **CLS = 0** guarantee and stay consistent with the entrance animation;
+  animating `height`/`grid-template-rows` would smooth the reflow but trade away that guarantee.
+  Net effect: the affected row animates smoothly in place and the small height delta settles in one
+  natural step (no multi-jump); for "Für mich" the faded row holds its box for 220ms then the list
+  drops it. Revisit only if an animated-height collapse is explicitly wanted over strict CLS-0.
+- Two small helpers (`resolveDate`, `prefersReducedMotion`) were moved to `message-item.util.ts`
+  to keep `message-item.component.ts` under the 400-LOC cap.
+
 ## "Große Reaktionen" picker section + rocket (third big reaction) (2026-06-19)
 This reworks the earlier (uncommitted) "pin the big reactions in the action bar" discoverability
 attempt — that pin was **reverted**: the hover action bar shows the user's **two last-used
