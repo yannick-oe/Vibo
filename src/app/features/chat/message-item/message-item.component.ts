@@ -26,7 +26,7 @@ import { RecentEmojiService } from '../../../services/recent-emoji.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
-import { parseMentions } from '../mention-parser';
+import { buildMessageSegments } from '../message-segments';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
 import { MessageActionsComponent } from '../message-actions/message-actions.component';
 import { ReactionChipsComponent } from '../reaction-chips/reaction-chips.component';
@@ -57,6 +57,7 @@ const DESKTOP_REACTION_LIMIT = 20;
     '[class.message--own]': 'isOwn()',
     '[class.message--focus]': 'focusHighlight()',
     '[class.message--bar-open]': 'barOpen()',
+    '[class.message--enter]': 'enterAnimate()',
     '[id]': '"message-" + entry().id',
     '(touchstart)': 'startLongPress()',
     '(touchend)': 'cancelLongPress()',
@@ -82,6 +83,8 @@ export class MessageItemComponent {
   readonly reads = input<ReadEntry[]>([]);
 
   readonly otherUids = input<string[]>([]);
+
+  readonly enterAnimate = input(false);
 
   readonly openThread = output<void>();
 
@@ -156,8 +159,8 @@ export class MessageItemComponent {
     Object.values(this.entry().reactions).some(uids => uids.length > 0),
   );
 
-  protected readonly parsedText = computed(() =>
-    parseMentions(this.entry().text, this.userService.users().map(user => user.name)),
+  protected readonly renderSegments = computed(() =>
+    buildMessageSegments(this.entry().text, this.userService.users().map(user => user.name)),
   );
 
 

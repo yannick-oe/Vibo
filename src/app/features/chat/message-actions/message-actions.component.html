@@ -3,11 +3,11 @@
     <button
       class="actions__btn"
       type="button"
-      [attr.aria-label]="'Mit ' + emoji + ' reagieren'"
+      [attr.aria-label]="reactLabel(emoji)"
       (click)="reacted.emit(emoji)"
     >
       @if (assetFor(emoji); as asset) {
-        <img [src]="asset" alt="" aria-hidden="true" />
+        <img [src]="asset" [alt]="nameFor(emoji)" />
       } @else {
         <span aria-hidden="true">{{ emoji }}</span>
       }

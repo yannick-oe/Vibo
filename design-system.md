@@ -168,7 +168,7 @@ $space: (
 ## 8. Vorgegebene Ressourcen (nicht selbst bauen)
 
 - **Icons:** Material Symbols (Google Fonts).
-- **Emojis/Reaktionen:** Emojitwo Emoji Set (iconduck).
+- **Emojis/Reaktionen:** Twemoji Emoji Set (jdecked-Fork, CC-BY 4.0), selbst gehostet als SVG.
 - **Avatare:** 6 vorgegebene Illustrationen + neutraler Platzhalter-Avatar; Auswahl bei Registrierung und im Profil.
 
 ---

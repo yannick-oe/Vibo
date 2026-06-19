@@ -1,46 +1,65 @@
 /**
  * @file Catalog of reaction emojis: unicode characters mapped to their
- * Emojitwo SVG assets. Firestore reaction keys stay unicode characters so
- * existing reaction data keeps working — only the UI renders the SVGs.
+ * Twemoji (jdecked fork) SVG assets and an accessible German name. Firestore
+ * reaction keys stay unicode characters, so existing reaction data keeps
+ * working and the artwork set can change without a data migration — only the
+ * UI resolves the SVGs and labels.
  */
 
-const EMOJI_ASSETS: Record<string, string> = {
-  '✅': 'emojis/2705.svg',
-  '🙌': 'emojis/1f64c.svg',
-  '👍': 'emojis/1f44d.svg',
-  '🚀': 'emojis/1f680.svg',
-  '🤓': 'emojis/1f913.svg',
-  '😀': 'emojis/1f600.svg',
-  '😂': 'emojis/1f602.svg',
-  '❤️': 'emojis/2764.svg',
-  '🎉': 'emojis/1f389.svg',
-  '🔥': 'emojis/1f525.svg',
-  '😎': 'emojis/1f60e.svg',
-  '🤔': 'emojis/1f914.svg',
-  '👀': 'emojis/1f440.svg',
-  '💯': 'emojis/1f4af.svg',
-  '😅': 'emojis/1f605.svg',
-  '🙏': 'emojis/1f64f.svg',
-  '👏': 'emojis/1f44f.svg',
-  '😍': 'emojis/1f60d.svg',
-  '😉': 'emojis/1f609.svg',
-  '😢': 'emojis/1f622.svg',
-  '💡': 'emojis/1f4a1.svg',
-  '⚡': 'emojis/26a1.svg',
-  '👎': 'emojis/1f44e.svg',
-  '🍀': 'emojis/1f340.svg',
+/** Rendering metadata of one catalog emoji: SVG asset path and a11y name. */
+interface EmojiMeta {
+  readonly asset: string;
+  readonly name: string;
+}
+
+const EMOJI_CATALOG: Record<string, EmojiMeta> = {
+  '✅': { asset: 'emojis/2705.svg', name: 'Häkchen' },
+  '🙌': { asset: 'emojis/1f64c.svg', name: 'Jubelnde Hände' },
+  '👍': { asset: 'emojis/1f44d.svg', name: 'Daumen hoch' },
+  '🚀': { asset: 'emojis/1f680.svg', name: 'Rakete' },
+  '🤓': { asset: 'emojis/1f913.svg', name: 'Nerd-Gesicht' },
+  '😀': { asset: 'emojis/1f600.svg', name: 'Lachendes Gesicht' },
+  '😂': { asset: 'emojis/1f602.svg', name: 'Tränen lachend' },
+  '❤️': { asset: 'emojis/2764.svg', name: 'Rotes Herz' },
+  '🎉': { asset: 'emojis/1f389.svg', name: 'Party-Tröte' },
+  '🔥': { asset: 'emojis/1f525.svg', name: 'Feuer' },
+  '😎': { asset: 'emojis/1f60e.svg', name: 'Cooles Gesicht' },
+  '🤔': { asset: 'emojis/1f914.svg', name: 'Nachdenkliches Gesicht' },
+  '👀': { asset: 'emojis/1f440.svg', name: 'Augen' },
+  '💯': { asset: 'emojis/1f4af.svg', name: 'Hundert Punkte' },
+  '😅': { asset: 'emojis/1f605.svg', name: 'Lächeln mit Schweiß' },
+  '🙏': { asset: 'emojis/1f64f.svg', name: 'Betende Hände' },
+  '👏': { asset: 'emojis/1f44f.svg', name: 'Klatschende Hände' },
+  '😍': { asset: 'emojis/1f60d.svg', name: 'Verliebtes Gesicht' },
+  '😉': { asset: 'emojis/1f609.svg', name: 'Zwinkerndes Gesicht' },
+  '😢': { asset: 'emojis/1f622.svg', name: 'Weinendes Gesicht' },
+  '💡': { asset: 'emojis/1f4a1.svg', name: 'Glühbirne' },
+  '⚡': { asset: 'emojis/26a1.svg', name: 'Blitz' },
+  '👎': { asset: 'emojis/1f44e.svg', name: 'Daumen runter' },
+  '🍀': { asset: 'emojis/1f340.svg', name: 'Glücksklee' },
+  '🫡': { asset: 'emojis/1fae1.svg', name: 'Salutierendes Gesicht' },
+  '👍🏽': { asset: 'emojis/1f44d-1f3fd.svg', name: 'Daumen hoch, mittlerer Hautton' },
 };
 
 /** Ordered picker set; the first two are the quick-reaction defaults. */
-export const EMOJI_SET: readonly string[] = Object.keys(EMOJI_ASSETS);
+export const EMOJI_SET: readonly string[] = Object.keys(EMOJI_CATALOG);
 
 
 /**
- * Resolves the Emojitwo asset URL of a reaction emoji; null for characters
+ * Resolves the Twemoji asset URL of a reaction emoji; null for characters
  * outside the catalog (legacy keys render as plain text).
  * @param emoji Unicode emoji character used as the reaction key.
  */
 export function emojiAsset(emoji: string): string | null {
-  const asset = EMOJI_ASSETS[emoji];
-  return asset ? `${asset}` : null;
+  return EMOJI_CATALOG[emoji]?.asset ?? null;
+}
+
+
+/**
+ * Resolves the accessible German name of a catalog emoji; null for
+ * characters outside the catalog.
+ * @param emoji Unicode emoji character.
+ */
+export function emojiName(emoji: string): string | null {
+  return EMOJI_CATALOG[emoji]?.name ?? null;
 }

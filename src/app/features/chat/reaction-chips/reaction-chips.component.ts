@@ -14,7 +14,7 @@ import {
 import { ReactionMap } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
 import { UserService } from '../../../services/user.service';
-import { emojiAsset } from '../emoji-catalog';
+import { emojiAsset, emojiName } from '../emoji-catalog';
 
 const SELF_LABEL = 'Du';
 const UNKNOWN_REACTOR = 'Unbekannt';
@@ -56,6 +56,8 @@ export class ReactionChipsComponent {
 
   protected readonly assetFor = emojiAsset;
 
+  protected readonly nameFor = emojiName;
+
   protected readonly entries = computed<ReactionEntry[]>(() =>
     Object.entries(this.reactions())
       .filter(([, uids]) => uids.length > 0)
@@ -79,6 +81,16 @@ export class ReactionChipsComponent {
   protected hasReacted(entry: ReactionEntry): boolean {
     const uid = this.authService.currentUser()?.uid;
     return uid !== undefined && entry.uids.includes(uid);
+  }
+
+
+  /**
+   * Builds the chip's accessible toggle label using the emoji's name, with
+   * the raw character as fallback for legacy keys outside the catalog.
+   * @param entry Reaction entry of the chip.
+   */
+  protected reactionLabel(entry: ReactionEntry): string {
+    return `Reaktion ${emojiName(entry.emoji) ?? entry.emoji} umschalten`;
   }
 
 

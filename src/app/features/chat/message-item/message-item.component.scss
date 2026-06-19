@@ -1,6 +1,11 @@
 @use 'variables' as v;
 @use 'mixins' as m;
 
+$message-enter-duration: 180ms;
+$message-enter-easing: ease-out;
+$message-enter-scale-from: 0.97;
+$message-enter-shift: 6px;
+
 :host {
   position: relative;
   display: flex;
@@ -112,6 +117,14 @@
   :host(.message--own) & {
     color: inherit;
   }
+}
+
+.message__emoji {
+  display: inline-block;
+  width: v.$emoji-inline-size;
+  height: v.$emoji-inline-size;
+  vertical-align: v.$emoji-inline-align;
+  object-fit: contain;
 }
 
 .message__edit {
@@ -275,6 +288,24 @@
 @media (prefers-reduced-motion: reduce) {
   .message__actions-anchor {
     transition: none;
+  }
+}
+
+:host(.message--enter) {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: message-enter $message-enter-duration $message-enter-easing both;
+  }
+}
+
+@keyframes message-enter {
+  from {
+    opacity: 0;
+    transform: translateY($message-enter-shift) scale($message-enter-scale-from);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

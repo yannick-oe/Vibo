@@ -1,12 +1,12 @@
 /**
- * @file Emoji picker popover with the predefined Emojitwo set.
+ * @file Emoji picker popover with the predefined Twemoji set.
  */
 import { ChangeDetectionStrategy, Component, ElementRef, inject, output } from '@angular/core';
 
-import { EMOJI_SET, emojiAsset } from '../emoji-catalog';
+import { EMOJI_SET, emojiAsset, emojiName } from '../emoji-catalog';
 
 /**
- * Popover with the predefined Emojitwo emoji grid, shared by the reaction
+ * Popover with the predefined Twemoji emoji grid, shared by the reaction
  * flows and the composer. Emits the picked emoji character and closes on
  * Escape or any click outside; the opening component positions it and
  * restores focus.
@@ -31,6 +31,8 @@ export class EmojiPickerComponent {
   protected readonly emojis = EMOJI_SET;
 
   protected readonly assetFor = emojiAsset;
+
+  protected readonly nameFor = emojiName;
 
 
   /**

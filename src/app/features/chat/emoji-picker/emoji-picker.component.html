@@ -3,10 +3,10 @@
     <button
       class="picker__emoji"
       type="button"
-      [attr.aria-label]="'Emoji ' + emoji"
+      [attr.aria-label]="nameFor(emoji)"
       (click)="picked.emit(emoji)"
     >
-      <img class="picker__img" [src]="assetFor(emoji)" alt="" aria-hidden="true" />
+      <img class="picker__img" [src]="assetFor(emoji)" [alt]="nameFor(emoji)" />
     </button>
   }
 </div>

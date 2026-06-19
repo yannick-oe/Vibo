@@ -18,6 +18,7 @@ import { AuthService } from '../../../services/auth.service';
 import { MessageService } from '../../../services/message.service';
 import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
+import { MessageEntranceTracker } from '../message-entrance';
 import { MessageInputComponent } from '../message-input/message-input.component';
 import { MessageItemComponent } from '../message-item/message-item.component';
 
@@ -56,6 +57,8 @@ export class ThreadPanelComponent {
   protected readonly composerPlaceholder = COMPOSER_PLACEHOLDER;
 
   protected readonly reactionLimit = THREAD_REACTION_LIMIT;
+
+  protected readonly entrance = new MessageEntranceTracker();
 
   protected readonly contextLabel = computed(
     () => this.threadService.thread()?.contextLabel ?? '',
@@ -145,6 +148,7 @@ export class ThreadPanelComponent {
   private handleThreadSwitch(messagePath: string | null): void {
     if (messagePath === null || messagePath === this.focusedMessagePath) return;
     this.focusedMessagePath = messagePath;
+    this.entrance.open();
     requestAnimationFrame(() => this.composer()?.focusInput());
   }
 

@@ -3,11 +3,11 @@
     class="chips__chip"
     type="button"
     [class.chips__chip--active]="hasReacted(entry)"
-    [attr.aria-label]="'Reaktion ' + entry.emoji + ' umschalten'"
+    [attr.aria-label]="reactionLabel(entry)"
     (click)="toggled.emit(entry.emoji)"
   >
     @if (assetFor(entry.emoji); as asset) {
-      <img class="chips__emoji" [src]="asset" alt="" aria-hidden="true" />
+      <img class="chips__emoji" [src]="asset" [alt]="nameFor(entry.emoji)" />
     } @else {
       <span aria-hidden="true">{{ entry.emoji }}</span>
     }

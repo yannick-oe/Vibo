@@ -94,7 +94,7 @@ npm run build
 
 - Originally built as a diploma project at the [Developer Akademie](https://developerakademie.com/), together with Jan-Oliver Kämmerer.
 - Icons: [Material Symbols](https://fonts.google.com/icons) (Google Fonts).
-- Emoji artwork: [Emojitwo](https://emojitwo.github.io/), licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- Emoji artwork: [Twemoji](https://github.com/jdecked/twemoji) (jdecked fork), licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/); self-hosted as SVG, no hotlinking.
 
 ## License
 

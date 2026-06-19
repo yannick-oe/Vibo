@@ -22,6 +22,7 @@ import { AuthService } from '../../../services/auth.service';
 import { ReadEntry } from '../../../services/read-state.service';
 import { LayoutService } from '../../../services/layout.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
+import { MessageEntranceTracker } from '../message-entrance';
 import { MessageItemComponent } from '../message-item/message-item.component';
 
 const TODAY_LABEL = 'Heute';
@@ -93,6 +94,8 @@ export class MessageListComponent {
 
   protected readonly groups = computed(() => this.groupMessages());
 
+  protected readonly entrance = new MessageEntranceTracker();
+
 
   /**
    * Builds the Firestore document path of a message for row actions.
@@ -151,6 +154,7 @@ export class MessageListComponent {
     if (resetKey === this.renderedResetKey) return;
     this.renderedResetKey = resetKey;
     this.stickToBottom = true;
+    this.entrance.open();
   }
 
 

@@ -70,7 +70,7 @@
       </div>
     </div>
   } @else {
-    <p class="message__bubble">@for (part of parsedText(); track $index) {@if (part.isMention) {<span class="message__mention">{{ part.text }}</span>} @else {{{ part.text }}}}</p>
+    <p class="message__bubble">@for (seg of renderSegments(); track $index) {@if (seg.asset) {<img class="message__emoji" [src]="seg.asset" [alt]="seg.name" />} @else if (seg.isMention) {<span class="message__mention">{{ seg.text }}</span>} @else {{{ seg.text }}}}</p>
   }
 
   @if (!isDeleted() && hasReactions()) {

@@ -15,7 +15,7 @@ import {
 } from '@angular/core';
 
 import { RecentEmojiService } from '../../../services/recent-emoji.service';
-import { emojiAsset } from '../emoji-catalog';
+import { emojiAsset, emojiName } from '../emoji-catalog';
 
 type MenuState = 'closed' | 'menu' | 'confirm';
 
@@ -74,6 +74,18 @@ export class MessageActionsComponent {
   protected readonly quickEmojis = computed(() => this.recentEmojiService.recent());
 
   protected readonly assetFor = emojiAsset;
+
+  protected readonly nameFor = emojiName;
+
+
+  /**
+   * Builds the quick-reaction button label using the emoji's name, with the
+   * raw character as fallback for legacy emojis outside the catalog.
+   * @param emoji Quick-reaction emoji character.
+   */
+  protected reactLabel(emoji: string): string {
+    return `Mit ${emojiName(emoji) ?? emoji} reagieren`;
+  }
 
 
   /**
