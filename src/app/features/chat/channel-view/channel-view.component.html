@@ -49,6 +49,8 @@
       [resetKey]="channelId()"
       [openThreadId]="openThreadMessageId()"
       [collectionPath]="messagesCollectionPath()"
+      [reads]="reads()"
+      [otherUids]="otherUids()"
       (threadRequested)="toggleThread($event)"
     />
     @if (showIntro()) {

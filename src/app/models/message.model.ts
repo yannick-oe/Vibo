@@ -51,6 +51,8 @@ export interface MessageDoc extends ReplyDoc {
 export interface Message extends MessageDoc {
   /** Firestore document id of the message. */
   readonly id: string;
+  /** Snapshot metadata: true while the local write is not yet server-acked. */
+  readonly hasPendingWrites?: boolean;
 }
 
 /**

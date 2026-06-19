@@ -19,6 +19,7 @@ import { Timestamp } from '@angular/fire/firestore';
 
 import { Message } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
+import { ReadEntry } from '../../../services/read-state.service';
 import { LayoutService } from '../../../services/layout.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
 import { MessageItemComponent } from '../message-item/message-item.component';
@@ -60,6 +61,10 @@ export class MessageListComponent {
   readonly openThreadId = input<string | null>(null);
 
   readonly collectionPath = input<string | null>(null);
+
+  readonly reads = input<ReadEntry[]>([]);
+
+  readonly otherUids = input<string[]>([]);
 
   readonly threadRequested = output<Message>();
 

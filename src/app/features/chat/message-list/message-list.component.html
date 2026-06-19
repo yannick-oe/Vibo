@@ -12,6 +12,9 @@
           [isThreadOpen]="message.id === openThreadId()"
           [messagePath]="messagePathFor(message)"
           [reactionLimit]="reactionLimit()"
+          [showReceipt]="true"
+          [reads]="reads()"
+          [otherUids]="otherUids()"
           (openThread)="threadRequested.emit(message)"
         ></li>
       }

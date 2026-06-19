@@ -14,8 +14,11 @@ import {
   doc,
   docData,
   increment,
+  onSnapshot,
   orderBy,
   query,
+  Query,
+  QuerySnapshot,
   serverTimestamp,
   updateDoc,
   writeBatch,
@@ -298,8 +301,25 @@ export class MessageService {
       collection(this.firestore, collectionPath),
       orderBy('createdAt'),
     );
-    return (collectionData(messagesQuery, { idField: 'id' }) as Observable<Message[]>).pipe(
-      catchError(() => this.reportLoadError()),
+    return this.messageSnapshots(messagesQuery).pipe(catchError(() => this.reportLoadError()));
+  }
+
+
+  /**
+   * Streams a messages query with metadata so each message carries the
+   * hasPendingWrites flag (sending vs stored on the server) for read receipts.
+   * @param messagesQuery Ordered query of the messages collection.
+   */
+  private messageSnapshots(messagesQuery: Query): Observable<Message[]> {
+    return new Observable<Message[]>(subscriber =>
+      runInInjectionContext(this.injector, () =>
+        onSnapshot(
+          messagesQuery,
+          { includeMetadataChanges: true },
+          snapshot => subscriber.next(mapMessages(snapshot)),
+          error => subscriber.error(error),
+        ),
+      ),
     );
   }
 
@@ -322,4 +342,18 @@ export class MessageService {
     this.toastService.show(MESSAGES_LOAD_ERROR);
     return of([]);
   }
+}
+
+
+/**
+ * Maps a messages query snapshot to Message objects, attaching the id and the
+ * pending-write metadata that distinguishes "sending" from "stored".
+ * @param snapshot Firestore query snapshot of a messages collection.
+ */
+function mapMessages(snapshot: QuerySnapshot): Message[] {
+  return snapshot.docs.map(document => ({
+    ...(document.data() as MessageDoc),
+    id: document.id,
+    hasPendingWrites: document.metadata.hasPendingWrites,
+  }));
 }

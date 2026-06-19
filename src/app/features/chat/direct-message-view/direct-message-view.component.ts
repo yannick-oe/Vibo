@@ -13,14 +13,14 @@ import {
   viewChild,
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { switchMap } from 'rxjs';
+import { of, switchMap } from 'rxjs';
 
 import { Message } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
 import { DirectMessageService } from '../../../services/direct-message.service';
 import { conversationDocPath } from '../../../services/message.service';
 import { PresenceService } from '../../../services/presence.service';
-import { ReadStateService } from '../../../services/read-state.service';
+import { ReadEntry, ReadStateService } from '../../../services/read-state.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
@@ -108,6 +108,19 @@ export class DirectMessageViewComponent {
   private readonly lastMessageId = computed(() => {
     const list = this.messages();
     return list.length ? list[list.length - 1].id : null;
+  });
+
+  protected readonly reads = toSignal(
+    toObservable(this.conversationPath).pipe(
+      switchMap(path => (path ? this.readState.conversationReads(path) : of([] as ReadEntry[]))),
+    ),
+    { initialValue: [] as ReadEntry[] },
+  );
+
+  protected readonly otherUids = computed(() => {
+    const me = this.authService.currentUser()?.uid;
+    const partner = this.uid();
+    return me && partner !== me ? [partner] : [];
   });
 
 

@@ -4,6 +4,9 @@
   <div class="message__meta">
     <span class="message__author">{{ authorName() }}</span>
     <span class="message__time">{{ time() }} Uhr</span>
+    @if (isOwn() && showReceipt()) {
+      <app-read-receipt [entry]="receiptEntry()" [reads]="reads()" [otherUids]="otherUids()" />
+    }
   </div>
 
   @if (isDeleted()) {

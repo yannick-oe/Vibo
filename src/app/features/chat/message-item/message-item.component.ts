@@ -17,8 +17,9 @@ import {
 } from '@angular/core';
 import { Timestamp } from '@angular/fire/firestore';
 
-import { ChatEntry } from '../../../models/message.model';
+import { ChatEntry, Message } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
+import { ReadEntry } from '../../../services/read-state.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
 import { MessageService } from '../../../services/message.service';
 import { RecentEmojiService } from '../../../services/recent-emoji.service';
@@ -29,6 +30,7 @@ import { parseMentions } from '../mention-parser';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
 import { MessageActionsComponent } from '../message-actions/message-actions.component';
 import { ReactionChipsComponent } from '../reaction-chips/reaction-chips.component';
+import { ReadReceiptComponent } from '../../../shared/read-receipt/read-receipt.component';
 
 const TIME_FORMAT = 'HH:mm';
 const UNKNOWN_AUTHOR = 'Unbekannt';
@@ -46,7 +48,7 @@ const DESKTOP_REACTION_LIMIT = 20;
  */
 @Component({
   selector: 'li[app-message-item]',
-  imports: [EmojiPickerComponent, MessageActionsComponent, ReactionChipsComponent],
+  imports: [EmojiPickerComponent, MessageActionsComponent, ReactionChipsComponent, ReadReceiptComponent],
   templateUrl: './message-item.component.html',
   styleUrl: './message-item.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,6 +76,12 @@ export class MessageItemComponent {
   readonly messagePath = input<string | null>(null);
 
   readonly reactionLimit = input(DESKTOP_REACTION_LIMIT);
+
+  readonly showReceipt = input(false);
+
+  readonly reads = input<ReadEntry[]>([]);
+
+  readonly otherUids = input<string[]>([]);
 
   readonly openThread = output<void>();
 
@@ -112,6 +120,8 @@ export class MessageItemComponent {
   protected readonly isOwn = computed(
     () => this.entry().authorId === this.authService.currentUser()?.uid,
   );
+
+  protected readonly receiptEntry = computed(() => this.entry() as Message);
 
   protected readonly focusHighlight = computed(
     () => this.messageFocusService.target() === this.entry().id,

@@ -11,6 +11,7 @@ import {
   Query,
   Timestamp,
   collection,
+  collectionData,
   doc,
   docData,
   getCountFromServer,
@@ -35,6 +36,12 @@ export interface ConversationMeta {
 
 /** A user's read marker stored at <conversation>/reads/{uid}. */
 export interface ReadMarker {
+  readonly lastReadAt?: Timestamp;
+}
+
+/** A participant's read marker paired with their uid (reads-collection read). */
+export interface ReadEntry {
+  readonly uid: string;
   readonly lastReadAt?: Timestamp;
 }
 
@@ -85,6 +92,22 @@ export class ReadStateService {
     return runInInjectionContext(this.injector, () =>
       docData(doc(this.firestore, this.readPath(conversationPath, uid))),
     ) as Observable<ReadMarker | undefined>;
+  }
+
+
+  /**
+   * Streams every participant's read marker for a conversation from a single
+   * reads-collection listener, so read receipts derive each message's state
+   * client-side without any per-message Firestore reads.
+   * @param conversationPath Path of the conversation document.
+   */
+  conversationReads(conversationPath: string): Observable<ReadEntry[]> {
+    return runInInjectionContext(this.injector, () =>
+      collectionData(
+        collection(this.firestore, `${conversationPath}/${READS_SEGMENT}`),
+        { idField: 'uid' },
+      ),
+    ) as Observable<ReadEntry[]>;
   }
 
 

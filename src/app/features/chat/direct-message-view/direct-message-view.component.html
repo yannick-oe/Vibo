@@ -40,6 +40,8 @@
         [resetKey]="uid()"
         [openThreadId]="openThreadMessageId()"
         [collectionPath]="messagesCollectionPath()"
+        [reads]="reads()"
+        [otherUids]="otherUids()"
         (threadRequested)="toggleThread($event)"
       />
     </div>
