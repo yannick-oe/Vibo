@@ -164,12 +164,4 @@ export class RegisterComponent implements OnInit, AfterViewInit {
     this.registration.setFormData({ name, email, password });
     this.router.navigate(['/auth/register/avatar']);
   }
-
-
-  /**
-   * Returns to the login page.
-   */
-  protected goBack(): void {
-    this.router.navigate(['/auth/login']);
-  }
 }
