@@ -3,6 +3,21 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Legal pages unified + back-arrow → login (2026-06-19)
+- **Both legal pages share one constrained frost card, identical in light AND dark.** A new
+  `.legal-card` (in `_layout.scss`: `@include m.glass` + `max-width: $legal-card-width` 660px ≈
+  a 60–70ch reading measure + `space-fluid` padding + responsive) is used by Impressum and
+  Datenschutz alike. **The Phase-2 dark "bare/full-width" Datenschutz exception is removed** —
+  the dark legal pages now get the frost-card treatment too (deliberately authorised). Dark
+  contrast on the frost card is comfortable: body **15.8:1**, primary headings **6.0:1**, the
+  e-mail link **7.6:1**, the muted note **7.3:1** (all ≥4.5). The long full-width dark lines
+  (the readability regression) are gone; light is unchanged in width terms (~64ch).
+- **Back arrow goes straight to login.** On Impressum, Datenschutz and Konto-erstellen
+  (register), the back arrow is now a real `routerLink="/auth/login"` `<a>` (crawlable `href`,
+  keyboard-operable, `:focus-visible`, ≥44px via `.btn.btn-icon`, `aria-label="Zurück zur
+  Anmeldung"`) instead of a `history.back()` click handler — so chaining legal pages no longer
+  needs repeated presses to reach login. The dead `goBack()`/`Location` were removed.
+
 ## Auth top-right declutter + light a11y polish (2026-06-19)
 - **Removed the auth-header frost chip** (the Phase-2 `--cta-frost-*` backing, below). The
   "Neu bei {{Vibo}}?" caption + "Konto erstellen" link render as **clean box-free text**,
@@ -42,11 +57,9 @@ standards, so they are not mistaken for defects in a future audit.
   (`.composer`, `.search-bar__input`) pass `--input-sheen` = a faint white top-edge
   highlight in light (no full-surface coloured wash) and `var(--glass-sheen)` in dark
   (unchanged). Non-input panels keep the iridescent panel sheen.
-- **Datenschutz conformed to the Impressum frost-card treatment in LIGHT** (was bare content
-  directly on the page aurora). Done as a **light-only** override
-  (`:host-context(html:not([data-theme='dark'])) .privacy-page { @include m.glass; … }`) so the
-  **dark** Datenschutz page stays byte-for-byte the original bare full-width layout — light
-  matches Impressum, dark is untouched.
+- **(SUPERSEDED below — legal-page unification)** Datenschutz was conformed to the Impressum
+  frost card in LIGHT only, leaving the dark page bare/full-width. That dark exception was
+  later removed: both legal pages now share one `.legal-card` that is frost in both themes.
 - **Emoji picker + @/# mention picker conformed to the frost language in LIGHT only.** The
   original solid card (`background-color white` + `box-shadow shadow-lg`) is kept as the base
   (so **dark is byte-for-byte unchanged**) and the frost is layered on via the same

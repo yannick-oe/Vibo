@@ -4,14 +4,6 @@
   display: contents;
 }
 
-.imprint-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: v.space-fluid('md', 'lg');
-  text-align: left;
-}
-
 .imprint-card__title {
   color: v.color('primary');
   margin-top: v.space('md');

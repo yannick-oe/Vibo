@@ -42,6 +42,25 @@ app-root {
   }
 }
 
+.legal-card {
+  @include m.glass;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: v.space-fluid('md', 'lg');
+  width: 100%;
+  max-width: v.$legal-card-width;
+  padding: v.space-fluid('xl', 'xxl') v.space('xl-xxl');
+  border-radius: v.$radius-xl;
+  text-align: left;
+  overflow-wrap: break-word;
+
+  @include m.respond-sm {
+    padding: v.space('xl') v.space('lg');
+    border-radius: v.$radius-md;
+  }
+}
+
 .auth-card__head {
   display: grid;
   grid-template-columns: v.$btn-height minmax(0, 1fr) v.$btn-height;
