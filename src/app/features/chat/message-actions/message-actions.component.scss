@@ -19,6 +19,7 @@
 .actions__btn {
   @include m.flex-center;
 
+  position: relative;
   width: v.$icon-lg;
   height: v.$icon-lg;
   border: none;
@@ -39,6 +40,40 @@
   img {
     width: v.$icon-sm;
     height: v.$icon-sm;
+  }
+}
+
+.actions__btn--big {
+  @include m.reaction-special;
+}
+
+.actions__hint {
+  position: absolute;
+  top: calc(100% + #{v.space('xs')});
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: v.$z-tooltip;
+  padding: v.space('xs') v.space('md');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-sm;
+  background-color: v.color('white');
+  box-shadow: v.$shadow-md;
+  font-size: v.font-size('min');
+  color: v.color('black');
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity v.$transition-fast;
+}
+
+.actions__btn:hover .actions__hint,
+.actions__btn:focus-visible .actions__hint {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actions__hint {
+    transition: none;
   }
 }
 

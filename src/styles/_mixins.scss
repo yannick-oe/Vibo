@@ -93,6 +93,16 @@
   @include focus-ring(v.color('error'));
 }
 
+// ─── Special Reaction Highlight ───────────────────────────────────────────────
+// Static, on-brand distinction for the big-reaction effect triggers: an aurora
+// tint plus the active glow ring. Inset/colour only (no layout, no animation),
+// so CLS stays 0 and it needs no reduced-motion gating.
+
+@mixin reaction-special {
+  background-color: var(--glass-tint-active);
+  box-shadow: var(--glow-active);
+}
+
 // ─── Text Helpers ─────────────────────────────────────────────────────────────
 
 @mixin text-ellipsis {

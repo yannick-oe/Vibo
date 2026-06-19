@@ -1,23 +1,28 @@
 /**
- * @file Reaction domain helpers: the one-reaction-per-user model and the two
+ * @file Reaction domain helpers: the one-reaction-per-user model and the
  * "big" reactions whose selection triggers an on-brand full-screen effect.
  */
 import { ReactionMap } from './message.model';
 
 /** Kinds of celebratory full-screen effect a big reaction can trigger. */
-export type EffectKind = 'confetti' | 'hearts';
+export type EffectKind = 'confetti' | 'hearts' | 'rocket';
 
 /** Emoji whose selection fires a full-screen effect, mapped to that effect. */
 export const BIG_REACTIONS: Readonly<Record<string, EffectKind>> = {
   '🎉': 'confetti',
   '💖': 'hearts',
+  '🚀': 'rocket',
 };
 
 /** German display noun of each big reaction, used in its accessible label. */
 export const BIG_REACTION_LABELS: Readonly<Record<string, string>> = {
   '🎉': 'Konfetti',
   '💖': 'Herzen',
+  '🚀': 'Rakete',
 };
+
+/** Ordered big-reaction emojis shown in the picker's Big Reactions section. */
+export const BIG_REACTION_EMOJIS: readonly string[] = Object.keys(BIG_REACTIONS);
 
 
 /**

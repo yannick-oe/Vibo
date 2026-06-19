@@ -1,6 +1,6 @@
 /**
- * @file Hover action bar of a message row: quick reactions, emoji picker
- * trigger, thread toggle and the own-message options menu.
+ * @file Hover action bar of a message row: the two last-used quick reactions,
+ * the emoji picker trigger, thread toggle and the own-message options menu.
  */
 import {
   ChangeDetectionStrategy,
@@ -14,6 +14,7 @@ import {
   viewChild,
 } from '@angular/core';
 
+import { bigReactionEffect } from '../../../models/reactions';
 import { RecentEmojiService } from '../../../services/recent-emoji.service';
 import { emojiAsset, emojiName, reactionTriggerLabel } from '../emoji-catalog';
 
@@ -23,10 +24,11 @@ const GHOST_TAP_GUARD_MS = 500;
 
 /**
  * Pill-shaped action bar per the Figma frames, shown by the message row on
- * hover and focus. Foreign messages offer the two recent quick emojis, the
+ * hover and focus. Every message offers the two last-used quick reactions
+ * (a big reaction keeps its special highlight when it surfaces here), the
  * emoji picker and the thread toggle; own messages additionally get the
- * options menu with edit (within its time window) and the two delete
- * variants behind a confirmation step.
+ * options menu with edit (within its time window) and the two delete variants
+ * behind a confirmation step.
  */
 @Component({
   selector: 'app-message-actions',
@@ -79,12 +81,22 @@ export class MessageActionsComponent {
 
 
   /**
-   * Builds the quick-reaction button label ("Mit … reagieren"); the two big
-   * reactions read "Mit Konfetti/Herzen reagieren" via the shared helper.
+   * Builds the reaction button label ("Mit … reagieren"); a big reaction
+   * reads "Mit Konfetti/Herzen/Rakete reagieren" via the shared helper.
    * @param emoji Quick-reaction emoji character.
    */
   protected reactLabel(emoji: string): string {
     return reactionTriggerLabel(emoji);
+  }
+
+
+  /**
+   * Whether the emoji is a big reaction, so it keeps the special highlight
+   * and tooltip when it surfaces as a last-used quick reaction.
+   * @param emoji Quick-reaction emoji character.
+   */
+  protected isBig(emoji: string): boolean {
+    return bigReactionEffect(emoji) !== null;
   }
 
 

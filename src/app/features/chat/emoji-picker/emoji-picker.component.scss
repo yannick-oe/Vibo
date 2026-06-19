@@ -6,9 +6,9 @@
 }
 
 .picker {
-  display: grid;
-  grid-template-columns: repeat(6, auto);
-  gap: v.space('xs');
+  display: flex;
+  flex-direction: column;
+  gap: v.space('sm');
   padding: v.space('sm-md');
   border-radius: v.$radius-lg;
   background-color: v.color('white');
@@ -17,6 +17,34 @@
 
 :host-context(html:not([data-theme='dark'])) .picker {
   @include m.glass;
+}
+
+.picker__section {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+}
+
+.picker__heading {
+  margin: 0;
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-bold;
+  color: var(--text-on-aurora);
+}
+
+.picker__row,
+.picker__grid {
+  display: grid;
+  grid-template-columns: repeat(6, auto);
+  gap: v.space('xs');
+}
+
+.picker__divider {
+  width: 100%;
+  height: 0;
+  margin: 0;
+  border: none;
+  border-top: 1px solid v.color('lines');
 }
 
 .picker__emoji {
@@ -37,6 +65,10 @@
   &:focus-visible {
     @include m.focus-ring;
   }
+}
+
+.picker__emoji--big {
+  @include m.reaction-special;
 }
 
 .picker__img {

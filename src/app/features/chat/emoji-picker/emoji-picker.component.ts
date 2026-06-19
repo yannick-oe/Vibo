@@ -1,15 +1,19 @@
 /**
- * @file Emoji picker popover with the predefined Twemoji set.
+ * @file Emoji picker popover with the predefined Twemoji set. In a reaction
+ * context it leads with a highlighted "Große Reaktionen" section above the
+ * main grid; in the composer it shows the full flat grid for text insertion.
  */
-import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output } from '@angular/core';
 
-import { EMOJI_SET, emojiAsset, emojiName, reactionTriggerLabel } from '../emoji-catalog';
+import { BIG_REACTION_EMOJIS } from '../../../models/reactions';
+import { EMOJI_SET, GRID_EMOJI_SET, emojiAsset, emojiName, reactionTriggerLabel } from '../emoji-catalog';
 
 /**
  * Popover with the predefined Twemoji emoji grid, shared by the reaction
- * flows and the composer. Emits the picked emoji character and closes on
- * Escape or any click outside; the opening component positions it and
- * restores focus.
+ * flows and the composer. When reacting it surfaces the big reactions in a
+ * labelled section above a divider; the rest of the catalog forms the grid.
+ * Emits the picked emoji character and closes on Escape or any click outside;
+ * the opening component positions it and restores focus.
  */
 @Component({
   selector: 'app-emoji-picker',
@@ -22,6 +26,8 @@ import { EMOJI_SET, emojiAsset, emojiName, reactionTriggerLabel } from '../emoji
   },
 })
 export class EmojiPickerComponent {
+  private static instanceCounter = 0;
+
   readonly picked = output<string>();
 
   readonly closed = output<void>();
@@ -30,7 +36,13 @@ export class EmojiPickerComponent {
 
   private readonly host = inject(ElementRef<HTMLElement>);
 
-  protected readonly emojis = EMOJI_SET;
+  protected readonly bigEmojis = BIG_REACTION_EMOJIS;
+
+  protected readonly gridEmojis = computed(() =>
+    this.isReactionTrigger() ? GRID_EMOJI_SET : EMOJI_SET,
+  );
+
+  protected readonly headingId = `big-reactions-${EmojiPickerComponent.instanceCounter++}`;
 
   protected readonly assetFor = emojiAsset;
 

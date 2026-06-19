@@ -3,6 +3,37 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## "Große Reaktionen" picker section + rocket (third big reaction) (2026-06-19)
+This reworks the earlier (uncommitted) "pin the big reactions in the action bar" discoverability
+attempt — that pin was **reverted**: the hover action bar shows the user's **two last-used
+reactions** again (`RecentEmojiService` restored, `record()` back in `message-item`'s `react()`),
+exactly as the committed base. A big reaction that happens to surface as a last-used quick slot
+still keeps its `reaction-special` highlight + German tooltip (applied conditionally via `isBig`),
+but nothing is statically pinned. Discoverability instead lives in the picker:
+- **"Große Reaktionen" section at the top of the emoji picker.** In a **reaction context only**
+  (`isReactionTrigger()` — not the composer/edit insert picker), the picker leads with a labelled
+  group: an `<h3>` heading "Große Reaktionen", a row of the big-reaction buttons (each carrying the
+  shared `@mixin reaction-special` aurora-tint + glow-ring highlight, both themes), a decorative
+  `<hr>` divider (`aria-hidden`, `lines` token), then the rest of the catalog as the main grid.
+  The section is `role="group"` + `aria-labelledby` the heading; all buttons stay real `<button>`s
+  in DOM order so native Tab/keyboard traversal is unchanged. German `aria-label` + native `title`
+  ("Mit Konfetti/Herzen/Rakete reagieren") on the big buttons.
+- **Data-driven from `BIG_REACTIONS`.** The section renders `BIG_REACTION_EMOJIS`
+  (`Object.keys(BIG_REACTIONS)`); the grid is `GRID_EMOJI_SET` = the catalog **minus** the big
+  reactions, so a big reaction appears **only** in the section, never duplicated in the grid, and a
+  future big reaction auto-moves with no further template edits. In the composer (insert) context
+  there is no section and the grid is the full `EMOJI_SET`, so every emoji stays insertable as text.
+  The picker heading uses `--text-on-aurora` (not `text-gray`, which fails AA on the light glass
+  sheen at the top of the popover).
+- **Third big reaction: 🚀 rocket, with a cross-screen effect.** `🚀 → 'rocket'` added to
+  `BIG_REACTIONS` (German noun "Rakete"), so it appears in the section automatically. A new
+  `rocket` `EffectKind` reuses the existing fixed full-viewport canvas / `effects-particles`:
+  `ROCKET_COUNT` (3, named const) rockets streak bottom-left → top-right as glowing aurora trails
+  (tapering head→transparent gradient + shadow glow), reading the live `--color-primary`/`-accent`
+  tokens so light and dark each get their palette. Plays once, auto-cleans within the existing
+  `EFFECT_MAX_MS` cap, DPR-scaled, no layout impact (CLS 0); `prefers-reduced-motion` /
+  `prefers-reduced-transparency` skip the screen effect entirely (the reaction still registers).
+
 ## Reactions: one per user + two big reactions with full-screen effects (2026-06-19)
 - **One reaction per user per message (was up to one per emoji).** A user now holds **at most
   one** reaction on a message: reacting with a new emoji **replaces** the previous one, and

@@ -5,7 +5,7 @@
  * working and the artwork set can change without a data migration — only the
  * UI resolves the SVGs and labels.
  */
-import { bigReactionLabel } from '../../models/reactions';
+import { bigReactionEffect, bigReactionLabel } from '../../models/reactions';
 
 /** Rendering metadata of one catalog emoji: SVG asset path and a11y name. */
 interface EmojiMeta {
@@ -43,8 +43,13 @@ const EMOJI_CATALOG: Record<string, EmojiMeta> = {
   '💖': { asset: 'emojis/1f496.svg', name: 'Funkelndes Herz' },
 };
 
-/** Ordered picker set; the first two are the quick-reaction defaults. */
+/** Ordered full catalog: the composer insert grid and the source GRID_EMOJI_SET filters. */
 export const EMOJI_SET: readonly string[] = Object.keys(EMOJI_CATALOG);
+
+/** Main picker grid in reaction context: the catalog minus the big reactions. */
+export const GRID_EMOJI_SET: readonly string[] = EMOJI_SET.filter(
+  emoji => bigReactionEffect(emoji) === null,
+);
 
 
 /**
@@ -68,9 +73,9 @@ export function emojiName(emoji: string): string | null {
 
 
 /**
- * Accessible label of a reaction trigger button ("Mit … reagieren"); the two
- * big reactions use their effect noun ("Konfetti"/"Herzen"), all others the
- * catalog name, with the raw character as a legacy fallback.
+ * Accessible label of a reaction trigger button ("Mit … reagieren"); big
+ * reactions use their effect noun ("Konfetti"/"Herzen"/"Rakete"), all others
+ * the catalog name, with the raw character as a legacy fallback.
  * @param emoji Reaction emoji character.
  */
 export function reactionTriggerLabel(emoji: string): string {

@@ -3,6 +3,7 @@
     <button
       class="actions__btn"
       type="button"
+      [class.actions__btn--big]="isBig(emoji)"
       [attr.aria-label]="reactLabel(emoji)"
       (click)="reacted.emit(emoji)"
     >
@@ -10,6 +11,9 @@
         <img [src]="asset" [alt]="nameFor(emoji)" />
       } @else {
         <span aria-hidden="true">{{ emoji }}</span>
+      }
+      @if (isBig(emoji)) {
+        <span class="actions__hint" aria-hidden="true">{{ reactLabel(emoji) }}</span>
       }
     </button>
   }

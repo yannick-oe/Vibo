@@ -219,7 +219,7 @@ export class MessageItemComponent {
   /**
    * Sets the signed-in user's single reaction to `emoji` (replacing any
    * existing one, or toggling it off); adding a reaction records the quick
-   * emoji and plays the big-reaction effect for the two special emojis.
+   * emoji and plays the full-screen effect of a special big reaction.
    * @param emoji Emoji character to set.
    */
   protected async react(emoji: string): Promise<void> {
