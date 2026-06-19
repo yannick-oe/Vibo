@@ -54,6 +54,7 @@
               <app-unread-badge
                 [conversationPath]="channelConvPath(channel.id)"
                 [messagesPath]="channelMsgPath(channel.id)"
+                [isActive]="channelLink.isActive"
               />
             </a>
           </li>
@@ -149,6 +150,7 @@
                 <app-unread-badge
                   [conversationPath]="dmConvPath(user.uid)"
                   [messagesPath]="dmMsgPath(user.uid)"
+                  [isActive]="userDmLink.isActive"
                 />
               }
             </a>

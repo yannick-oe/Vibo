@@ -140,11 +140,15 @@
   @include m.glass(
     $tint: var(--glass-tint-active),
     $border: var(--glass-border-active),
-    $shadow: var(--glow-active),
     $blur: var(--glass-blur-active),
     $saturate: var(--glass-saturate-active)
   );
+  box-shadow: var(--glow-active);
   color: v.color('black');
+}
+
+:host-context([data-theme='dark']) .workspace__item:not(.workspace__item--active):hover {
+  box-shadow: var(--glow-active-hover);
 }
 
 .workspace__item {
@@ -162,7 +166,8 @@
   color: v.color('black');
   text-align: left;
   text-decoration: none;
-  transition: background-color v.$transition-fast, color v.$transition-fast;
+  transition: background-color v.$transition-fast, color v.$transition-fast,
+    box-shadow v.$transition-fast;
   outline: none;
 
   &:hover {
@@ -232,7 +237,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .workspace__caret,
-  .workspace__collapsible {
+  .workspace__collapsible,
+  .workspace__item {
     transition: none;
   }
 }
