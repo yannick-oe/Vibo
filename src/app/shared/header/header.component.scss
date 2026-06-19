@@ -50,10 +50,6 @@
   flex-direction: column;
   align-items: center;
   gap: v.space('sm');
-  padding: var(--cta-frost-pad);
-  border-radius: v.$radius-pill;
-  background-color: var(--cta-frost-bg);
-  box-shadow: var(--cta-frost-shadow);
 
   @include m.respond-md {
     display: none;
@@ -61,7 +57,7 @@
 }
 
 .header__cta-text {
-  color: v.color('text-gray');
+  color: var(--text-on-aurora);
 }
 
 .header__cta-link {
@@ -69,7 +65,7 @@
   border: none;
   font-size: v.font-size('body');
   font-weight: v.$font-weight-semibold;
-  color: v.color('primary');
+  color: var(--link-on-aurora);
 
   &:hover {
     color: v.color('primary-hover');

@@ -3,7 +3,33 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Auth top-right declutter + light a11y polish (2026-06-19)
+- **Removed the auth-header frost chip** (the Phase-2 `--cta-frost-*` backing, below). The
+  "Neu bei {{Vibo}}?" caption + "Konto erstellen" link render as **clean box-free text**,
+  kept AA-robust at the aurora's **densest reachable point** via colour: caption =
+  `--text-on-aurora` (light `#54546e`, **5.29:1** over a 13% primary lobe; dark = `text-gray`,
+  unchanged), link = `--link-on-aurora` (light `#373ecb`, **5.60:1**; dark = `primary`,
+  unchanged — `primary` alone was 4.23:1, just under, so a slightly darker on-aurora indigo
+  was introduced as the task allowed). The mobile "Konto erstellen" `btn-secondary` CTA gets
+  the same `--link-on-aurora` token for its resting text/border (`:not(:hover):not(:active)`,
+  so the hover-fill is untouched). The cluster aligns cleanly with the theme toggle
+  (`align-items: center`, `space()` gaps). Dark byte-for-byte (the chip tokens were already
+  `transparent/none/0` in dark).
+- **Global link colour fixed for light.** `a:not(.btn)` was `primary-hover` (**3.45:1 on
+  white — FAIL**); now `--link-color` = `primary` in light (**5.85:1**), `primary-hover` in
+  dark (unchanged). Fixes the Impressum e-mail link, the register "Datenschutzerklärung"
+  link (both on frost cards, 5.85:1) and the footer legal links (4.63:1 in their zone). The
+  link hover keeps its border/weight affordance.
+- **Disabled primary button softened in light.** Was a heavy dark-grey block
+  (`background: text-gray` + white label). Now a muted **ghosted frost** —
+  `--btn-disabled-bg` (light `color-mix(lines 25%, white)`) + `--btn-disabled-text` (light
+  `text-gray`, label **4.70:1** — legible; disabled controls are exempt from the 4.5 min).
+  It recedes and no longer falsely signals a ready primary. **Dark unchanged**
+  (`text-gray` fill + white label).
+
 ## Light-mode refresh — Phase 2 (2026-06-19, per-page/dialog sweep + 2 fixes)
+- **(SUPERSEDED above)** The Phase-2 `--cta-frost-*` chip on the auth caption/CTA was
+  removed in the declutter pass; the entry is kept for history.
 - **Secondary auth text no longer relies on aurora-corner positioning.** The "Neu bei
   {{Vibo}}?" caption (`text-gray`) and the register CTA (`primary`) both failed AA at the
   aurora's densest point (`text-gray` 4.03:1, `primary` 4.23:1 over a 13% primary lobe).

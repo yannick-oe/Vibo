@@ -55,7 +55,8 @@
 
   &:disabled,
   &[aria-disabled='true'] {
-    background-color: v.color('text-gray');
+    background-color: var(--btn-disabled-bg);
+    color: var(--btn-disabled-text);
   }
 }
 

@@ -92,7 +92,7 @@ small {
 // ─── Links ───────────────────────────────────────────────────────────────────
 
 a:not(.btn) {
-  color: v.color('primary-hover');
+  color: var(--link-color);
   transition: all v.$transition-fast;
   border: 1px solid transparent;
   border-radius: v.$radius-pill;
