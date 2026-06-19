@@ -1,4 +1,5 @@
 @use 'variables' as v;
+@use 'mixins' as m;
 
 :host {
   display: contents;
@@ -35,6 +36,15 @@
       background-color: v.color('white');
     }
   }
+}
+
+:host-context(html:not([data-theme='dark'])) .privacy-page {
+  @include m.glass;
+  align-self: center;
+  align-items: flex-start;
+  max-width: v.$auth-card-width-wide;
+  padding: v.space-fluid('xl', 'xxl') v.space('xl-xxl');
+  border-radius: v.$radius-xl;
 }
 
 .privacy-page__title {

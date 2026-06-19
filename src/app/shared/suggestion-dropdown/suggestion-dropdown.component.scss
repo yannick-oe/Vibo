@@ -20,6 +20,10 @@ $dropdown-max-height: 320px;
   @include m.scrollbar-thin;
 }
 
+:host-context(html:not([data-theme='dark'])) .suggestions {
+  @include m.glass;
+}
+
 .suggestions__option {
   display: flex;
   align-items: center;

@@ -15,6 +15,10 @@
   box-shadow: v.$shadow-lg;
 }
 
+:host-context(html:not([data-theme='dark'])) .picker {
+  @include m.glass;
+}
+
 .picker__emoji {
   @include m.flex-center;
 
