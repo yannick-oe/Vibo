@@ -2,7 +2,9 @@
  * @file Sidebar unread badge for one conversation. Derives the unread state
  * reactively from the conversation's denormalized last-message metadata and
  * the signed-in user's read marker, and shows the unread count (capped at
- * "99+"). Hidden — but space-reserved — when nothing is unread.
+ * "99+"). Hidden — but space-reserved — when nothing is unread or when its
+ * conversation is the active one, so the just-opened row never flashes a stale
+ * count during the async mark-as-read window.
  */
 import {
   ChangeDetectionStrategy,
@@ -56,6 +58,8 @@ export class UnreadBadgeComponent {
 
   readonly messagesPath = input.required<string>();
 
+  readonly isActive = input(false);
+
   private readonly readState = inject(ReadStateService);
 
   private readonly authService = inject(AuthService);
@@ -73,6 +77,8 @@ export class UnreadBadgeComponent {
   protected readonly liveRegion = computed(() => (this.hydrated() ? 'polite' : 'off'));
 
   protected readonly isUnread = computed(() => this.deriveUnread());
+
+  protected readonly shouldShow = computed(() => this.deriveShouldShow());
 
   protected readonly badgeText = computed(() => this.deriveText());
 
@@ -118,6 +124,17 @@ export class UnreadBadgeComponent {
     const author = this.meta()?.lastMessageAuthorId;
     if (!author || author === this.uid()) return false;
     return millisOf(this.meta()?.lastMessageAt) > millisOf(this.marker()?.lastReadAt);
+  }
+
+
+  /**
+   * Whether to render the badge: unread and not the active conversation. The
+   * active row drops its badge synchronously on navigation (route-derived via
+   * routerLinkActive), so the just-opened conversation never flashes a stale
+   * count during the async mark-as-read → recount window.
+   */
+  private deriveShouldShow(): boolean {
+    return this.isUnread() && !this.isActive();
   }
 
 
