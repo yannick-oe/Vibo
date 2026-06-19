@@ -1,8 +1,12 @@
-<app-dialog-shell [anchor]="anchor()" labelledBy="profile-dialog-title" size="profile" (closed)="closed.emit()">
+<app-dialog-shell
+  [anchor]="anchor()"
+  labelledBy="profile-dialog-title"
+  [describedBy]="descriptionId()"
+  size="profile"
+  (closed)="closed.emit()"
+>
   <header class="profile__head">
-    <h2 class="profile__title" id="profile-dialog-title">
-      {{ mode() === 'edit' ? 'Dein Profil bearbeiten' : 'Profil' }}
-    </h2>
+    <h2 class="profile__title" id="profile-dialog-title">{{ headerTitle() }}</h2>
     <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="closed.emit()">
       <img src="icons/close.svg" alt="" aria-hidden="true" />
     </button>
@@ -13,10 +17,14 @@
 
     <div class="profile__name-row">
       <h3 class="profile__name">{{ displayName() }}</h3>
-      @if (isSelf()) {
+      @if (isSelf() && !isGuestSelf()) {
         <button class="profile__edit-link" type="button" (click)="startEdit()">Bearbeiten</button>
       }
     </div>
+
+    @if (isGuestSelf()) {
+      <p class="profile__guest-note" [id]="guestNoteId">{{ guestNote }}</p>
+    }
 
     <p class="profile__status" [class.profile__status--away]="!isSelf()">
       <span class="profile__status-dot" aria-hidden="true"></span>

@@ -21,6 +21,7 @@
     role="dialog"
     aria-modal="true"
     [attr.aria-labelledby]="labelledBy()"
+    [attr.aria-describedby]="describedBy()"
     (keydown.tab)="trapFocus($event)"
   >
     <ng-content />

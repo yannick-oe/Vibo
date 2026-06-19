@@ -17,6 +17,11 @@ const SAVE_ERROR = 'Das Profil konnte nicht gespeichert werden.';
 const UNKNOWN_USER = 'Unbekannt';
 const STATUS_ACTIVE = 'Aktiv';
 const STATUS_AWAY = 'Abwesend';
+const PROFILE_VIEW_TITLE = 'Profil';
+const PROFILE_EDIT_TITLE = 'Dein Profil bearbeiten';
+const GUEST_PROFILE_TITLE = 'Dein Profil';
+const GUEST_NOTE = 'Als Gast kannst du Name und Avatar nicht ändern.';
+const GUEST_NOTE_ID = 'profile-guest-note';
 
 type ProfileMode = 'view' | 'edit';
 
@@ -69,6 +74,16 @@ export class ProfileDialogComponent {
     () => this.uid() === this.authService.currentUser()?.uid,
   );
 
+  protected readonly isGuestSelf = computed(() => this.isSelf() && this.authService.isGuest());
+
+  protected readonly headerTitle = computed(() => this.resolveTitle());
+
+  protected readonly descriptionId = computed(() => (this.isGuestSelf() ? GUEST_NOTE_ID : null));
+
+  protected readonly guestNote = GUEST_NOTE;
+
+  protected readonly guestNoteId = GUEST_NOTE_ID;
+
   protected readonly displayName = computed(() => this.user()?.name ?? UNKNOWN_USER);
 
   protected readonly email = computed(() => this.user()?.email ?? null);
@@ -79,9 +94,21 @@ export class ProfileDialogComponent {
 
 
   /**
-   * Switches to the edit card with the current profile as draft.
+   * Resolves the dialog title: the edit title while editing, "Dein Profil"
+   * for the read-only guest profile, otherwise the plain view title.
+   */
+  private resolveTitle(): string {
+    if (this.mode() === 'edit') return PROFILE_EDIT_TITLE;
+    return this.isGuestSelf() ? GUEST_PROFILE_TITLE : PROFILE_VIEW_TITLE;
+  }
+
+
+  /**
+   * Switches to the edit card with the current profile as draft; the shared
+   * guest account cannot edit, so this is a no-op for the guest.
    */
   protected startEdit(): void {
+    if (this.authService.isGuest()) return;
     this.nameDraft.set(this.user()?.name ?? '');
     this.selectedAvatar.set(this.user()?.avatarPath ?? DEFAULT_AVATAR_PATH);
     this.nameError.set('');
@@ -141,9 +168,10 @@ export class ProfileDialogComponent {
 
   /**
    * Validates and saves the profile; the change propagates live through
-   * the user stream.
+   * the user stream. No-ops for the shared guest account (defense in depth).
    */
   protected async save(): Promise<void> {
+    if (this.authService.isGuest()) return;
     if (!this.nameDraft().trim()) return this.nameError.set(NAME_REQUIRED_ERROR);
     if (!this.canSave()) return;
     this.isPending.set(true);

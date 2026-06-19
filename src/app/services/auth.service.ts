@@ -3,7 +3,13 @@
  * All Firebase calls run in the injection context as required by AngularFire,
  * because service methods are invoked from component event handlers.
  */
-import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
+import {
+  EnvironmentInjector,
+  Injectable,
+  computed,
+  inject,
+  runInInjectionContext,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   Auth,
@@ -55,6 +61,9 @@ export class AuthService {
   private readonly injector = inject(EnvironmentInjector);
 
   readonly currentUser = toSignal(user(this.auth), { initialValue: null });
+
+  /** True while the signed-in user is the fixed shared guest account. */
+  readonly isGuest = computed(() => this.currentUser()?.email === GUEST_EMAIL);
 
 
   /**

@@ -72,6 +72,8 @@ export function anchorBelow(
 export class DialogShellComponent implements AfterViewInit, OnDestroy {
   readonly labelledBy = input.required<string>();
 
+  readonly describedBy = input<string | null>(null);
+
   readonly size = input<DialogSize>('default');
 
   readonly anchor = input<DialogAnchor | null>(null);

@@ -34,6 +34,14 @@
   @include m.text-ellipsis;
 }
 
+.profile__guest-note {
+  padding: v.space('sm') v.space('md');
+  border-radius: v.$radius-md;
+  background-color: v.color('bg');
+  font-size: v.font-size('body');
+  color: v.color('text-gray');
+}
+
 .profile__edit-link {
   padding: 0;
   border: none;
