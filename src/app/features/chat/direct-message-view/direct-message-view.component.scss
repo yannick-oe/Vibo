@@ -24,14 +24,13 @@ $partner-status-max: 240px;
 }
 
 .dm__partner {
+  position: relative;
   display: flex;
   align-items: center;
   gap: v.space('md');
+  min-width: 0;
   padding: v.space('xs') v.space('sm');
-  border: none;
   border-radius: v.$radius-pill;
-  background: none;
-  cursor: pointer;
   transition: background-color v.$transition-fast;
 
   &:hover {
@@ -39,9 +38,20 @@ $partner-status-max: 240px;
   }
 }
 
+.dm__partner-trigger {
+  position: absolute;
+  inset: 0;
+  border: none;
+  border-radius: inherit;
+  background: none;
+  cursor: pointer;
+  @include m.focus-ring;
+}
+
 .dm__avatar-wrap {
   position: relative;
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 .dm__avatar {
@@ -68,12 +78,22 @@ $partner-status-max: 240px;
   flex-direction: column;
   align-items: flex-start;
   min-width: 0;
+  pointer-events: none;
+}
+
+.dm__name-row {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  min-width: 0;
 }
 
 .dm__name {
+  min-width: 0;
   font-size: v.font-size('h5');
   font-weight: v.$font-weight-bold;
   color: v.color('black');
+  @include m.text-ellipsis;
 }
 
 .dm__partner-status {
@@ -84,8 +104,10 @@ $partner-status-max: 240px;
 }
 
 .dm__badges {
+  position: relative;
+  z-index: v.$z-raised;
   flex-shrink: 0;
-  margin-left: v.space('xs');
+  pointer-events: auto;
 }
 
 .dm__empty {

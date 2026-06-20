@@ -16,8 +16,6 @@ import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { SearchBarComponent } from '../../search/search-bar/search-bar.component';
 import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
-import { BadgeListComponent } from '../../../shared/badge-list/badge-list.component';
-import { displayBadges } from '../../../shared/badge-options';
 import {
   DialogAnchor,
   DialogShellComponent,
@@ -41,13 +39,7 @@ type TopbarState = 'closed' | 'menu';
  */
 @Component({
   selector: 'app-topbar',
-  imports: [
-    DialogShellComponent,
-    ProfileDialogComponent,
-    SearchBarComponent,
-    AuroraNameComponent,
-    BadgeListComponent,
-  ],
+  imports: [DialogShellComponent, ProfileDialogComponent, SearchBarComponent, AuroraNameComponent],
   templateUrl: './topbar.component.html',
   styleUrl: './topbar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -117,11 +109,6 @@ export class TopbarComponent {
   protected readonly avatarAlt = computed(() => `Avatar von ${this.userName()}`);
 
   protected readonly userAnimatedName = computed(() => this.userDoc()?.animatedName ?? false);
-
-  protected readonly userBadges = computed(() => {
-    const profile = this.userDoc();
-    return profile ? displayBadges(profile) : [];
-  });
 
 
   /**

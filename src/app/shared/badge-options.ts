@@ -15,10 +15,7 @@ export interface BadgeOption {
   readonly accent: string;
 }
 
-/** Badge id seeded for the guest account. */
-export const GUEST_BADGE_ID = 'guest';
-
-/** Badge shown for a non-guest user that has no explicit badges (demo default). */
+/** Badge shown for a user that has no explicit badges field (demo default). */
 export const DEFAULT_BADGE_ID = 'developer';
 
 const ICON_FOUNDER =
@@ -33,16 +30,12 @@ const ICON_PIONEER =
 const ICON_VERIFIED =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.4-3 7.5-7 9-4-1.5-7-4.6-7-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg>';
 
-const ICON_GUEST =
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>';
-
 /** Fixed badge registry; each accent token is AA in both themes (see _themes.scss). */
 export const BADGE_OPTIONS: readonly BadgeOption[] = [
   { id: 'founder', label: 'Gründer', description: 'Gründer von Vibo', icon: ICON_FOUNDER, accent: 'var(--badge-founder)' },
   { id: DEFAULT_BADGE_ID, label: 'Entwickler', description: 'Entwickler im Devspace', icon: ICON_DEVELOPER, accent: 'var(--badge-developer)' },
   { id: 'pioneer', label: 'Pionier', description: 'Frühes Mitglied', icon: ICON_PIONEER, accent: 'var(--badge-pioneer)' },
   { id: 'verified', label: 'Verifiziert', description: 'Verifiziertes Konto', icon: ICON_VERIFIED, accent: 'var(--badge-verified)' },
-  { id: GUEST_BADGE_ID, label: 'Gast', description: 'Gast-Konto', icon: ICON_GUEST, accent: 'var(--badge-guest)' },
 ];
 
 const BADGE_BY_ID: ReadonlyMap<string, BadgeOption> = new Map(
@@ -64,11 +57,12 @@ export function resolveBadges(ids: readonly string[]): BadgeOption[] {
 
 /**
  * Resolves which badges to display for a user: an explicit array always wins
- * (even when empty); otherwise guests show the guest badge and every other
- * account shows the developer badge so demo profiles are never bare.
- * @param user User document fields that drive the badge default.
+ * (even when empty, so the guest opts out with `[]`); a user with no badges
+ * field falls back to the developer badge so demo profiles are never bare.
+ * Badges are never derived from identity (email, uid, account) — the founder
+ * badge requires an explicit array on the Firestore document.
+ * @param user User document field that drives the badge default.
  */
-export function displayBadges(user: Pick<UserDoc, 'badges' | 'email'>): string[] {
-  if (user.badges) return user.badges;
-  return user.email === null ? [GUEST_BADGE_ID] : [DEFAULT_BADGE_ID];
+export function displayBadges(user: Pick<UserDoc, 'badges'>): string[] {
+  return user.badges ?? [DEFAULT_BADGE_ID];
 }

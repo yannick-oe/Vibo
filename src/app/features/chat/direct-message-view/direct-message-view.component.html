@@ -1,27 +1,30 @@
 <section class="dm">
   <h1 class="sr-only">{{ displayName() }}</h1>
   <header class="dm__head">
-    <button
-      class="dm__partner"
-      type="button"
-      aria-label="Profil anzeigen"
-      [attr.aria-expanded]="profileOpen()"
-      (click)="profileOpen.set(true)"
-    >
+    <div class="dm__partner">
+      <button
+        class="dm__partner-trigger"
+        type="button"
+        aria-label="Profil anzeigen"
+        [attr.aria-expanded]="profileOpen()"
+        (click)="profileOpen.set(true)"
+      ></button>
       <span class="dm__avatar-wrap">
         <img class="dm__avatar" [src]="partnerAvatar()" alt="" aria-hidden="true" />
         <span class="dm__status" [class.dm__status--offline]="!presenceService.isOnline(uid())" aria-hidden="true"></span>
       </span>
       <span class="dm__identity">
-        <span class="dm__name">
-          <app-aurora-name [name]="displayName()" [isAnimated]="partnerAnimatedName()" />
+        <span class="dm__name-row">
+          <span class="dm__name">
+            <app-aurora-name [name]="displayName()" [isAnimated]="partnerAnimatedName()" />
+          </span>
+          <app-badge-list class="dm__badges" [badges]="partnerBadges()" />
         </span>
         @if (partnerStatus(); as status) {
           <span class="dm__partner-status">{{ status }}</span>
         }
       </span>
-    </button>
-    <app-badge-list class="dm__badges" [badges]="partnerBadges()" />
+    </div>
   </header>
 
   @if (messages().length === 0) {
