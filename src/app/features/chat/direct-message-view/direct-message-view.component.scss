@@ -38,7 +38,10 @@ $partner-status-max: 240px;
   border-radius: v.$radius-sm;
   background: none;
   cursor: pointer;
-  @include m.focus-ring;
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
 }
 
 .dm__avatar-wrap {
