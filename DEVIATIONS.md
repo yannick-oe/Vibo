@@ -3,6 +3,55 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Animated cosmic canvas profile banner — Profil + Status, Teil 1 (2026-06-20)
+An **enhancement beyond the DA Figma**: a Discord-style animated **cosmic banner** behind the
+profile picture. This **replaces the dropped "avatar aura" ring idea** (that earlier uncommitted
+work was reverted entirely — no `aura` field/overlay anywhere). The banner **plumbing** (the
+`banner` field, the picker in "Dein Profil bearbeiten", profile-card-only display, guest lock, no
+rules change) is kept; the **rendering was upgraded from tame CSS gradients to a single animated
+`<canvas>` cosmic scene** for a real "wow" hero. CSS/SVG/canvas only — **no GIF/video assets**.
+- **One engine, mood presets** (`shared/banner-options.ts`): the presets are **param variants**
+  (`CosmicParams`: starDensity / auroraIntensity / nebulaIntensity) of the **same** canvas engine, so
+  effort concentrates on engine quality. Ids **English** (all-identifiers-in-English rule), labels
+  **German**: `none` (Keine — off, no canvas), `aurora` (Polarlicht — aurora-forward), `starfield`
+  (Sternenfeld — denser stars), `nebula` (Nebula — colored nebula clouds + stars).
+- **Canvas engine, split across small files** (`shared/profile-banner/cosmic/`): `cosmic-starfield`
+  (2–3 parallax depth layers, hundreds of twinkling stars, capped by a named const), `cosmic-aurora`
+  (sine-distorted gradient ribbons drawn with **`screen` (additive) compositing** so they bloom in
+  the indigo/magenta token palette), `cosmic-nebula` (drifting additive blobs for the nebula preset),
+  `cosmic-shooting-star` (a rare streak on a randomized cooldown), and `cosmic-scene` (palette resolve
+  + seed + per-frame orchestration). All counts/speeds/sizes are **named consts**; the scene is
+  DPR-scaled and GPU-friendly.
+- **Intrinsically dark in both themes** (a night-sky window): two new tokens `--banner-space` /
+  `--banner-star` are defined once in `:root` (same value in light and dark) so the scene is dark
+  regardless of theme; the aurora reads the live `--color-primary` / `--color-accent`. The banner
+  does **not** lighten in light mode by design; the avatar (opaque, with explicit `z-index`) and the
+  surrounding card chrome stay legible in both.
+- **RAF only while open**: the loop starts on mount (`afterNextRender`) and stops on destroy
+  (`DestroyRef`), and the component is only mounted while the profile card is open → **zero
+  background cost**. A `ResizeObserver` re-fits the scene (e.g. down to 320px).
+  **`prefers-reduced-motion`** ⇒ **one rich static frame** (full starfield + aurora, no loop, no
+  shooting star). **`prefers-reduced-transparency`** ⇒ additive glow dropped to `source-over` and the
+  layer opacities cut. Only the card preview renders a banner, so at most **one RAF loop** runs.
+- **Bigger hero** (CHANGE 2): the strip grew from 110px to **190px** (150px ≤ `respond-sm`). The
+  avatar sits **deep** in the strip — its top ~**three-quarters overlaps** (`--on-banner` negative
+  margin driven by the named `$banner-avatar-overlap` = 0.75) so only the bottom quarter protrudes
+  below, which shifts everything beneath up and keeps the dialog shorter; explicit `z-index: 1` so it
+  paints above the canvas. Spacing below the avatar stays the dialog's token `space('lg')` gap. The
+  canvas has a fixed CSS box → **CLS 0**.
+- **Picker** (profile edit): a real `role="radiogroup"` of compact **text chips/pills** (Keine /
+  Polarlicht / Sternenfeld / Nebula — **no per-option preview thumbnails**; they didn't read well at
+  that size and bloated the dialog) with **roving tabindex** + arrow keys, a **primary-toned selected
+  state** (`aria-checked`, token border/tint + high-contrast label) and German `aria-label`s; the
+  **big card banner is the live preview** — selecting a chip updates it. Staged with the name/avatar
+  draft and persisted on **Speichern** (Abbrechen reverts) via `updateProfile`.
+- **Shown on the profile card only** — the edit-dialog preview and the profile view card (own and
+  others). **Deliberately NOT** in the topbar, DM header, DM list, or message rows.
+- **Data**: `banner?: string` on `UserDoc`, resolved to `none` at read so existing users get no
+  banner; new docs seeded `none`, guest reset seeded `nebula` (editing stays **locked**).
+- **No Firestore rules change / no `firestore:rules` deploy**: the `users/{uid}` self-update rule
+  is field-permissive, so writing `banner` is already allowed.
+
 ## Soft-delete tombstone refresh + delete pop animation (2026-06-19)
 Deletion was **already a soft delete** before this change — `deleteForAll` sets
 `deletedAt`/`deletedBy` and clears `text: ''` + `reactions: {}` in one update, and `firestore.rules`

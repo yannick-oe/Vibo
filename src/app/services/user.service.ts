@@ -42,11 +42,12 @@ export class UserService {
    * surface live because all rendering resolves users via the stream.
    * @param name Trimmed new display name.
    * @param avatarPath Public asset path of the selected avatar.
+   * @param banner Selected profile-banner id (see BANNER_OPTIONS).
    */
-  updateProfile(name: string, avatarPath: string): Promise<void> {
+  updateProfile(name: string, avatarPath: string, banner: string): Promise<void> {
     const uid = this.authService.requireUid();
     return runInInjectionContext(this.injector, () =>
-      updateDoc(doc(this.firestore, `users/${uid}`), { name: name.trim(), avatarPath }),
+      updateDoc(doc(this.firestore, `users/${uid}`), { name: name.trim(), avatarPath, banner }),
     );
   }
 

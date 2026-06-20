@@ -37,6 +37,7 @@ import {
 } from '@angular/fire/firestore';
 
 import { UserDoc } from '../models/user.model';
+import { BANNER_NONE } from '../shared/banner-options';
 import {
   DEFAULT_AVATAR_PATH,
   REMOTE_AVATAR_PREFIX,
@@ -46,6 +47,7 @@ import {
 const GUEST_NAME = 'Gast';
 const GUEST_EMAIL = 'gast@dabubble.dev';
 const GUEST_PASSWORD = 'DABubble-Gast-2026!';
+const GUEST_BANNER = 'nebula';
 const NOT_SIGNED_IN_ERROR = 'Operation requires a signed-in user.';
 
 /**
@@ -191,6 +193,7 @@ export class AuthService {
       name: GUEST_NAME,
       email: null,
       avatarPath: DEFAULT_AVATAR_PATH,
+      banner: GUEST_BANNER,
       createdAt: serverTimestamp(),
     };
     return this.inContext(() => setDoc(doc(this.firestore, `users/${uid}`), document));
@@ -213,6 +216,7 @@ export class AuthService {
       name: data.name,
       email: data.email,
       avatarPath,
+      banner: BANNER_NONE,
       createdAt: serverTimestamp(),
     };
     return this.inContext(() => setDoc(doc(this.firestore, `users/${uid}`), document));
@@ -264,6 +268,7 @@ export class AuthService {
       name: firebaseUser.displayName ?? GUEST_NAME,
       email: firebaseUser.email,
       avatarPath: DEFAULT_AVATAR_PATH,
+      banner: BANNER_NONE,
       createdAt: serverTimestamp(),
     };
   }

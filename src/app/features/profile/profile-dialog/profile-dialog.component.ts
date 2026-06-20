@@ -2,7 +2,17 @@
  * @file Profile dialog: own profile with inline edit mode, foreign
  * profiles with the direct-message shortcut.
  */
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+  viewChildren,
+} from '@angular/core';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../../services/auth.service';
@@ -10,6 +20,8 @@ import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/regist
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { AVATAR_OPTIONS } from '../../../shared/avatar-options';
+import { BANNER_NONE, BANNER_OPTIONS } from '../../../shared/banner-options';
+import { ProfileBannerComponent } from '../../../shared/profile-banner/profile-banner.component';
 import { DialogAnchor, DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
 
 const NAME_REQUIRED_ERROR = 'Bitte gib deinen Namen ein.';
@@ -22,6 +34,8 @@ const PROFILE_EDIT_TITLE = 'Dein Profil bearbeiten';
 const GUEST_PROFILE_TITLE = 'Dein Profil';
 const GUEST_NOTE = 'Als Gast kannst du Name und Avatar nicht ändern.';
 const GUEST_NOTE_ID = 'profile-guest-note';
+const BANNER_KEYS_NEXT = ['ArrowRight', 'ArrowDown'];
+const BANNER_KEYS_PREV = ['ArrowLeft', 'ArrowUp'];
 
 type ProfileMode = 'view' | 'edit';
 
@@ -34,7 +48,7 @@ type ProfileMode = 'view' | 'edit';
  */
 @Component({
   selector: 'app-profile-dialog',
-  imports: [DialogShellComponent],
+  imports: [DialogShellComponent, ProfileBannerComponent],
   templateUrl: './profile-dialog.component.html',
   styleUrl: './profile-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,6 +70,10 @@ export class ProfileDialogComponent {
 
   protected readonly avatars = AVATAR_OPTIONS;
 
+  protected readonly banners = BANNER_OPTIONS;
+
+  private readonly bannerButtons = viewChildren<ElementRef<HTMLButtonElement>>('bannerOption');
+
   protected readonly mode = signal<ProfileMode>('view');
 
   protected readonly nameDraft = signal('');
@@ -63,6 +81,8 @@ export class ProfileDialogComponent {
   protected readonly nameError = signal('');
 
   protected readonly selectedAvatar = signal(DEFAULT_AVATAR_PATH);
+
+  protected readonly selectedBanner = signal<string>(BANNER_NONE);
 
   protected readonly isPending = signal(false);
 
@@ -92,6 +112,18 @@ export class ProfileDialogComponent {
 
   protected readonly avatarSrc = computed(() => assetUrl(this.user()?.avatarPath));
 
+  protected readonly userBanner = computed(() => this.user()?.banner ?? BANNER_NONE);
+
+  protected readonly cardBanner = computed(() =>
+    this.mode() === 'edit' ? this.selectedBanner() : this.userBanner(),
+  );
+
+  protected readonly hasCardBanner = computed(() => this.cardBanner() !== BANNER_NONE);
+
+  protected readonly cardAvatar = computed(() =>
+    this.mode() === 'edit' ? assetUrl(this.selectedAvatar()) : this.avatarSrc(),
+  );
+
 
   /**
    * Resolves the dialog title: the edit title while editing, "Dein Profil"
@@ -111,6 +143,7 @@ export class ProfileDialogComponent {
     if (this.authService.isGuest()) return;
     this.nameDraft.set(this.user()?.name ?? '');
     this.selectedAvatar.set(this.user()?.avatarPath ?? DEFAULT_AVATAR_PATH);
+    this.selectedBanner.set(this.user()?.banner ?? BANNER_NONE);
     this.nameError.set('');
     this.mode.set('edit');
   }
@@ -155,13 +188,41 @@ export class ProfileDialogComponent {
 
 
   /**
+   * Stages a banner selection; it is persisted with the rest of the draft on
+   * save, so the card's live preview updates and "Abbrechen" reverts it.
+   * @param id Banner id from the registry.
+   */
+  protected selectBanner(id: string): void {
+    this.selectedBanner.set(id);
+  }
+
+
+  /**
+   * Roving radiogroup navigation: arrow keys move to the previous/next banner,
+   * selecting and focusing it; other keys are left to the browser.
+   * @param event Keydown event on a banner radio.
+   * @param index Index of the focused banner option.
+   */
+  protected onBannerKeydown(event: KeyboardEvent, index: number): void {
+    const delta = bannerKeyDelta(event.key);
+    if (!delta) return;
+    event.preventDefault();
+    const next = (index + delta + this.banners.length) % this.banners.length;
+    this.selectBanner(this.banners[next].id);
+    this.bannerButtons()[next]?.nativeElement.focus();
+  }
+
+
+  /**
    * Reports whether the draft is valid and differs from the profile.
    */
   protected canSave(): boolean {
     const name = this.nameDraft().trim();
     if (!name) return false;
     const changed =
-      name !== this.user()?.name || this.selectedAvatar() !== this.user()?.avatarPath;
+      name !== this.user()?.name ||
+      this.selectedAvatar() !== this.user()?.avatarPath ||
+      this.selectedBanner() !== (this.user()?.banner ?? BANNER_NONE);
     return changed && !this.isPending();
   }
 
@@ -176,7 +237,7 @@ export class ProfileDialogComponent {
     if (!this.canSave()) return;
     this.isPending.set(true);
     try {
-      await this.userService.updateProfile(this.nameDraft(), this.selectedAvatar());
+      await this.userService.updateProfile(this.nameDraft(), this.selectedAvatar(), this.selectedBanner());
       this.mode.set('view');
     } catch {
       this.toastService.show(SAVE_ERROR);
@@ -202,4 +263,16 @@ export class ProfileDialogComponent {
  */
 function assetUrl(path: string | undefined): string {
   return resolveAvatarPath(path);
+}
+
+
+/**
+ * Maps an arrow key to a roving-navigation step: +1 forward, -1 backward,
+ * 0 for keys that are not radiogroup navigation.
+ * @param key Pressed key value.
+ */
+function bannerKeyDelta(key: string): number {
+  if (BANNER_KEYS_NEXT.includes(key)) return 1;
+  if (BANNER_KEYS_PREV.includes(key)) return -1;
+  return 0;
 }

@@ -16,6 +16,8 @@ export interface UserDoc {
   email: string | null;
   /** Local public asset path (e.g. avatars/avatar-1.jpeg) — never an external URL. */
   avatarPath: string;
+  /** Selected profile-banner id (see BANNER_OPTIONS); absent/"none" means no banner. */
+  banner?: string;
   /** Creation time; serverTimestamp() sentinel on write, Timestamp on read. */
   createdAt: Timestamp | FieldValue;
   /** Last presence heartbeat; serverTimestamp() on write, Timestamp on read. */

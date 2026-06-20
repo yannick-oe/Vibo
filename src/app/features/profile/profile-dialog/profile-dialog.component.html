@@ -12,9 +12,20 @@
     </button>
   </header>
 
-  @if (mode() === 'view') {
-    <img class="profile__avatar" [src]="avatarSrc()" alt="" aria-hidden="true" />
+  <div class="profile__banner-card">
+    @if (hasCardBanner()) {
+      <app-profile-banner class="profile__banner" [banner]="cardBanner()" />
+    }
+    <img
+      class="profile__avatar"
+      [class.profile__avatar--on-banner]="hasCardBanner()"
+      [src]="cardAvatar()"
+      alt=""
+      aria-hidden="true"
+    />
+  </div>
 
+  @if (mode() === 'view') {
     <div class="profile__name-row">
       <h3 class="profile__name">{{ displayName() }}</h3>
       @if (isSelf() && !isGuestSelf()) {
@@ -50,8 +61,6 @@
       </footer>
     }
   } @else {
-    <img class="profile__avatar" [src]="optionSrc(selectedAvatar())" alt="" aria-hidden="true" />
-
     <ul class="profile__avatar-options">
       @for (option of avatars; track option.path) {
         <li>
@@ -68,6 +77,25 @@
         </li>
       }
     </ul>
+
+    <div class="profile__banner-group" role="radiogroup" aria-label="Profil-Banner auswählen">
+      @for (option of banners; track option.id; let i = $index) {
+        <button
+          #bannerOption
+          class="profile__banner-chip"
+          type="button"
+          role="radio"
+          [class.profile__banner-chip--selected]="selectedBanner() === option.id"
+          [attr.aria-checked]="selectedBanner() === option.id"
+          [attr.aria-label]="'Banner ' + option.label + ' auswählen'"
+          [attr.tabindex]="selectedBanner() === option.id ? 0 : -1"
+          (click)="selectBanner(option.id)"
+          (keydown)="onBannerKeydown($event, i)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
 
     <div class="form-field">
       <label class="form-label profile__label" for="profile-name">

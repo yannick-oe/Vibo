@@ -1,6 +1,10 @@
 @use 'variables' as v;
 @use 'mixins' as m;
 
+$profile-banner-height: 190px;
+$profile-banner-height-sm: 150px;
+$banner-avatar-overlap: 0.75;
+
 .profile__head {
   @include m.flex-between;
 
@@ -13,12 +17,33 @@
   color: v.color('black');
 }
 
+.profile__banner-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile__banner {
+  width: 100%;
+  height: $profile-banner-height;
+
+  @include m.respond-sm {
+    height: $profile-banner-height-sm;
+  }
+}
+
 .profile__avatar {
   width: v.$avatar-preview;
   height: v.$avatar-preview;
   align-self: center;
   border-radius: v.$radius-round;
   object-fit: cover;
+}
+
+.profile__avatar--on-banner {
+  position: relative;
+  z-index: 1;
+  margin-top: calc(#{v.$avatar-preview} * -#{$banner-avatar-overlap});
 }
 
 .profile__name-row {
@@ -145,6 +170,39 @@
     height: v.$avatar-select;
     border-radius: v.$radius-round;
     object-fit: cover;
+  }
+}
+
+.profile__banner-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: v.space('sm');
+}
+
+.profile__banner-chip {
+  padding: v.space('sm') v.space('md');
+  border: 1px solid var(--field-border);
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('text-gray');
+  transition: border-color v.$transition-fast, background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover {
+    border-color: v.color('primary');
+  }
+
+  &--selected {
+    border-color: v.color('primary');
+    background-color: color-mix(in srgb, #{v.color('primary')} 14%, transparent);
+    color: v.color('black');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
   }
 }
 

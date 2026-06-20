@@ -1,0 +1,16 @@
+@use 'variables' as v;
+
+$banner-radius: v.$radius-md;
+
+:host {
+  display: block;
+  overflow: hidden;
+  border-radius: $banner-radius;
+  background-color: var(--banner-space);
+}
+
+.banner__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
