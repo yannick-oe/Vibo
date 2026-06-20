@@ -29,20 +29,13 @@ $partner-status-max: 240px;
   align-items: center;
   gap: v.space('md');
   min-width: 0;
-  padding: v.space('xs') v.space('sm');
-  border-radius: v.$radius-pill;
-  transition: background-color v.$transition-fast;
-
-  &:hover {
-    background-color: v.color('bg');
-  }
 }
 
 .dm__partner-trigger {
   position: absolute;
   inset: 0;
   border: none;
-  border-radius: inherit;
+  border-radius: v.$radius-sm;
   background: none;
   cursor: pointer;
   @include m.focus-ring;
