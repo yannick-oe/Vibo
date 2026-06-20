@@ -1,6 +1,8 @@
 @use 'variables' as v;
 @use 'mixins' as m;
 
+$partner-status-max: 240px;
+
 :host {
   display: block;
   height: 100%;
@@ -61,10 +63,24 @@
   }
 }
 
+.dm__identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
 .dm__name {
   font-size: v.font-size('h5');
   font-weight: v.$font-weight-bold;
   color: v.color('black');
+}
+
+.dm__partner-status {
+  max-width: $partner-status-max;
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  @include m.text-ellipsis;
 }
 
 .dm__empty {

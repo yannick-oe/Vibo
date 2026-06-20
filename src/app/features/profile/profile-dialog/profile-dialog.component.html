@@ -27,11 +27,17 @@
 
   @if (mode() === 'view') {
     <div class="profile__name-row">
-      <h3 class="profile__name">{{ displayName() }}</h3>
+      <h3 class="profile__name">
+        <app-aurora-name [name]="displayName()" [isAnimated]="userAnimatedName()" />
+      </h3>
       @if (isSelf() && !isGuestSelf()) {
         <button class="profile__edit-link" type="button" (click)="startEdit()">Bearbeiten</button>
       }
     </div>
+
+    @if (userStatus(); as status) {
+      <p class="profile__custom-status">{{ status }}</p>
+    }
 
     @if (isGuestSelf()) {
       <p class="profile__guest-note" [id]="guestNoteId">{{ guestNote }}</p>
@@ -112,6 +118,50 @@
         [attr.aria-invalid]="nameError() !== ''"
       />
       <p class="form-error" id="profile-name-error">{{ nameError() }}</p>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="profile-status">Status</label>
+      <div class="profile__status-field">
+        <input
+          id="profile-status"
+          class="form-input form-input--outlined"
+          type="text"
+          [value]="statusDraft()"
+          (input)="onStatusInput($event)"
+          [attr.maxlength]="statusMax"
+          [attr.placeholder]="statusPlaceholder"
+          aria-describedby="profile-status-counter"
+        />
+        @if (statusDraft()) {
+          <button
+            class="profile__status-clear"
+            type="button"
+            aria-label="Status löschen"
+            (click)="clearStatus()"
+          >
+            <img src="icons/close.svg" alt="" aria-hidden="true" />
+          </button>
+        }
+      </div>
+      <p class="profile__status-counter" id="profile-status-counter">
+        {{ statusDraft().length }}/{{ statusMax }} Zeichen
+      </p>
+    </div>
+
+    <div class="profile__switch-field">
+      <span class="profile__switch-label" id="profile-animate-label">Namen animieren</span>
+      <button
+        class="profile__switch"
+        type="button"
+        role="switch"
+        [class.profile__switch--on]="animatedNameDraft()"
+        [attr.aria-checked]="animatedNameDraft()"
+        aria-labelledby="profile-animate-label"
+        (click)="toggleAnimatedName()"
+      >
+        <span class="profile__switch-thumb" aria-hidden="true"></span>
+      </button>
     </div>
 
     <footer class="profile__actions profile__actions--edit">

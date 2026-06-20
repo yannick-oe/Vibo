@@ -44,7 +44,9 @@
         [attr.aria-expanded]="state() === 'menu'"
         (click)="openMenu($event)"
       >
-        <span class="topbar__user-name" [title]="userName()">{{ userName() }}</span>
+        <span class="topbar__user-name" [title]="userName()">
+          <app-aurora-name [name]="userName()" [isAnimated]="userAnimatedName()" />
+        </span>
         <span class="topbar__avatar-wrap">
           <img
             class="topbar__avatar"
@@ -65,7 +67,9 @@
     <div class="topbar__menu">
       <div class="topbar__menu-header">
         <img class="topbar__menu-avatar" [src]="avatarSrc()" [alt]="avatarAlt()" (error)="useAvatarFallback($event)" />
-        <span class="topbar__menu-name" id="topbar-menu-title" [title]="userName()">{{ userName() }}</span>
+        <span class="topbar__menu-name" id="topbar-menu-title" [title]="userName()">
+          <app-aurora-name [name]="userName()" [isAnimated]="userAnimatedName()" />
+        </span>
       </div>
       <div class="topbar__menu-items" role="menu">
         <button class="topbar__menu-item topbar__menu-item--profile" type="button" role="menuitem" (click)="openProfile()">

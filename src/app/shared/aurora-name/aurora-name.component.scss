@@ -1,0 +1,38 @@
+$aurora-name-duration: 6s;
+$aurora-name-size: 220%;
+
+:host {
+  display: inline;
+}
+
+.aurora-name--animated {
+  background-image:
+    linear-gradient(
+      90deg,
+      var(--aurora-name-a),
+      var(--aurora-name-b),
+      var(--aurora-name-c),
+      var(--aurora-name-a)
+    );
+  background-size: $aurora-name-size auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .aurora-name--animated {
+    animation: aurora-name-flow $aurora-name-duration linear infinite;
+  }
+}
+
+@keyframes aurora-name-flow {
+  from {
+    background-position: 0 center;
+  }
+
+  to {
+    background-position: $aurora-name-size center;
+  }
+}

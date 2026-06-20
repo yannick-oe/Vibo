@@ -66,6 +66,12 @@
   }
 }
 
+.dialog-shell__card--profile.dialog-shell__card--anchor-left,
+.dialog-shell__card--profile.dialog-shell__card--anchor-right {
+  border-top-left-radius: v.$radius-xl;
+  border-top-right-radius: v.$radius-xl;
+}
+
 .dialog-shell--anchored {
   padding: 0;
 }

@@ -18,8 +18,9 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
-import { UserService } from '../../../services/user.service';
+import { ProfileDraft, UserService } from '../../../services/user.service';
 import { AVATAR_OPTIONS } from '../../../shared/avatar-options';
+import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
 import { BANNER_NONE, BANNER_OPTIONS } from '../../../shared/banner-options';
 import { ProfileBannerComponent } from '../../../shared/profile-banner/profile-banner.component';
 import { DialogAnchor, DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
@@ -36,6 +37,8 @@ const GUEST_NOTE = 'Als Gast kannst du Name und Avatar nicht ändern.';
 const GUEST_NOTE_ID = 'profile-guest-note';
 const BANNER_KEYS_NEXT = ['ArrowRight', 'ArrowDown'];
 const BANNER_KEYS_PREV = ['ArrowLeft', 'ArrowUp'];
+const STATUS_MAX_LENGTH = 60;
+const STATUS_PLACEHOLDER = 'Was machst du gerade?';
 
 type ProfileMode = 'view' | 'edit';
 
@@ -48,7 +51,7 @@ type ProfileMode = 'view' | 'edit';
  */
 @Component({
   selector: 'app-profile-dialog',
-  imports: [DialogShellComponent, ProfileBannerComponent],
+  imports: [DialogShellComponent, ProfileBannerComponent, AuroraNameComponent],
   templateUrl: './profile-dialog.component.html',
   styleUrl: './profile-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -83,6 +86,14 @@ export class ProfileDialogComponent {
   protected readonly selectedAvatar = signal(DEFAULT_AVATAR_PATH);
 
   protected readonly selectedBanner = signal<string>(BANNER_NONE);
+
+  protected readonly statusDraft = signal('');
+
+  protected readonly animatedNameDraft = signal(false);
+
+  protected readonly statusMax = STATUS_MAX_LENGTH;
+
+  protected readonly statusPlaceholder = STATUS_PLACEHOLDER;
 
   protected readonly isPending = signal(false);
 
@@ -124,6 +135,10 @@ export class ProfileDialogComponent {
     this.mode() === 'edit' ? assetUrl(this.selectedAvatar()) : this.avatarSrc(),
   );
 
+  protected readonly userStatus = computed(() => this.user()?.status ?? '');
+
+  protected readonly userAnimatedName = computed(() => this.user()?.animatedName ?? false);
+
 
   /**
    * Resolves the dialog title: the edit title while editing, "Dein Profil"
@@ -144,6 +159,8 @@ export class ProfileDialogComponent {
     this.nameDraft.set(this.user()?.name ?? '');
     this.selectedAvatar.set(this.user()?.avatarPath ?? DEFAULT_AVATAR_PATH);
     this.selectedBanner.set(this.user()?.banner ?? BANNER_NONE);
+    this.statusDraft.set(this.user()?.status ?? '');
+    this.animatedNameDraft.set(this.user()?.animatedName ?? false);
     this.nameError.set('');
     this.mode.set('edit');
   }
@@ -166,6 +183,32 @@ export class ProfileDialogComponent {
     const value = (event.target as HTMLInputElement).value;
     this.nameDraft.set(value);
     this.nameError.set(value.trim() ? '' : NAME_REQUIRED_ERROR);
+  }
+
+
+  /**
+   * Syncs the status draft with its input; the field's maxlength hard-enforces
+   * the character cap so the stored value can never exceed it.
+   * @param event Input event of the status field.
+   */
+  protected onStatusInput(event: Event): void {
+    this.statusDraft.set((event.target as HTMLInputElement).value);
+  }
+
+
+  /**
+   * Clears the status draft.
+   */
+  protected clearStatus(): void {
+    this.statusDraft.set('');
+  }
+
+
+  /**
+   * Toggles the animated-name switch in the draft.
+   */
+  protected toggleAnimatedName(): void {
+    this.animatedNameDraft.update(isOn => !isOn);
   }
 
 
@@ -222,8 +265,24 @@ export class ProfileDialogComponent {
     const changed =
       name !== this.user()?.name ||
       this.selectedAvatar() !== this.user()?.avatarPath ||
-      this.selectedBanner() !== (this.user()?.banner ?? BANNER_NONE);
+      this.selectedBanner() !== (this.user()?.banner ?? BANNER_NONE) ||
+      this.statusDraft() !== (this.user()?.status ?? '') ||
+      this.animatedNameDraft() !== (this.user()?.animatedName ?? false);
     return changed && !this.isPending();
+  }
+
+
+  /**
+   * Builds the profile draft sent to the user service on save.
+   */
+  private buildDraft(): ProfileDraft {
+    return {
+      name: this.nameDraft(),
+      avatarPath: this.selectedAvatar(),
+      banner: this.selectedBanner(),
+      status: this.statusDraft(),
+      animatedName: this.animatedNameDraft(),
+    };
   }
 
 
@@ -237,7 +296,7 @@ export class ProfileDialogComponent {
     if (!this.canSave()) return;
     this.isPending.set(true);
     try {
-      await this.userService.updateProfile(this.nameDraft(), this.selectedAvatar(), this.selectedBanner());
+      await this.userService.updateProfile(this.buildDraft());
       this.mode.set('view');
     } catch {
       this.toastService.show(SAVE_ERROR);

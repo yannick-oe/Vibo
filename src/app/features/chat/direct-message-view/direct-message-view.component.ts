@@ -25,6 +25,7 @@ import { resolveAvatarPath } from '../../../services/registration.service';
 import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
+import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MessageInputComponent } from '../message-input/message-input.component';
 import { MessageListComponent } from '../message-list/message-list.component';
@@ -41,7 +42,7 @@ const SELF_SUFFIX = ' (Du)';
  */
 @Component({
   selector: 'app-direct-message-view',
-  imports: [MessageInputComponent, MessageListComponent, ProfileDialogComponent],
+  imports: [MessageInputComponent, MessageListComponent, ProfileDialogComponent, AuroraNameComponent],
   templateUrl: './direct-message-view.component.html',
   styleUrl: './direct-message-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -80,15 +81,21 @@ export class DirectMessageViewComponent {
     () => this.uid() === this.authService.currentUser()?.uid,
   );
 
-  protected readonly partnerName = computed(
-    () => this.userService.users().find(user => user.uid === this.uid())?.name ?? UNKNOWN_PARTNER,
+  private readonly partnerDoc = computed(() =>
+    this.userService.users().find(user => user.uid === this.uid()),
   );
+
+  protected readonly partnerName = computed(() => this.partnerDoc()?.name ?? UNKNOWN_PARTNER);
 
   protected readonly displayName = computed(
     () => `${this.partnerName()}${this.isSelf() ? SELF_SUFFIX : ''}`,
   );
 
-  protected readonly partnerAvatar = computed(() => this.resolvePartnerAvatar());
+  protected readonly partnerAvatar = computed(() => resolveAvatarPath(this.partnerDoc()?.avatarPath));
+
+  protected readonly partnerStatus = computed(() => this.partnerDoc()?.status ?? '');
+
+  protected readonly partnerAnimatedName = computed(() => this.partnerDoc()?.animatedName ?? false);
 
   protected readonly composerPlaceholder = computed(() => `Nachricht an ${this.partnerName()}`);
 
@@ -156,15 +163,6 @@ export class DirectMessageViewComponent {
     } catch {
       this.toastService.show(SEND_ERROR);
     }
-  }
-
-
-  /**
-   * Resolves the partner's avatar with the placeholder as fallback.
-   */
-  private resolvePartnerAvatar(): string {
-    const path = this.userService.users().find(user => user.uid === this.uid())?.avatarPath;
-    return resolveAvatarPath(path);
   }
 
 

@@ -48,6 +48,7 @@ const GUEST_NAME = 'Gast';
 const GUEST_EMAIL = 'gast@dabubble.dev';
 const GUEST_PASSWORD = 'DABubble-Gast-2026!';
 const GUEST_BANNER = 'nebula';
+const GUEST_STATUS = 'Nur zu Besuch im Kosmos ✨';
 const NOT_SIGNED_IN_ERROR = 'Operation requires a signed-in user.';
 
 /**
@@ -194,6 +195,8 @@ export class AuthService {
       email: null,
       avatarPath: DEFAULT_AVATAR_PATH,
       banner: GUEST_BANNER,
+      status: GUEST_STATUS,
+      animatedName: true,
       createdAt: serverTimestamp(),
     };
     return this.inContext(() => setDoc(doc(this.firestore, `users/${uid}`), document));
@@ -217,6 +220,8 @@ export class AuthService {
       email: data.email,
       avatarPath,
       banner: BANNER_NONE,
+      status: '',
+      animatedName: false,
       createdAt: serverTimestamp(),
     };
     return this.inContext(() => setDoc(doc(this.firestore, `users/${uid}`), document));
@@ -269,6 +274,8 @@ export class AuthService {
       email: firebaseUser.email,
       avatarPath: DEFAULT_AVATAR_PATH,
       banner: BANNER_NONE,
+      status: '',
+      animatedName: false,
       createdAt: serverTimestamp(),
     };
   }

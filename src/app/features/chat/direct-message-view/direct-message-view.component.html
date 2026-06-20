@@ -12,7 +12,14 @@
         <img class="dm__avatar" [src]="partnerAvatar()" alt="" aria-hidden="true" />
         <span class="dm__status" [class.dm__status--offline]="!presenceService.isOnline(uid())" aria-hidden="true"></span>
       </span>
-      <span class="dm__name">{{ displayName() }}</span>
+      <span class="dm__identity">
+        <span class="dm__name">
+          <app-aurora-name [name]="displayName()" [isAnimated]="partnerAnimatedName()" />
+        </span>
+        @if (partnerStatus(); as status) {
+          <span class="dm__partner-status">{{ status }}</span>
+        }
+      </span>
     </button>
   </header>
 

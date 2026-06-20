@@ -3,6 +3,36 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Custom status + aurora-animated name + rounded profile card (2026-06-20)
+Three additive profile enhancements **beyond the DA Figma** (guest editing stays locked; the
+`users/{uid}` self-update rule is field-permissive so **no `firestore.rules` change / deploy**):
+- **Free custom status** (`status` on `UserDoc`, default empty): a text field in "Dein Profil
+  bearbeiten" capped at a named **`STATUS_MAX_LENGTH` = 60** (the field's `maxlength` hard-enforces
+  it), with a live `count/60` counter associated to the input via `aria-describedby`, and an explicit
+  **clear** button (German `aria-label`). Shown **near the name** — under it on the profile view card
+  and in the **DM header** as a truncated muted line (`.dm__partner-status`, ellipsis, max-width
+  const). **Not** on per-message rows. `updateProfile` was refactored from positional args to a
+  single `ProfileDraft` object (name/avatarPath/banner/status/animatedName); name + status are
+  trimmed on write.
+- **Optional aurora-animated name** (`animatedName: boolean`, default false): a `role="switch"`
+  toggle "Namen animieren" in the edit card. A reusable `AuroraNameComponent` fills the name with a
+  flowing aurora gradient via **`background-clip: text`** (animated `background-position`); applied
+  only in the **prominent** name spots — the profile card, the DM header, and the **top-bar own
+  name** (and the profile menu) — **not** on message-row author names (noise + perf). **A11y:** the
+  gradient stops are **dedicated, measured AA tokens** (`--aurora-name-a/b/c`, light/dark) — every
+  stop is ≥ **5.7:1** in light and ≥ **6.2:1** in dark against the white/dark name backgrounds, so the
+  text stays legible across the whole gradient. **`prefers-reduced-motion`** ⇒ the flow animation is
+  dropped (the gradient renders **static**, still legible); the gradient text is solid (no
+  translucency) so `prefers-reduced-transparency` does not apply. The edit switch's slide is also
+  reduced-motion-gated.
+- **Rounded profile card** (CHANGE 3): the profile dialog now keeps **all four corners at
+  `$radius-xl`** even when anchored to its trigger — previously the anchored variant squared the top
+  corner toward the trigger (the speech-bubble attachment). Scoped to `--profile` only (the menu and
+  other anchored dialogs still square their corner); the modal-opened profile was already fully
+  rounded. This reads as a clean glass panel in both themes.
+- **Guest** is seeded a demo `status` + `animatedName: true` so the showcase account demonstrates
+  both features; editing stays **locked** (the edit card is unreachable for the guest).
+
 ## Animated cosmic canvas profile banner — Profil + Status, Teil 1 (2026-06-20)
 An **enhancement beyond the DA Figma**: a Discord-style animated **cosmic banner** behind the
 profile picture. This **replaces the dropped "avatar aura" ring idea** (that earlier uncommitted

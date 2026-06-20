@@ -18,6 +18,10 @@ export interface UserDoc {
   avatarPath: string;
   /** Selected profile-banner id (see BANNER_OPTIONS); absent/"none" means no banner. */
   banner?: string;
+  /** Free custom status line (character-limited); absent/empty means none. */
+  status?: string;
+  /** Whether the display name renders with the animated aurora gradient. */
+  animatedName?: boolean;
   /** Creation time; serverTimestamp() sentinel on write, Timestamp on read. */
   createdAt: Timestamp | FieldValue;
   /** Last presence heartbeat; serverTimestamp() on write, Timestamp on read. */
