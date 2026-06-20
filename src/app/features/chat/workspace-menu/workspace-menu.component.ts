@@ -7,6 +7,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { UserDoc } from '../../../models/user.model';
 import { buildConversationId } from '../../../models/direct-message.model';
 import { AuthService } from '../../../services/auth.service';
+import { ChannelCreateService } from '../../../services/channel-create.service';
 import { ChannelService } from '../../../services/channel.service';
 import { LayoutService } from '../../../services/layout.service';
 import {
@@ -19,7 +20,6 @@ import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/regist
 import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MobileSearchViewComponent } from '../../search/mobile-search-view/mobile-search-view.component';
-import { ChannelCreateDialogComponent } from '../channel-create-dialog/channel-create-dialog.component';
 import { UnreadBadgeComponent } from '../../../shared/unread-badge/unread-badge.component';
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
 
@@ -37,12 +37,12 @@ interface SelfEntry {
  * Workspace navigation column showing the Devspace header, the live channel
  * list and the direct-message user list. The signed-in user leads the
  * direct-message list with a "(Du)" suffix, all other users follow
- * alphabetically. Both add-channel triggers open the creation dialog.
+ * alphabetically. Both add-channel triggers open the creation dialog,
+ * which the app shell renders at the top level via {@link ChannelCreateService}.
  */
 @Component({
   selector: 'app-workspace-menu',
   imports: [
-    ChannelCreateDialogComponent,
     MobileSearchViewComponent,
     ProfileDialogComponent,
     RouterLink,
@@ -60,6 +60,8 @@ export class WorkspaceMenuComponent {
 
   private readonly userService = inject(UserService);
 
+  private readonly channelCreate = inject(ChannelCreateService);
+
   protected readonly workspaceName = WORKSPACE_NAME;
 
   protected readonly channels = this.channelService.channels;
@@ -67,8 +69,6 @@ export class WorkspaceMenuComponent {
   protected readonly isChannelsOpen = signal(true);
 
   protected readonly isDirectOpen = signal(true);
-
-  protected readonly isDialogOpen = signal(false);
 
   protected readonly profileUid = signal<string | null>(null);
 
@@ -150,18 +150,11 @@ export class WorkspaceMenuComponent {
 
 
   /**
-   * Opens the channel-creation dialog.
+   * Opens the channel-creation dialog. The app shell renders it at the top
+   * level, outside the frosted sidebar's `position: fixed` containing block.
    */
   protected openDialog(): void {
-    this.isDialogOpen.set(true);
-  }
-
-
-  /**
-   * Closes the channel-creation dialog.
-   */
-  protected closeDialog(): void {
-    this.isDialogOpen.set(false);
+    this.channelCreate.open();
   }
 
 

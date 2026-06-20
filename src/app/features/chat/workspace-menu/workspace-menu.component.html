@@ -167,10 +167,6 @@
   </a>
 }
 
-@if (isDialogOpen()) {
-  <app-channel-create-dialog (closed)="closeDialog()" />
-}
-
 @if (isSearchOpen()) {
   <app-mobile-search-view (closed)="isSearchOpen.set(false)" (userSelected)="onSearchUser($event)" />
 }

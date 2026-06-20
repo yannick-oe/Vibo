@@ -31,4 +31,8 @@
       }
     </aside>
   </div>
+
+  @if (channelCreate.isOpen()) {
+    <app-channel-create-dialog (closed)="channelCreate.close()" />
+  }
 </div>

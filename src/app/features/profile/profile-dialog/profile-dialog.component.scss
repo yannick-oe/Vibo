@@ -107,6 +107,12 @@ $switch-travel: 20px;
   }
 }
 
+.profile__fields {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('md');
+}
+
 .profile__status-field {
   display: flex;
   align-items: center;

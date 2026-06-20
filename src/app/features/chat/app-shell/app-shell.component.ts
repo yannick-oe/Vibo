@@ -15,8 +15,10 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 
+import { ChannelCreateService } from '../../../services/channel-create.service';
 import { LayoutService } from '../../../services/layout.service';
 import { ThreadService } from '../../../services/thread.service';
+import { ChannelCreateDialogComponent } from '../channel-create-dialog/channel-create-dialog.component';
 import { ThreadPanelComponent } from '../thread-panel/thread-panel.component';
 import { TopbarComponent } from '../topbar/topbar.component';
 import { WorkspaceMenuComponent } from '../workspace-menu/workspace-menu.component';
@@ -35,11 +37,19 @@ type MobileView = 'menu' | 'chat' | 'thread';
  * workspace column, chat area with the router outlet, thread panel) and
  * separate full-screen views on mobile — the menu is the mobile root,
  * chat routes replace it and an open thread replaces the chat. Returning
- * to the menu moves focus to the workspace heading.
+ * to the menu moves focus to the workspace heading. The channel-creation
+ * dialog is hosted here at the top level so its overlay is not clipped by
+ * the frosted sidebar's containing block.
  */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, ThreadPanelComponent, TopbarComponent, WorkspaceMenuComponent],
+  imports: [
+    ChannelCreateDialogComponent,
+    RouterOutlet,
+    ThreadPanelComponent,
+    TopbarComponent,
+    WorkspaceMenuComponent,
+  ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,6 +62,8 @@ type MobileView = 'menu' | 'chat' | 'thread';
 })
 export class AppShellComponent implements OnDestroy {
   private readonly threadService = inject(ThreadService);
+
+  protected readonly channelCreate = inject(ChannelCreateService);
 
   private readonly layoutService = inject(LayoutService);
 
