@@ -22,6 +22,7 @@
   border-radius: v.$radius-xl;
   @include m.glass;
   overflow-y: auto;
+  overflow-x: clip;
   @include m.scrollbar-thin;
 
   &--members {

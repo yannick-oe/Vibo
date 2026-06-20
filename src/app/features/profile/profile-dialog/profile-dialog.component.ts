@@ -21,6 +21,8 @@ import { ToastService } from '../../../services/toast.service';
 import { ProfileDraft, UserService } from '../../../services/user.service';
 import { AVATAR_OPTIONS } from '../../../shared/avatar-options';
 import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
+import { BadgeListComponent } from '../../../shared/badge-list/badge-list.component';
+import { displayBadges } from '../../../shared/badge-options';
 import { BANNER_NONE, BANNER_OPTIONS } from '../../../shared/banner-options';
 import { ProfileBannerComponent } from '../../../shared/profile-banner/profile-banner.component';
 import { DialogAnchor, DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
@@ -51,7 +53,7 @@ type ProfileMode = 'view' | 'edit';
  */
 @Component({
   selector: 'app-profile-dialog',
-  imports: [DialogShellComponent, ProfileBannerComponent, AuroraNameComponent],
+  imports: [DialogShellComponent, ProfileBannerComponent, AuroraNameComponent, BadgeListComponent],
   templateUrl: './profile-dialog.component.html',
   styleUrl: './profile-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -138,6 +140,11 @@ export class ProfileDialogComponent {
   protected readonly userStatus = computed(() => this.user()?.status ?? '');
 
   protected readonly userAnimatedName = computed(() => this.user()?.animatedName ?? false);
+
+  protected readonly userBadges = computed(() => {
+    const profile = this.user();
+    return profile ? displayBadges(profile) : [];
+  });
 
 
   /**

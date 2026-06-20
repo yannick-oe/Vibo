@@ -1,0 +1,21 @@
+@if (resolved().length) {
+  <ul class="badge-list">
+    @for (badge of resolved(); track badge.id) {
+      <li class="badge" [class.badge--dismissed]="dismissed() === badge.id">
+        <button
+          class="badge__trigger"
+          type="button"
+          [attr.aria-label]="badge.description"
+          (keydown.escape)="dismiss(badge.id)"
+          (blur)="resetDismiss(badge.id)"
+        >
+          <span class="badge__icon" aria-hidden="true" [style.color]="badge.accent" [innerHTML]="iconHtml(badge)"></span>
+        </button>
+        <span class="badge__tooltip" aria-hidden="true">
+          <span class="badge__tooltip-label">{{ badge.label }}</span>
+          <span class="badge__tooltip-desc">{{ badge.description }}</span>
+        </span>
+      </li>
+    }
+  </ul>
+}

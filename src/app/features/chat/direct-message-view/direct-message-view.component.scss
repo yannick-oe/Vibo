@@ -83,6 +83,11 @@ $partner-status-max: 240px;
   @include m.text-ellipsis;
 }
 
+.dm__badges {
+  flex-shrink: 0;
+  margin-left: v.space('xs');
+}
+
 .dm__empty {
   flex: 1;
   min-height: 0;

@@ -3,6 +3,40 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Profile badges / Abzeichen (2026-06-20)
+Additive profile **badges shown next to the name**, an on-brand cosmic/dev enhancement **beyond the
+DA Figma** (no Figma design exists). The `users/{uid}` self-update rule is field-permissive, so the
+new field needs **no `firestore.rules` change / deploy**.
+- **Registry** ([badge-options.ts](src/app/shared/badge-options.ts)): a fixed set of 5 badges, each
+  `{ id (English), label/description (German), icon (inline SVG, currentColor), accent (CSS-var
+  token) }` — `founder` (Gründer, star), `developer` (Entwickler, `</>`), `pioneer` (Pionier, comet),
+  `verified` (Verifiziert, **shield-check** — a cleaner cousin of the suggested "check-seal", reads as
+  verified), `guest` (Gast, visitor). Unknown ids are dropped so legacy values render nothing.
+- **Component** ([badge-list](src/app/shared/badge-list/badge-list.component.ts)): presentational,
+  takes `badges: string[]`, renders ~**1rem (18px)** icons in a row. Each badge is a **focusable
+  `<button>` tooltip trigger** whose **accessible name is the German description** (`aria-label`); the
+  visual tooltip (label + description) is therefore decorative (`aria-hidden`, no element ids → safe
+  when the same badge shows in several lists at once). Tooltip shows on **hover and focus** via CSS
+  (`:hover` / `:focus-within` + a transparent `::after` bridge so it is **hoverable**), and is
+  **dismissible on Escape** (JS sets a `--dismissed` class, cleared on blur) per **WCAG 1.4.13**.
+  `cursor: help` (not `pointer`) — the trigger performs no action, it only reveals info.
+- **A11y / contrast:** the 5 accent tokens (`--badge-*`, light + dark in
+  [_themes.scss](src/styles/_themes.scss)) are **measured**: every accent is **≥ 4.5:1** against the
+  white/dark name backgrounds in both themes (icons are graphical objects needing only 3:1, so this
+  is a comfortable margin). The injected SVGs are sized via `::ng-deep svg` (the documented way to
+  style `[innerHTML]`-injected, non-encapsulated content) and trusted with `bypassSecurityTrustHtml`
+  because the icon strings are static internal constants (no user input). `prefers-reduced-motion`
+  drops the tooltip fade. No layout shift (tooltip is absolutely positioned).
+- **Display spots:** next to the name on the **profile card**, the **DM header**, and the **top-bar
+  own name** (desktop). **Not** on per-message author names (noise + perf). In the DM header and
+  top-bar the badge row sits **beside** the interactive name button (never nested inside it, which
+  would be invalid) so its own focusable triggers stay valid.
+- **Data:** `badges?: string[]` on `UserDoc` (default absent). The **guest reset** payload seeds
+  `["guest"]`. **Display default:** an explicit array always wins (even empty); otherwise guests show
+  `["guest"]` and every other account shows `["developer"]` (`displayBadges()`), so demo profiles are
+  never bare. New non-guest docs intentionally store **no** `badges` field so the developer default
+  applies; `updateProfile` does not touch `badges`, so it survives profile edits.
+
 ## Custom status + aurora-animated name + rounded profile card (2026-06-20)
 Three additive profile enhancements **beyond the DA Figma** (guest editing stays locked; the
 `users/{uid}` self-update rule is field-permissive so **no `firestore.rules` change / deploy**):

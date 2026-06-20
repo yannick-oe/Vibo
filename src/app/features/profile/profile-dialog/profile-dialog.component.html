@@ -27,9 +27,12 @@
 
   @if (mode() === 'view') {
     <div class="profile__name-row">
-      <h3 class="profile__name">
-        <app-aurora-name [name]="displayName()" [isAnimated]="userAnimatedName()" />
-      </h3>
+      <span class="profile__identity">
+        <h3 class="profile__name">
+          <app-aurora-name [name]="displayName()" [isAnimated]="userAnimatedName()" />
+        </h3>
+        <app-badge-list class="profile__badges" [badges]="userBadges()" />
+      </span>
       @if (isSelf() && !isGuestSelf()) {
         <button class="profile__edit-link" type="button" (click)="startEdit()">Bearbeiten</button>
       }

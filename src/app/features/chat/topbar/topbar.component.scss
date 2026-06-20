@@ -42,6 +42,10 @@
   }
 }
 
+.topbar__badges {
+  flex-shrink: 0;
+}
+
 .topbar__user {
   display: flex;
   align-items: center;

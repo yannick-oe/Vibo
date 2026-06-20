@@ -22,6 +22,8 @@ export interface UserDoc {
   status?: string;
   /** Whether the display name renders with the animated aurora gradient. */
   animatedName?: boolean;
+  /** Profile badge ids (see BADGE_OPTIONS); absent falls back to a display default. */
+  badges?: string[];
   /** Creation time; serverTimestamp() sentinel on write, Timestamp on read. */
   createdAt: Timestamp | FieldValue;
   /** Last presence heartbeat; serverTimestamp() on write, Timestamp on read. */

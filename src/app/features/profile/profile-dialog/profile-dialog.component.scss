@@ -57,11 +57,23 @@ $switch-travel: 20px;
   gap: v.space('md');
 }
 
+.profile__identity {
+  display: inline-flex;
+  align-items: center;
+  gap: v.space('sm');
+  min-width: 0;
+}
+
 .profile__name {
+  min-width: 0;
   font-size: v.font-size('h4');
   font-weight: v.$font-weight-bold;
   color: v.color('black');
   @include m.text-ellipsis;
+}
+
+.profile__badges {
+  flex-shrink: 0;
 }
 
 .profile__guest-note {

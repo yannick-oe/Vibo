@@ -26,6 +26,8 @@ import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
+import { BadgeListComponent } from '../../../shared/badge-list/badge-list.component';
+import { displayBadges } from '../../../shared/badge-options';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MessageInputComponent } from '../message-input/message-input.component';
 import { MessageListComponent } from '../message-list/message-list.component';
@@ -42,7 +44,13 @@ const SELF_SUFFIX = ' (Du)';
  */
 @Component({
   selector: 'app-direct-message-view',
-  imports: [MessageInputComponent, MessageListComponent, ProfileDialogComponent, AuroraNameComponent],
+  imports: [
+    MessageInputComponent,
+    MessageListComponent,
+    ProfileDialogComponent,
+    AuroraNameComponent,
+    BadgeListComponent,
+  ],
   templateUrl: './direct-message-view.component.html',
   styleUrl: './direct-message-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -96,6 +104,11 @@ export class DirectMessageViewComponent {
   protected readonly partnerStatus = computed(() => this.partnerDoc()?.status ?? '');
 
   protected readonly partnerAnimatedName = computed(() => this.partnerDoc()?.animatedName ?? false);
+
+  protected readonly partnerBadges = computed(() => {
+    const partner = this.partnerDoc();
+    return partner ? displayBadges(partner) : [];
+  });
 
   protected readonly composerPlaceholder = computed(() => `Nachricht an ${this.partnerName()}`);
 
