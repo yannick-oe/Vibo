@@ -11,11 +11,13 @@ import { AuthService } from '../../../services/auth.service';
 import { LayoutService } from '../../../services/layout.service';
 import { PresenceService } from '../../../services/presence.service';
 import { ThreadService } from '../../../services/thread.service';
-import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
+import { DEFAULT_AVATAR_PATH } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { SearchBarComponent } from '../../search/search-bar/search-bar.component';
 import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
+import { AvatarActivatorDirective } from '../../../shared/avatar/avatar-activator.directive';
+import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import {
   DialogAnchor,
   DialogShellComponent,
@@ -39,7 +41,14 @@ type TopbarState = 'closed' | 'menu';
  */
 @Component({
   selector: 'app-topbar',
-  imports: [DialogShellComponent, ProfileDialogComponent, SearchBarComponent, AuroraNameComponent],
+  imports: [
+    DialogShellComponent,
+    ProfileDialogComponent,
+    SearchBarComponent,
+    AuroraNameComponent,
+    AvatarComponent,
+    AvatarActivatorDirective,
+  ],
   templateUrl: './topbar.component.html',
   styleUrl: './topbar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -104,7 +113,12 @@ export class TopbarComponent {
       GUEST_NAME,
   );
 
-  protected readonly avatarSrc = computed(() => this.resolveAvatar());
+  protected readonly avatarPath = computed(
+    () =>
+      this.userDoc()?.avatarPath ??
+      this.authService.currentUser()?.photoURL ??
+      DEFAULT_AVATAR_PATH,
+  );
 
   protected readonly avatarAlt = computed(() => `Avatar von ${this.userName()}`);
 
@@ -175,26 +189,5 @@ export class TopbarComponent {
     await this.presenceService.markOffline();
     await this.authService.logout();
     this.router.navigate(['/auth/login']);
-  }
-
-
-  /**
-   * Resolves the avatar from the live user document; the auth profile is
-   * only a fallback while the document is loading.
-   */
-  private resolveAvatar(): string {
-    const path = this.userDoc()?.avatarPath ?? this.authService.currentUser()?.photoURL;
-    return resolveAvatarPath(path);
-  }
-
-
-  /**
-   * Swaps the avatar to the placeholder when the image fails to load.
-   * @param event Error event of the avatar image element.
-   */
-  protected useAvatarFallback(event: Event): void {
-    const image = event.target as HTMLImageElement;
-    if (image.src.endsWith(DEFAULT_AVATAR_PATH)) return;
-    image.src = `${DEFAULT_AVATAR_PATH}`;
   }
 }

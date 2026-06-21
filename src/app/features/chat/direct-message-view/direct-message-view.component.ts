@@ -21,11 +21,13 @@ import { DirectMessageService } from '../../../services/direct-message.service';
 import { conversationDocPath } from '../../../services/message.service';
 import { PresenceService } from '../../../services/presence.service';
 import { ReadEntry, ReadStateService } from '../../../services/read-state.service';
-import { resolveAvatarPath } from '../../../services/registration.service';
+import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
 import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
+import { AvatarActivatorDirective } from '../../../shared/avatar/avatar-activator.directive';
+import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { BadgeListComponent } from '../../../shared/badge-list/badge-list.component';
 import { displayBadges } from '../../../shared/badge-options';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
@@ -49,6 +51,8 @@ const SELF_SUFFIX = ' (Du)';
     MessageListComponent,
     ProfileDialogComponent,
     AuroraNameComponent,
+    AvatarActivatorDirective,
+    AvatarComponent,
     BadgeListComponent,
   ],
   templateUrl: './direct-message-view.component.html',
@@ -100,6 +104,10 @@ export class DirectMessageViewComponent {
   );
 
   protected readonly partnerAvatar = computed(() => resolveAvatarPath(this.partnerDoc()?.avatarPath));
+
+  protected readonly partnerAvatarPath = computed(
+    () => this.partnerDoc()?.avatarPath ?? DEFAULT_AVATAR_PATH,
+  );
 
   protected readonly partnerStatus = computed(() => this.partnerDoc()?.status ?? '');
 

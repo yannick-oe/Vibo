@@ -16,16 +16,19 @@
     <button
       class="topbar__user topbar__user--mobile"
       type="button"
+      appAvatarActivator
+      #userAct="avatarActivator"
       aria-haspopup="menu"
       [attr.aria-expanded]="state() === 'menu'"
       (click)="openMenu($event)"
     >
       <span class="topbar__avatar-wrap">
-        <img
+        <app-avatar
           class="topbar__avatar topbar__avatar--mobile"
-          [src]="avatarSrc()"
+          [avatarPath]="avatarPath()"
+          surface="topbar"
           [alt]="avatarAlt()"
-          (error)="useAvatarFallback($event)"
+          [isActive]="userAct.isActive()"
         />
       </span>
     </button>
@@ -40,6 +43,8 @@
       <button
         class="topbar__user"
         type="button"
+        appAvatarActivator
+        #userAct="avatarActivator"
         aria-haspopup="menu"
         [attr.aria-expanded]="state() === 'menu'"
         (click)="openMenu($event)"
@@ -48,11 +53,12 @@
           <app-aurora-name [name]="userName()" [isAnimated]="userAnimatedName()" />
         </span>
         <span class="topbar__avatar-wrap">
-          <img
+          <app-avatar
             class="topbar__avatar"
-            [src]="avatarSrc()"
+            [avatarPath]="avatarPath()"
+            surface="topbar"
             [alt]="avatarAlt()"
-            (error)="useAvatarFallback($event)"
+            [isActive]="userAct.isActive()"
           />
           <span class="topbar__status" aria-hidden="true"></span>
         </span>
@@ -66,7 +72,7 @@
   <app-dialog-shell [anchor]="menuAnchor()" size="menu" labelledBy="topbar-menu-title" (closed)="close()">
     <div class="topbar__menu">
       <div class="topbar__menu-header">
-        <img class="topbar__menu-avatar" [src]="avatarSrc()" [alt]="avatarAlt()" (error)="useAvatarFallback($event)" />
+        <app-avatar class="topbar__menu-avatar" [avatarPath]="avatarPath()" surface="topbar" [alt]="avatarAlt()" />
         <span class="topbar__menu-name" id="topbar-menu-title" [title]="userName()">
           <app-aurora-name [name]="userName()" [isAnimated]="userAnimatedName()" />
         </span>

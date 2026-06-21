@@ -9,10 +9,14 @@ export interface AvatarOption {
 }
 
 export const AVATAR_OPTIONS: readonly AvatarOption[] = [
-  { path: 'avatars/avatar-1.jpeg', label: '1' },
-  { path: 'avatars/avatar-2.jpeg', label: '2' },
-  { path: 'avatars/avatar-3.jpeg', label: '3' },
-  { path: 'avatars/avatar-4.jpeg', label: '4' },
-  { path: 'avatars/avatar-5.jpeg', label: '5' },
-  { path: 'avatars/avatar-6.jpeg', label: '6' },
+  { path: 'avatars/astronaut.jpeg', label: 'Astronaut' },
+  { path: 'avatars/alien.jpeg', label: 'Alien' },
+  { path: 'avatars/dragon.jpeg', label: 'Drache' },
+  { path: 'avatars/fox.jpeg', label: 'Fuchs' },
+  { path: 'avatars/raccoon.jpeg', label: 'Waschbär' },
+  { path: 'avatars/girl.jpeg', label: 'Mädchen' },
+  { path: 'avatars/gamer-girl.jpeg', label: 'Gamerin' },
+  { path: 'avatars/headphones.jpeg', label: 'Kopfhörer' },
+  { path: 'avatars/sphere.jpeg', label: 'Kugel' },
+  { path: 'avatars/sprout.jpeg', label: 'Setzling' },
 ];

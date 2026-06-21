@@ -16,12 +16,11 @@
     @if (hasCardBanner()) {
       <app-profile-banner class="profile__banner" [banner]="cardBanner()" />
     }
-    <img
+    <app-avatar
       class="profile__avatar"
       [class.profile__avatar--on-banner]="hasCardBanner()"
-      [src]="cardAvatar()"
-      alt=""
-      aria-hidden="true"
+      [avatarPath]="cardAvatarPath()"
+      surface="profile"
     />
   </div>
 

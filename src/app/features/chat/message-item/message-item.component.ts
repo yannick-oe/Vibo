@@ -24,7 +24,7 @@ import { ReadEntry } from '../../../services/read-state.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
 import { MessageService } from '../../../services/message.service';
 import { RecentEmojiService } from '../../../services/recent-emoji.service';
-import { resolveAvatarPath } from '../../../services/registration.service';
+import { DEFAULT_AVATAR_PATH } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { buildMessageSegments } from '../message-segments';
@@ -32,6 +32,7 @@ import { delay, prefersReducedMotion, resolveDate } from './message-item.util';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
 import { MessageActionsComponent } from '../message-actions/message-actions.component';
 import { ReactionChipsComponent } from '../reaction-chips/reaction-chips.component';
+import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { ReadReceiptComponent } from '../../../shared/read-receipt/read-receipt.component';
 
 const TIME_FORMAT = 'HH:mm';
@@ -51,7 +52,13 @@ const DELETE_POP_MS = 220;
  */
 @Component({
   selector: 'li[app-message-item]',
-  imports: [EmojiPickerComponent, MessageActionsComponent, ReactionChipsComponent, ReadReceiptComponent],
+  imports: [
+    AvatarComponent,
+    EmojiPickerComponent,
+    MessageActionsComponent,
+    ReactionChipsComponent,
+    ReadReceiptComponent,
+  ],
   templateUrl: './message-item.component.html',
   styleUrl: './message-item.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -152,7 +159,7 @@ export class MessageItemComponent {
 
   protected readonly authorName = computed(() => this.author()?.name ?? UNKNOWN_AUTHOR);
 
-  protected readonly authorAvatar = computed(() => this.resolveAvatar());
+  protected readonly authorAvatarPath = computed(() => this.author()?.avatarPath ?? DEFAULT_AVATAR_PATH);
 
   protected readonly time = computed(() =>
     formatDate(resolveDate(this.entry().createdAt), TIME_FORMAT, this.locale),
@@ -377,15 +384,6 @@ export class MessageItemComponent {
       this.toastService.show(ACTION_ERROR);
       return false;
     }
-  }
-
-
-  /**
-   * Resolves the author's avatar with the placeholder as fallback.
-   */
-  private resolveAvatar(): string {
-    const path = this.author()?.avatarPath;
-    return resolveAvatarPath(path);
   }
 
 

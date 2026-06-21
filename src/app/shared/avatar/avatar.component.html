@@ -1,0 +1,20 @@
+<img
+  class="avatar avatar--still"
+  [src]="baseSrc()"
+  [alt]="alt()"
+  loading="lazy"
+  decoding="async"
+  (error)="onError($event)"
+/>
+@if (canHoverPlay()) {
+  <img
+    class="avatar avatar--anim"
+    [class.avatar--anim-shown]="isAnimShown()"
+    [attr.src]="animSrc()"
+    alt=""
+    aria-hidden="true"
+    loading="lazy"
+    decoding="async"
+    (load)="onAnimLoad()"
+  />
+}

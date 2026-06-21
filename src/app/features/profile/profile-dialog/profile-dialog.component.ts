@@ -21,6 +21,7 @@ import { ToastService } from '../../../services/toast.service';
 import { ProfileDraft, UserService } from '../../../services/user.service';
 import { AVATAR_OPTIONS } from '../../../shared/avatar-options';
 import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
+import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { BadgeListComponent } from '../../../shared/badge-list/badge-list.component';
 import { displayBadges } from '../../../shared/badge-options';
 import { BANNER_NONE, BANNER_OPTIONS } from '../../../shared/banner-options';
@@ -53,7 +54,13 @@ type ProfileMode = 'view' | 'edit';
  */
 @Component({
   selector: 'app-profile-dialog',
-  imports: [DialogShellComponent, ProfileBannerComponent, AuroraNameComponent, BadgeListComponent],
+  imports: [
+    DialogShellComponent,
+    ProfileBannerComponent,
+    AuroraNameComponent,
+    AvatarComponent,
+    BadgeListComponent,
+  ],
   templateUrl: './profile-dialog.component.html',
   styleUrl: './profile-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -123,8 +130,6 @@ export class ProfileDialogComponent {
 
   protected readonly statusLabel = computed(() => (this.isSelf() ? STATUS_ACTIVE : STATUS_AWAY));
 
-  protected readonly avatarSrc = computed(() => assetUrl(this.user()?.avatarPath));
-
   protected readonly userBanner = computed(() => this.user()?.banner ?? BANNER_NONE);
 
   protected readonly cardBanner = computed(() =>
@@ -133,8 +138,8 @@ export class ProfileDialogComponent {
 
   protected readonly hasCardBanner = computed(() => this.cardBanner() !== BANNER_NONE);
 
-  protected readonly cardAvatar = computed(() =>
-    this.mode() === 'edit' ? assetUrl(this.selectedAvatar()) : this.avatarSrc(),
+  protected readonly cardAvatarPath = computed(() =>
+    this.mode() === 'edit' ? this.selectedAvatar() : (this.user()?.avatarPath ?? DEFAULT_AVATAR_PATH),
   );
 
   protected readonly userStatus = computed(() => this.user()?.status ?? '');
