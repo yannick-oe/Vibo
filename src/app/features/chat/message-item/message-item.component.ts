@@ -27,10 +27,10 @@ import { RecentEmojiService } from '../../../services/recent-emoji.service';
 import { DEFAULT_AVATAR_PATH } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
-import { buildMessageSegments } from '../message-segments';
 import { delay, prefersReducedMotion, resolveDate } from './message-item.util';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
 import { MessageActionsComponent } from '../message-actions/message-actions.component';
+import { MessageContentComponent } from '../message-content/message-content.component';
 import { ReactionChipsComponent } from '../reaction-chips/reaction-chips.component';
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { ReadReceiptComponent } from '../../../shared/read-receipt/read-receipt.component';
@@ -56,6 +56,7 @@ const DELETE_POP_MS = 220;
     AvatarComponent,
     EmojiPickerComponent,
     MessageActionsComponent,
+    MessageContentComponent,
     ReactionChipsComponent,
     ReadReceiptComponent,
   ],
@@ -178,10 +179,6 @@ export class MessageItemComponent {
 
   protected readonly hasReactions = computed(() =>
     Object.values(this.entry().reactions).some(uids => uids.length > 0),
-  );
-
-  protected readonly renderSegments = computed(() =>
-    buildMessageSegments(this.entry().text, this.userService.users().map(user => user.name)),
   );
 
 

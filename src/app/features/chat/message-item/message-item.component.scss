@@ -117,23 +117,6 @@ $message-hide-scale-to: 0.92;
   color: var(--msg-deleted-text);
 }
 
-.message__mention {
-  font-weight: v.$font-weight-semibold;
-  color: v.color('primary');
-
-  :host(.message--own) & {
-    color: inherit;
-  }
-}
-
-.message__emoji {
-  display: inline-block;
-  width: v.$emoji-inline-size;
-  height: v.$emoji-inline-size;
-  vertical-align: v.$emoji-inline-align;
-  object-fit: contain;
-}
-
 .message__edit {
   display: flex;
   flex-direction: column;
