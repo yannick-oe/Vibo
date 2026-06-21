@@ -113,6 +113,24 @@ $message-hide-scale-to: 0.92;
   }
 }
 
+.message__gif {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 0 v.$radius-md v.$radius-md v.$radius-md;
+  overflow: hidden;
+
+  :host(.message--own) & {
+    border-radius: v.$radius-md 0 v.$radius-md v.$radius-md;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+}
+
 .message__tombstone {
   margin: 0;
   padding: v.space('xs') 0;

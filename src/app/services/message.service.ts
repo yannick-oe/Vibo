@@ -3,16 +3,12 @@
  */
 import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
 import {
-  FieldPath,
   FieldValue,
   Firestore,
-  arrayRemove,
   arrayUnion,
   collection,
   collectionData,
-  deleteField,
   doc,
-  DocumentReference,
   docData,
   increment,
   onSnapshot,
@@ -26,8 +22,9 @@ import {
 } from '@angular/fire/firestore';
 import { Observable, catchError, of } from 'rxjs';
 
+import { GifResult } from '../models/gif.model';
 import { Message, MessageDoc, ReactionMap, Reply, ReplyDoc } from '../models/message.model';
-import { userReaction } from '../models/reactions';
+import { applyReaction } from './message-reactions';
 import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
 
@@ -98,7 +95,27 @@ export class MessageService {
    * @param text Trimmed message text.
    */
   async sendMessage(collectionPath: string, text: string): Promise<void> {
-    const message = this.buildMessage(text);
+    await this.commitMessage(collectionPath, this.buildMessage(text));
+  }
+
+
+  /**
+   * Persists a Giphy GIF as a message (no text) authored by the signed-in user.
+   * @param collectionPath Firestore path of the target messages collection.
+   * @param gif Selected GIF result.
+   */
+  async sendGif(collectionPath: string, gif: GifResult): Promise<void> {
+    await this.commitMessage(collectionPath, this.buildGifMessage(gif));
+  }
+
+
+  /**
+   * Writes a built message and stamps the conversation's last-message metadata
+   * in one batch, then plays the notification sound.
+   * @param collectionPath Firestore path of the target messages collection.
+   * @param message Fully built message document.
+   */
+  private async commitMessage(collectionPath: string, message: MessageDoc): Promise<void> {
     await runInInjectionContext(this.injector, () => {
       const batch = writeBatch(this.firestore);
       batch.set(doc(collection(this.firestore, collectionPath)), message);
@@ -156,6 +173,23 @@ export class MessageService {
       reactions: {},
       replyCount: 0,
       lastReplyAt: null,
+    };
+  }
+
+
+  /**
+   * Builds a GIF message: the data-model defaults with empty text plus the
+   * stored Giphy fields (animated + still URLs and intrinsic size).
+   * @param gif Selected GIF result.
+   */
+  private buildGifMessage(gif: GifResult): MessageDoc {
+    return {
+      ...this.buildMessage(''),
+      gifUrl: gif.url,
+      gifStill: gif.still,
+      gifWidth: gif.width,
+      gifHeight: gif.height,
+      gifAlt: gif.alt,
     };
   }
 
@@ -356,43 +390,4 @@ function mapMessages(snapshot: QuerySnapshot): Message[] {
     id: document.id,
     hasPendingWrites: document.metadata.hasPendingWrites,
   }));
-}
-
-
-/**
- * Applies the one-reaction-per-user change in a single atomic update: removes
- * the user from their current reaction and adds them to the chosen one,
- * removes only (toggle off) when re-selecting it, or adds when they hold none.
- * @param ref Message document reference.
- * @param reactions Current reaction map.
- * @param emoji Chosen reaction emoji.
- * @param uid Signed-in user's uid.
- */
-function applyReaction(ref: DocumentReference, reactions: ReactionMap, emoji: string, uid: string): Promise<void> {
-  const current = userReaction(reactions, uid);
-  if (current && current !== emoji) {
-    return updateDoc(ref, field(current), removeReactor(reactions[current], uid), field(emoji), arrayUnion(uid));
-  }
-  if (current) return updateDoc(ref, field(current), removeReactor(reactions[current], uid));
-  return updateDoc(ref, field(emoji), arrayUnion(uid));
-}
-
-
-/**
- * Builds the document field path of a reaction emoji under the reactions map.
- * @param emoji Reaction emoji character.
- */
-function field(emoji: string): FieldPath {
-  return new FieldPath('reactions', emoji);
-}
-
-
-/**
- * Field value that removes a uid from a reaction, deleting the field entirely
- * when that uid was its last reactor.
- * @param uids Current reactors of the emoji.
- * @param uid Uid to remove.
- */
-function removeReactor(uids: string[], uid: string): FieldValue {
-  return uids.length === 1 && uids[0] === uid ? deleteField() : arrayRemove(uid);
 }

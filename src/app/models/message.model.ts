@@ -31,6 +31,16 @@ export interface ReplyDoc {
   deletedAt?: Timestamp | FieldValue | null;
   /** Uid of the user who deleted the message for everyone. */
   deletedBy?: string;
+  /** Animated GIF URL when the message is a Giphy GIF rather than text. */
+  gifUrl?: string;
+  /** Still-frame URL rendered instead of the animated GIF under reduced motion. */
+  gifStill?: string;
+  /** GIF intrinsic width, reserving the bubble aspect ratio (CLS 0). */
+  gifWidth?: number;
+  /** GIF intrinsic height. */
+  gifHeight?: number;
+  /** GIF accessible label (the Giphy title). */
+  gifAlt?: string;
 }
 
 /**

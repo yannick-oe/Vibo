@@ -8,6 +8,7 @@ import { Firestore, doc, getDoc, serverTimestamp, setDoc } from '@angular/fire/f
 import { Observable, of, switchMap } from 'rxjs';
 
 import { DirectMessageDoc, buildConversationId } from '../models/direct-message.model';
+import { GifResult } from '../models/gif.model';
 import { Message } from '../models/message.model';
 import { AuthService } from './auth.service';
 import { MessageService, directMessagesPath } from './message.service';
@@ -61,6 +62,19 @@ export class DirectMessageService {
     const conversationId = this.conversationIdWith(partnerUid);
     await this.ensureConversation(conversationId, partnerUid);
     await this.messageService.sendMessage(directMessagesPath(conversationId), text);
+  }
+
+
+  /**
+   * Sends a GIF to the partner, creating the conversation document on the
+   * first message.
+   * @param partnerUid Uid of the conversation partner.
+   * @param gif Selected GIF result.
+   */
+  async sendGif(partnerUid: string, gif: GifResult): Promise<void> {
+    const conversationId = this.conversationIdWith(partnerUid);
+    await this.ensureConversation(conversationId, partnerUid);
+    await this.messageService.sendGif(directMessagesPath(conversationId), gif);
   }
 
 

@@ -1,0 +1,71 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.gif-picker {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: v.space('md');
+  min-height: 0;
+}
+
+.gif-picker__search {
+  padding: v.space('sm-md') v.space('md');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-lg;
+  background-color: v.color('white');
+  font-family: v.$font-base;
+  font-size: v.font-size('body');
+  color: v.color('black');
+
+  &::placeholder {
+    color: v.color('text-gray');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+.gif-picker__status {
+  margin: 0;
+  padding: v.space('xl') 0;
+  font-size: v.font-size('body');
+  color: v.color('text-gray');
+  text-align: center;
+}
+
+.gif-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(v.space('xxl') * 2, 1fr));
+  gap: v.space('sm');
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  @include m.scrollbar-thin;
+}
+
+.gif-picker__item {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  border-radius: v.$radius-md;
+  background-color: v.color('bg');
+  overflow: hidden;
+  cursor: pointer;
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}

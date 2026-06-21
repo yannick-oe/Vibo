@@ -14,6 +14,7 @@ import {
   viewChild,
 } from '@angular/core';
 
+import { GifResult } from '../../../models/gif.model';
 import { ChannelService } from '../../../services/channel.service';
 import { PresenceService } from '../../../services/presence.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
@@ -24,6 +25,7 @@ import {
   SuggestionDropdownComponent,
 } from '../../../shared/suggestion-dropdown/suggestion-dropdown.component';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
+import { GifPickerComponent } from '../gif-picker/gif-picker.component';
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -44,7 +46,7 @@ interface MentionState {
  */
 @Component({
   selector: 'app-message-input',
-  imports: [EmojiPickerComponent, SuggestionDropdownComponent],
+  imports: [EmojiPickerComponent, GifPickerComponent, SuggestionDropdownComponent],
   templateUrl: './message-input.component.html',
   styleUrl: './message-input.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,7 +58,11 @@ export class MessageInputComponent {
 
   readonly sendDisabled = input(false);
 
+  readonly gifEnabled = input(true);
+
   readonly send = output<string>();
+
+  readonly sendGif = output<GifResult>();
 
   private readonly userService = inject(UserService);
 
@@ -75,6 +81,8 @@ export class MessageInputComponent {
   protected readonly text = signal('');
 
   protected readonly pickerOpen = signal(false);
+
+  protected readonly gifPickerOpen = signal(false);
 
   protected readonly mention = signal<MentionState | null>(null);
 
@@ -151,6 +159,16 @@ export class MessageInputComponent {
     element.setRangeText(emoji, start, element.selectionEnd ?? start, 'end');
     this.text.set(element.value);
     element.focus();
+  }
+
+
+  /**
+   * Sends a GIF picked in the modal picker and closes it.
+   * @param gif Selected GIF.
+   */
+  protected onGifPicked(gif: GifResult): void {
+    this.gifPickerOpen.set(false);
+    this.sendGif.emit(gif);
   }
 
 

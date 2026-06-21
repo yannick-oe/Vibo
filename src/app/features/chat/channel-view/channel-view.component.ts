@@ -16,6 +16,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { switchMap } from 'rxjs';
 
 import { Channel } from '../../../models/channel.model';
+import { GifResult } from '../../../models/gif.model';
 import { Message } from '../../../models/message.model';
 import { UserDoc } from '../../../models/user.model';
 import { AuthService } from '../../../services/auth.service';
@@ -180,6 +181,19 @@ export class ChannelViewComponent {
   protected async sendMessage(text: string): Promise<void> {
     try {
       await this.messageService.sendMessage(channelMessagesPath(this.channelId()), text);
+    } catch {
+      this.toastService.show(SEND_ERROR);
+    }
+  }
+
+
+  /**
+   * Sends a GIF picked in the composer; failures surface as a toast.
+   * @param gif Selected GIF result.
+   */
+  protected async sendGif(gif: GifResult): Promise<void> {
+    try {
+      await this.messageService.sendGif(channelMessagesPath(this.channelId()), gif);
     } catch {
       this.toastService.show(SEND_ERROR);
     }

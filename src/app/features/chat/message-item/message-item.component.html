@@ -79,6 +79,18 @@
         </div>
       </div>
     </div>
+  } @else if (entry().gifUrl) {
+    <picture class="message__gif">
+      <source media="(prefers-reduced-motion: reduce)" [srcset]="entry().gifStill" />
+      <img
+        [src]="entry().gifUrl"
+        [alt]="entry().gifAlt"
+        [width]="entry().gifWidth"
+        [height]="entry().gifHeight"
+        loading="lazy"
+        decoding="async"
+      />
+    </picture>
   } @else {
     <app-message-content class="message__bubble" [text]="entry().text" />
   }

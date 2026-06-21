@@ -15,6 +15,7 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { of, switchMap } from 'rxjs';
 
+import { GifResult } from '../../../models/gif.model';
 import { Message } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
 import { DirectMessageService } from '../../../services/direct-message.service';
@@ -183,6 +184,20 @@ export class DirectMessageViewComponent {
   protected async sendMessage(text: string): Promise<void> {
     try {
       await this.directMessageService.send(this.uid(), text);
+    } catch {
+      this.toastService.show(SEND_ERROR);
+    }
+  }
+
+
+  /**
+   * Sends a GIF picked in the composer; the conversation is created lazily.
+   * Failures surface as a toast.
+   * @param gif Selected GIF result.
+   */
+  protected async sendGif(gif: GifResult): Promise<void> {
+    try {
+      await this.directMessageService.sendGif(this.uid(), gif);
     } catch {
       this.toastService.show(SEND_ERROR);
     }

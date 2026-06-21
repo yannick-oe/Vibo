@@ -243,7 +243,7 @@ export class MessageItemComponent {
    * window; evaluated per change detection because it is time-based.
    */
   protected canEditNow(): boolean {
-    if (!this.isOwn() || this.isDeleted() || !this.messagePath()) return false;
+    if (!this.isOwn() || this.isDeleted() || !this.messagePath() || this.entry().gifUrl) return false;
     return withinEditWindow(this.entry().createdAt);
   }
 

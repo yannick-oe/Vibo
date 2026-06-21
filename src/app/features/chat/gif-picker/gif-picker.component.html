@@ -1,0 +1,42 @@
+<app-dialog-shell [labelledBy]="titleId" (closed)="close()">
+  <div class="gif-picker">
+    <h2 [id]="titleId" class="sr-only">GIF auswählen</h2>
+
+    <input
+      class="gif-picker__search"
+      type="text"
+      [formControl]="searchControl"
+      placeholder="GIFs suchen…"
+      aria-label="GIFs suchen"
+      autocomplete="off"
+    />
+
+    @if (isLoading()) {
+      <p class="gif-picker__status" role="status">GIFs werden geladen …</p>
+    } @else if (hasError()) {
+      <p class="gif-picker__status" role="status">GIFs konnten nicht geladen werden.</p>
+    } @else if (gifs().length === 0) {
+      <p class="gif-picker__status" role="status">Keine GIFs gefunden.</p>
+    } @else {
+      <ul class="gif-picker__grid">
+        @for (gif of gifs(); track gif.url) {
+          <li>
+            <button class="gif-picker__item" type="button" [attr.aria-label]="gif.alt" (click)="select(gif)">
+              <picture>
+                <source media="(prefers-reduced-motion: reduce)" [srcset]="gif.still" />
+                <img
+                  [src]="gif.url"
+                  [alt]="gif.alt"
+                  [width]="gif.width"
+                  [height]="gif.height"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </picture>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</app-dialog-shell>

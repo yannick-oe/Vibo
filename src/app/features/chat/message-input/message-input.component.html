@@ -52,6 +52,17 @@
           />
         }
       </span>
+      @if (gifEnabled()) {
+        <button
+          class="composer__tool"
+          type="button"
+          aria-label="GIF auswählen"
+          [attr.aria-expanded]="gifPickerOpen()"
+          (click)="gifPickerOpen.set(true)"
+        >
+          <span class="composer__gif-label" aria-hidden="true">GIF</span>
+        </button>
+      }
       <button
         class="composer__tool"
         type="button"
@@ -73,3 +84,9 @@
     </button>
   </div>
 </div>
+
+@defer (when gifPickerOpen()) {
+  @if (gifPickerOpen()) {
+    <app-gif-picker (picked)="onGifPicked($event)" (closed)="gifPickerOpen.set(false)" />
+  }
+}

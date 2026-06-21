@@ -126,6 +126,12 @@
   }
 }
 
+.composer__gif-label {
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-bold;
+  color: v.color('text-gray');
+}
+
 .composer__send:disabled {
   cursor: not-allowed;
   opacity: 0.4;

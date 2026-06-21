@@ -63,6 +63,7 @@
     <app-message-input
       placeholder="Starte eine neue Nachricht"
       [sendDisabled]="recipient() === null"
+      [gifEnabled]="false"
       (send)="send($event)"
     />
   </div>

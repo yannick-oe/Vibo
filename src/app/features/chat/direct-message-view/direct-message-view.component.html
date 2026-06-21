@@ -65,7 +65,11 @@
   }
 
   <div class="dm__composer">
-    <app-message-input [placeholder]="composerPlaceholder()" (send)="sendMessage($event)" />
+    <app-message-input
+      [placeholder]="composerPlaceholder()"
+      (send)="sendMessage($event)"
+      (sendGif)="sendGif($event)"
+    />
   </div>
 </section>
 

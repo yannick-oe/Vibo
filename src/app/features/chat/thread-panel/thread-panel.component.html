@@ -39,6 +39,6 @@
   </div>
 
   <div class="thread__composer">
-    <app-message-input [placeholder]="composerPlaceholder" (send)="sendReply($event)" />
+    <app-message-input [placeholder]="composerPlaceholder" [gifEnabled]="false" (send)="sendReply($event)" />
   </div>
 </section>
