@@ -17,15 +17,17 @@
   } @else if (isEditing()) {
     <div class="message__edit">
       <label class="sr-only" [for]="editFieldId">Nachricht bearbeiten</label>
-      <textarea
-        #editTextarea
-        [id]="editFieldId"
-        class="message__edit-text"
-        rows="3"
-        [value]="editText()"
-        (input)="onEditInput($event)"
-        (keydown)="onEditKeydown($event)"
-      ></textarea>
+      <div class="message__edit-grow" [attr.data-replicated-value]="editText()">
+        <textarea
+          #editTextarea
+          [id]="editFieldId"
+          class="message__edit-text"
+          rows="1"
+          [value]="editText()"
+          (input)="onEditInput($event)"
+          (keydown)="onEditKeydown($event)"
+        ></textarea>
+      </div>
       <div class="message__edit-toolbar">
         <span class="message__edit-picker-wrap">
           <button

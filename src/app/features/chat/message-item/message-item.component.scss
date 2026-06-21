@@ -90,7 +90,7 @@ $message-hide-scale-to: 0.92;
 
 .message__bubble {
   width: fit-content;
-  padding: v.space('md') v.space('lg');
+  padding: v.space('sm') v.space('lg');
   border-radius: 0 v.$radius-xl v.$radius-xl v.$radius-xl;
   background-color: var(--bubble-other-bg);
   border: 1px solid var(--bubble-other-border);
@@ -127,28 +127,45 @@ $message-hide-scale-to: 0.92;
   flex-direction: column;
   gap: v.space('sm');
   width: 100%;
-  padding: v.space('md') v.space('lg');
-  border: 1px solid v.color('lines');
-  border-radius: v.$radius-xl;
-  background-color: v.color('white');
+  padding: v.space('sm') v.space('lg');
+  border-radius: v.$radius-xl 0 v.$radius-xl v.$radius-xl;
+  background-color: var(--bubble-own-bg);
 }
 
-.message__edit-text {
+.message__edit-grow {
+  display: grid;
+}
+
+.message__edit-grow::after {
+  content: attr(data-replicated-value) ' ';
+  visibility: hidden;
+}
+
+.message__edit-text,
+.message__edit-grow::after {
+  grid-area: 1 / 1 / 2 / 2;
   width: 100%;
-  border: none;
-  resize: vertical;
-  background: none;
+  padding: 0;
   font-family: v.$font-base;
   font-size: v.font-size('body');
   line-height: v.$line-height-base;
-  color: v.color('black');
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.message__edit-text {
+  border: none;
+  resize: none;
+  background: none;
+  overflow: hidden;
+  color: var(--bubble-own-text);
 
   &:focus {
     outline: none;
   }
 
   &:focus-visible {
-    @include m.focus-ring;
+    box-shadow: inset 0 -2px 0 0 color-mix(in srgb, var(--bubble-own-text) 75%, transparent);
   }
 }
 
@@ -355,8 +372,9 @@ $message-hide-scale-to: 0.92;
     height: v.$avatar-md;
   }
 
-  .message__bubble {
-    padding: v.space('sm-md') v.space('md');
+  .message__bubble,
+  .message__edit {
+    padding: v.space('sm') v.space('md');
   }
 
   .message__picker {

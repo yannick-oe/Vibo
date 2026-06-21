@@ -39,6 +39,21 @@
   height: auto;
 }
 
+.receipt__double {
+  display: inline-flex;
+  align-items: center;
+}
+
+.receipt__check {
+  width: v.space('sm-md');
+  height: auto;
+  flex-shrink: 0;
+}
+
+.receipt__check--second {
+  margin-left: calc(-1 * #{v.space('xs')});
+}
+
 .receipt__readers {
   display: flex;
   flex-direction: column;
