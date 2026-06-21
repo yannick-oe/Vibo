@@ -28,6 +28,7 @@ import { UserService } from '../../../services/user.service';
 import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
 import { AvatarActivatorDirective } from '../../../shared/avatar/avatar-activator.directive';
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
+import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import { BadgeListComponent } from '../../../shared/badge-list/badge-list.component';
 import { displayBadges } from '../../../shared/badge-options';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
@@ -53,6 +54,7 @@ const SELF_SUFFIX = ' (Du)';
     AuroraNameComponent,
     AvatarActivatorDirective,
     AvatarComponent,
+    AvatarFallbackDirective,
     BadgeListComponent,
   ],
   templateUrl: './direct-message-view.component.html',

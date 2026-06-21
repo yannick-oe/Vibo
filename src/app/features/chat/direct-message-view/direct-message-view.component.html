@@ -34,7 +34,7 @@
 
   @if (messages().length === 0) {
     <div class="dm__empty">
-      <img class="dm__empty-avatar" [src]="partnerAvatar()" alt="" aria-hidden="true" />
+      <img class="dm__empty-avatar" appAvatarFallback [src]="partnerAvatar()" alt="" aria-hidden="true" />
       <h2 class="dm__empty-name">{{ displayName() }}</h2>
       @if (isSelf()) {
         <p class="dm__empty-text">

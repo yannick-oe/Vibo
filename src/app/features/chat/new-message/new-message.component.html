@@ -9,7 +9,7 @@
             @if (locked.kind === 'channel') {
               <img class="new-message__chip-hash" src="icons/tag.svg" alt="" aria-hidden="true" />
             } @else {
-              <img class="new-message__chip-avatar" [src]="locked.avatar" alt="" aria-hidden="true" />
+              <img class="new-message__chip-avatar" appAvatarFallback [src]="locked.avatar" alt="" aria-hidden="true" />
             }
             {{ locked.label }}
             <button

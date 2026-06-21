@@ -10,6 +10,7 @@ import { AuthService } from '../../../services/auth.service';
 import { PresenceService } from '../../../services/presence.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
+import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import {
   DialogAnchor,
   DialogShellComponent,
@@ -32,7 +33,7 @@ interface MemberRow {
  */
 @Component({
   selector: 'app-channel-members-dialog',
-  imports: [DialogShellComponent],
+  imports: [AvatarFallbackDirective, DialogShellComponent],
   templateUrl: './channel-members-dialog.component.html',
   styleUrl: './channel-members-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -30,6 +30,7 @@ import {
   UserHit,
 } from '../../../services/search.service';
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
+import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 
 const DEBOUNCE_MS = 250;
 const MIN_TERM_LENGTH = 2;
@@ -47,7 +48,7 @@ type SearchHit = ChannelHit | UserHit | MessageHit;
  */
 @Component({
   selector: 'app-search-bar',
-  imports: [ReactiveFormsModule],
+  imports: [AvatarFallbackDirective, ReactiveFormsModule],
   templateUrl: './search-bar.component.html',
   styleUrl: './search-bar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -30,6 +30,7 @@ import {
   SuggestionDropdownComponent,
 } from '../../../shared/suggestion-dropdown/suggestion-dropdown.component';
 import { MessageInputComponent } from '../message-input/message-input.component';
+import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 
 const ADDRESS_ERROR = 'Kein Channel oder Mitglied gefunden.';
 const SEND_ERROR = 'Die Nachricht konnte nicht gesendet werden.';
@@ -60,7 +61,7 @@ interface Recipient {
  */
 @Component({
   selector: 'app-new-message',
-  imports: [MessageInputComponent, ReactiveFormsModule, SuggestionDropdownComponent],
+  imports: [AvatarFallbackDirective, MessageInputComponent, ReactiveFormsModule, SuggestionDropdownComponent],
   templateUrl: './new-message.component.html',
   styleUrl: './new-message.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -53,7 +53,7 @@
               (click)="pick(hit)"
             >
               <span class="search-bar__avatar-wrap">
-                <img class="search-bar__avatar" [src]="avatarSrc(hit)" alt="" aria-hidden="true" />
+                <img class="search-bar__avatar" appAvatarFallback [src]="avatarSrc(hit)" alt="" aria-hidden="true" />
                 <span
                   class="search-bar__status"
                   [class.search-bar__status--offline]="!presenceService.isOnline(hit.uid)"

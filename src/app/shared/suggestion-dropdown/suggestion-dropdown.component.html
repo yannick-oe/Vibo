@@ -12,7 +12,7 @@
       >
         @if (suggestion.avatar) {
           <span class="suggestions__avatar-wrap">
-            <img class="suggestions__avatar" [src]="suggestion.avatar" alt="" aria-hidden="true" />
+            <img class="suggestions__avatar" appAvatarFallback [src]="suggestion.avatar" alt="" aria-hidden="true" />
             @if (suggestion.online !== undefined) {
               <span
                 class="suggestions__status"

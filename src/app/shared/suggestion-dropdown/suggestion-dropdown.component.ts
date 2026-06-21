@@ -3,6 +3,8 @@
  */
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
+import { AvatarFallbackDirective } from '../avatar/avatar-fallback.directive';
+
 /** One selectable suggestion row. */
 export interface Suggestion {
   /** Stable id (uid or channel id). */
@@ -25,6 +27,7 @@ export interface Suggestion {
  */
 @Component({
   selector: 'app-suggestion-dropdown',
+  imports: [AvatarFallbackDirective],
   templateUrl: './suggestion-dropdown.component.html',
   styleUrl: './suggestion-dropdown.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

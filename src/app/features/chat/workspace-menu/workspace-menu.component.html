@@ -117,7 +117,7 @@
               [attr.aria-current]="selfDmLink.isActive ? 'page' : null"
             >
               <span class="workspace__avatar-wrap">
-                <img class="workspace__avatar" [src]="selfEntry.avatar" alt="" aria-hidden="true" />
+                <img class="workspace__avatar" appAvatarFallback [src]="selfEntry.avatar" alt="" aria-hidden="true" />
                 <span
                   class="workspace__status"
                   [class.workspace__status--offline]="!presenceService.isOnline(selfEntry.uid)"
@@ -138,7 +138,7 @@
               [attr.aria-current]="userDmLink.isActive ? 'page' : null"
             >
               <span class="workspace__avatar-wrap">
-                <img class="workspace__avatar" [src]="avatarSrc(user.avatarPath)" alt="" aria-hidden="true" />
+                <img class="workspace__avatar" appAvatarFallback [src]="avatarSrc(user.avatarPath)" alt="" aria-hidden="true" />
                 <span
                   class="workspace__status"
                   [class.workspace__status--offline]="!presenceService.isOnline(user.uid)"

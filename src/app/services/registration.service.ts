@@ -4,18 +4,22 @@
  */
 import { Injectable, computed, signal } from '@angular/core';
 
+import { isKnownAvatar } from '../shared/avatar-media';
+
 export const DEFAULT_AVATAR_PATH = 'avatars/gast.jpeg';
 
 export const REMOTE_AVATAR_PREFIX = 'http';
 
 /**
- * Resolves a stored avatar reference to a local asset path: local paths pass
- * through, missing or remote (e.g. Google photoURL) values fall back to the
- * neutral placeholder.
+ * Resolves a stored avatar reference to a renderable local asset path: a
+ * known, shipping avatar stem passes through; missing, remote (e.g. Google
+ * photoURL) or unknown/stale stems (legacy Firestore portrait paths) fall
+ * back to the neutral placeholder — so a stale avatarPath can never 404.
  * @param path Stored avatarPath (local asset path), or null/undefined.
  */
 export function resolveAvatarPath(path?: string | null): string {
-  return path && !path.startsWith(REMOTE_AVATAR_PREFIX) ? path : DEFAULT_AVATAR_PATH;
+  if (!path || path.startsWith(REMOTE_AVATAR_PREFIX) || !isKnownAvatar(path)) return DEFAULT_AVATAR_PATH;
+  return path;
 }
 
 /** Values collected by the registration form step. */

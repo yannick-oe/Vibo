@@ -21,6 +21,7 @@ import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MobileSearchViewComponent } from '../../search/mobile-search-view/mobile-search-view.component';
 import { UnreadBadgeComponent } from '../../../shared/unread-badge/unread-badge.component';
+import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
 
 const GUEST_NAME = 'Gast';
@@ -43,6 +44,7 @@ interface SelfEntry {
 @Component({
   selector: 'app-workspace-menu',
   imports: [
+    AvatarFallbackDirective,
     MobileSearchViewComponent,
     ProfileDialogComponent,
     RouterLink,

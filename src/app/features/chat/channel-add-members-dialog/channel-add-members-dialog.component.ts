@@ -12,6 +12,7 @@ import { ChannelService } from '../../../services/channel.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
+import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import {
   DialogAnchor,
   DialogShellComponent,
@@ -27,7 +28,7 @@ const ADD_ERROR = 'Die Mitglieder konnten nicht hinzugefügt werden.';
  */
 @Component({
   selector: 'app-channel-add-members-dialog',
-  imports: [DialogShellComponent, ReactiveFormsModule],
+  imports: [AvatarFallbackDirective, DialogShellComponent, ReactiveFormsModule],
   templateUrl: './channel-add-members-dialog.component.html',
   styleUrl: './channel-add-members-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

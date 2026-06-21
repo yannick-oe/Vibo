@@ -24,7 +24,7 @@
     <ul class="add-members__chips">
       @for (user of selectedUsers(); track user.uid) {
         <li class="add-members__chip">
-          <img class="add-members__chip-avatar" [src]="avatarSrc(user.avatarPath)" alt="" aria-hidden="true" />
+          <img class="add-members__chip-avatar" appAvatarFallback [src]="avatarSrc(user.avatarPath)" alt="" aria-hidden="true" />
           {{ user.name }}
           <button
             class="add-members__chip-remove"
@@ -44,7 +44,7 @@
       @for (user of candidates(); track user.uid) {
         <li>
           <button class="add-members__result" type="button" (click)="selectUser(user)">
-            <img class="add-members__result-avatar" [src]="avatarSrc(user.avatarPath)" alt="" aria-hidden="true" />
+            <img class="add-members__result-avatar" appAvatarFallback [src]="avatarSrc(user.avatarPath)" alt="" aria-hidden="true" />
             {{ user.name }}
           </button>
         </li>

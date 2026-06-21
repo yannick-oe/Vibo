@@ -14,6 +14,7 @@ import { PresenceService } from '../../../services/presence.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
+import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import {
   DialogAnchor,
   DialogShellComponent,
@@ -42,7 +43,7 @@ interface MemberRow {
  */
 @Component({
   selector: 'app-channel-settings-dialog',
-  imports: [DialogShellComponent],
+  imports: [AvatarFallbackDirective, DialogShellComponent],
   templateUrl: './channel-settings-dialog.component.html',
   styleUrl: './channel-settings-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

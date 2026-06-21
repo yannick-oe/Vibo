@@ -16,7 +16,7 @@
           (click)="memberSelected.emit(member.uid)"
         >
           <span class="members__avatar-wrap">
-            <img class="members__avatar" [src]="member.avatar" alt="" aria-hidden="true" />
+            <img class="members__avatar" appAvatarFallback [src]="member.avatar" alt="" aria-hidden="true" />
             <span
               class="members__status"
               [class.members__status--offline]="!presenceService.isOnline(member.uid)"
