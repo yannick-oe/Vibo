@@ -8,6 +8,7 @@ import {
   Component,
   ElementRef,
   OnDestroy,
+  computed,
   input,
   output,
   viewChild,
@@ -77,6 +78,10 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
   readonly size = input<DialogSize>('default');
 
   readonly anchor = input<DialogAnchor | null>(null);
+
+  readonly hasLeftAnchor = computed(() => this.anchor()?.left !== undefined);
+
+  readonly hasRightAnchor = computed(() => this.anchor()?.right !== undefined);
 
   readonly closed = output<void>();
 

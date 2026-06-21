@@ -91,7 +91,7 @@ $message-hide-scale-to: 0.92;
 .message__bubble {
   width: fit-content;
   padding: v.space('sm') v.space('lg');
-  border-radius: 0 v.$radius-xl v.$radius-xl v.$radius-xl;
+  border-radius: 0 v.$radius-md v.$radius-md v.$radius-md;
   background-color: var(--bubble-other-bg);
   border: 1px solid var(--bubble-other-border);
   font-size: v.font-size('body');
@@ -107,7 +107,7 @@ $message-hide-scale-to: 0.92;
   }
 
   :host(.message--own) & {
-    border-radius: v.$radius-xl 0 v.$radius-xl v.$radius-xl;
+    border-radius: v.$radius-md 0 v.$radius-md v.$radius-md;
     background-color: var(--bubble-own-bg);
     border-color: transparent;
     color: var(--bubble-own-text);
@@ -126,10 +126,16 @@ $message-hide-scale-to: 0.92;
   display: flex;
   flex-direction: column;
   gap: v.space('sm');
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   padding: v.space('sm') v.space('lg');
-  border-radius: v.$radius-xl 0 v.$radius-xl v.$radius-xl;
+  border-radius: v.$radius-md 0 v.$radius-md v.$radius-md;
   background-color: var(--bubble-own-bg);
+
+  &:focus-within {
+    outline: 2px solid v.color('primary');
+    outline-offset: v.space('xs');
+  }
 }
 
 .message__edit-grow {
@@ -162,10 +168,6 @@ $message-hide-scale-to: 0.92;
 
   &:focus {
     outline: none;
-  }
-
-  &:focus-visible {
-    box-shadow: inset 0 -2px 0 0 color-mix(in srgb, var(--bubble-own-text) 75%, transparent);
   }
 }
 
