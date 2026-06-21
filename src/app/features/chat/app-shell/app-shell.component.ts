@@ -16,9 +16,13 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 
 import { ChannelCreateService } from '../../../services/channel-create.service';
+import { CommandPaletteService } from '../../../services/command-palette.service';
 import { LayoutService } from '../../../services/layout.service';
+import { ProfileOverlayService } from '../../../services/profile-overlay.service';
 import { ThreadService } from '../../../services/thread.service';
+import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { ChannelCreateDialogComponent } from '../channel-create-dialog/channel-create-dialog.component';
+import { CommandPaletteComponent } from '../command-palette/command-palette.component';
 import { ThreadPanelComponent } from '../thread-panel/thread-panel.component';
 import { TopbarComponent } from '../topbar/topbar.component';
 import { WorkspaceMenuComponent } from '../workspace-menu/workspace-menu.component';
@@ -45,6 +49,8 @@ type MobileView = 'menu' | 'chat' | 'thread';
   selector: 'app-shell',
   imports: [
     ChannelCreateDialogComponent,
+    CommandPaletteComponent,
+    ProfileDialogComponent,
     RouterOutlet,
     ThreadPanelComponent,
     TopbarComponent,
@@ -64,6 +70,10 @@ export class AppShellComponent implements OnDestroy {
   private readonly threadService = inject(ThreadService);
 
   protected readonly channelCreate = inject(ChannelCreateService);
+
+  protected readonly palette = inject(CommandPaletteService);
+
+  protected readonly profileOverlay = inject(ProfileOverlayService);
 
   private readonly layoutService = inject(LayoutService);
 

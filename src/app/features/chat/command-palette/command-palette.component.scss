@@ -1,0 +1,116 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.palette {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: v.space('md');
+  min-height: 0;
+}
+
+.palette__search {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm-md');
+  padding: v.space('sm-md') v.space('md');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-lg;
+  background-color: v.color('white');
+
+  &:focus-within {
+    border-color: v.color('primary');
+  }
+}
+
+.palette__search-icon {
+  width: v.$icon-md;
+  height: v.$icon-md;
+  flex-shrink: 0;
+}
+
+.palette__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font-family: v.$font-base;
+  font-size: v.font-size('body');
+  color: v.color('black');
+
+  &::placeholder {
+    color: v.color('text-gray');
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.palette__count {
+  margin: 0;
+  padding: 0 v.space('xs');
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+}
+
+.palette__list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: v.space('xs');
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  @include m.scrollbar-thin;
+}
+
+.palette__option {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm-md');
+  min-height: v.space('xl');
+  padding: v.space('sm-md') v.space('md');
+  border-radius: v.$radius-md;
+  color: v.color('black');
+  cursor: pointer;
+
+  &--active {
+    background-color: v.color('bg');
+    box-shadow: inset v.space('xs') 0 0 0 v.color('primary');
+  }
+}
+
+.palette__option-icon {
+  @include m.flex-center;
+
+  width: v.$icon-md;
+  height: v.$icon-md;
+  flex-shrink: 0;
+  border-radius: v.$radius-sm;
+  background-color: v.color('bg');
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+
+  .palette__option--active & {
+    background-color: v.color('white');
+    color: v.color('primary');
+  }
+}
+
+.palette__option-label {
+  min-width: 0;
+  overflow: hidden;
+  font-size: v.font-size('body');
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.palette__empty {
+  margin: 0;
+  padding: v.space('md');
+  color: v.color('text-gray');
+  text-align: center;
+}

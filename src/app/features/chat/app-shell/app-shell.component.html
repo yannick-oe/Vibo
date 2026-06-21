@@ -35,4 +35,14 @@
   @if (channelCreate.isOpen()) {
     <app-channel-create-dialog (closed)="channelCreate.close()" />
   }
+
+  @defer (when palette.isOpen()) {
+    @if (palette.isOpen()) {
+      <app-command-palette />
+    }
+  }
+
+  @if (profileOverlay.uid(); as uid) {
+    <app-profile-dialog [uid]="uid" (closed)="profileOverlay.close()" />
+  }
 </div>
