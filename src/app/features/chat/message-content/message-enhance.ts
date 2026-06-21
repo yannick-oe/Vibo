@@ -5,13 +5,16 @@
  * our own trusted nodes; DOMPurify already ran on the Markdown itself.
  */
 import { MessageSegment, buildMessageSegments } from '../message-segments';
+import { enhanceCodeBlocks } from './code-block';
 
 const CODE_TAGS = ['CODE', 'PRE'];
 
 
 /**
  * Returns sanitized Markdown HTML with catalog emoji rendered as Twemoji
- * images and @mentions wrapped in highlight spans.
+ * images, @mentions wrapped in highlight spans, and every fenced code block
+ * wrapped in its chrome. Emoji/mention enrichment runs first so the chrome's
+ * own header text is never processed.
  * @param html Sanitized Markdown HTML string.
  * @param userNames Known display names used to detect mentions.
  */
@@ -19,6 +22,7 @@ export function enhanceMessageHtml(html: string, userNames: readonly string[]): 
   const template = document.createElement('template');
   template.innerHTML = html;
   collectTextNodes(template.content).forEach(node => replaceTextNode(node, userNames));
+  enhanceCodeBlocks(template.content);
   return template.innerHTML;
 }
 

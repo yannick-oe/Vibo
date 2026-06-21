@@ -19,6 +19,16 @@ import { buildMessageSegments } from '../message-segments';
 import { enhanceMessageHtml } from './message-enhance';
 import { renderMarkdown } from './markdown';
 
+const CODE_BLOCK_CLASS = 'code-block__pre';
+
+const COPY_BUTTON_CLASS = 'code-block__copy';
+
+const COPIED_CLASS = 'code-block__copy--copied';
+
+const COPY_STATUS = 'Kopiert';
+
+const COPY_FEEDBACK_MS = 1500;
+
 
 /**
  * Compares two name lists so the user-name signal only emits on real changes.
@@ -43,6 +53,9 @@ function sameNames(a: string[], b: string[]): boolean {
   templateUrl: './message-content.component.html',
   styleUrl: './message-content.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(click)': 'onContentClick($event)',
+  },
 })
 export class MessageContentComponent {
   readonly text = input.required<string>();
@@ -81,10 +94,85 @@ export class MessageContentComponent {
     const token = ++this.renderToken;
     if (!text.trim()) return this.rendered.set(null);
     try {
-      const html = enhanceMessageHtml(await renderMarkdown(text), userNames);
-      if (token === this.renderToken) this.rendered.set(this.sanitizer.bypassSecurityTrustHtml(html));
+      const chrome = enhanceMessageHtml(await renderMarkdown(text), userNames);
+      if (token !== this.renderToken) return;
+      this.rendered.set(this.sanitizer.bypassSecurityTrustHtml(chrome));
+      if (chrome.includes(CODE_BLOCK_CLASS)) await this.highlight(chrome, token);
     } catch {
       if (token === this.renderToken) this.rendered.set(null);
     }
+  }
+
+
+  /**
+   * Lazily loads the highlighter (a deferred chunk reached only when a message
+   * has a fenced block) and recolours the code text; on failure the
+   * already-rendered, un-highlighted chrome is kept.
+   * @param chrome Sanitized HTML that already carries the block chrome.
+   * @param token Render token guarding against stale results.
+   */
+  private async highlight(chrome: string, token: number): Promise<void> {
+    try {
+      const { highlightCodeBlocks } = await import('./highlighter');
+      if (token !== this.renderToken) return;
+      this.rendered.set(this.sanitizer.bypassSecurityTrustHtml(highlightCodeBlocks(chrome)));
+    } catch {
+      return;
+    }
+  }
+
+
+  /**
+   * Copies a code block's raw text when its copy button is activated (mouse or
+   * keyboard); other clicks are ignored.
+   * @param event Click event bubbled from the rendered content.
+   */
+  protected onContentClick(event: Event): void {
+    const target = event.target;
+    const button = target instanceof Element ? target.closest(`.${COPY_BUTTON_CLASS}`) : null;
+    if (button instanceof HTMLElement) void this.copyCode(button);
+  }
+
+
+  /**
+   * Writes the raw code text (not the highlighted markup) to the clipboard and
+   * flashes the "Kopiert" feedback on success.
+   * @param button Activated copy button.
+   */
+  private async copyCode(button: HTMLElement): Promise<void> {
+    const pre = button.closest('.code-block')?.querySelector(`.${CODE_BLOCK_CLASS}`);
+    try {
+      await navigator.clipboard.writeText(pre?.textContent ?? '');
+      this.flashCopied(button);
+    } catch {
+      return;
+    }
+  }
+
+
+  /**
+   * Briefly shows the "Kopiert" feedback: filling the `role="status"` region
+   * announces it to assistive tech, while the CSS reveal respects
+   * prefers-reduced-motion.
+   * @param button Copy button to flash.
+   */
+  private flashCopied(button: HTMLElement): void {
+    const status = button.querySelector('.code-block__copy-status');
+    if (!(status instanceof HTMLElement)) return;
+    status.textContent = COPY_STATUS;
+    button.classList.add(COPIED_CLASS);
+    setTimeout(() => this.resetCopied(button, status), COPY_FEEDBACK_MS);
+  }
+
+
+  /**
+   * Hides the copy feedback and clears the status text so the next copy is
+   * announced again.
+   * @param button Copy button to reset.
+   * @param status Live status region to clear.
+   */
+  private resetCopied(button: HTMLElement, status: HTMLElement): void {
+    button.classList.remove(COPIED_CLASS);
+    status.textContent = '';
   }
 }

@@ -22,9 +22,11 @@ const ALLOWED_TAGS = [
   'blockquote',
 ];
 
-const ALLOWED_ATTR = ['href', 'title', 'target', 'rel'];
+const ALLOWED_ATTR = ['href', 'title', 'target', 'rel', 'class'];
 
 const SANITIZE_CONFIG = { ALLOWED_TAGS, ALLOWED_ATTR };
+
+const LANGUAGE_CLASS = /^language-[\w-]+$/;
 
 let renderer: ((text: string) => string) | null = null;
 
@@ -32,13 +34,26 @@ let loading: Promise<(text: string) => string> | null = null;
 
 
 /**
- * Forces every link to open safely in a new tab.
+ * Reports whether a node is a `<code>` carrying a sole `language-*` class — the
+ * only place `class` survives sanitization (it feeds the syntax highlighter).
+ * @param node Node visited by DOMPurify.
+ */
+function isLanguageCode(node: Element): boolean {
+  return node.tagName === 'CODE' && LANGUAGE_CLASS.test(node.getAttribute('class') ?? '');
+}
+
+
+/**
+ * Hardens each sanitized node: links open safely in a new tab, and every
+ * `class` is stripped except the fenced-code `language-*` marker.
  * @param node Node visited by DOMPurify after attribute sanitization.
  */
-function hardenLink(node: Element): void {
-  if (node.tagName !== 'A') return;
-  node.setAttribute('target', '_blank');
-  node.setAttribute('rel', 'noopener noreferrer');
+function hardenNode(node: Element): void {
+  if (node.tagName === 'A') {
+    node.setAttribute('target', '_blank');
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
+  if (node.hasAttribute('class') && !isLanguageCode(node)) node.removeAttribute('class');
 }
 
 
@@ -50,7 +65,7 @@ function hardenLink(node: Element): void {
 async function buildRenderer(): Promise<(text: string) => string> {
   const [{ marked }, purifyModule] = await Promise.all([import('marked'), import('dompurify')]);
   const purify = purifyModule.default;
-  purify.addHook('afterSanitizeAttributes', hardenLink);
+  purify.addHook('afterSanitizeAttributes', hardenNode);
   renderer = text =>
     purify.sanitize(marked.parse(text, { gfm: true, breaks: true, async: false }), SANITIZE_CONFIG);
   return renderer;
