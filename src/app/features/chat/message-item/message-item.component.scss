@@ -98,7 +98,6 @@ $message-hide-scale-to: 0.92;
   font-family: v.$font-base;
   line-height: v.$line-height-base;
   color: v.color('black');
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
   transition: background-color v.$transition-fast;
 
