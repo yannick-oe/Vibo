@@ -58,6 +58,7 @@
         [collectionPath]="messagesCollectionPath()"
         [reads]="reads()"
         [otherUids]="otherUids()"
+        [isSelfConversation]="isSelf()"
         (threadRequested)="toggleThread($event)"
       />
     </div>

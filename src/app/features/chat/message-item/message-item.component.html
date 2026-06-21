@@ -8,7 +8,12 @@
       <span class="message__edited">(bearbeitet)</span>
     }
     @if (isOwn() && showReceipt()) {
-      <app-read-receipt [entry]="receiptEntry()" [reads]="reads()" [otherUids]="otherUids()" />
+      <app-read-receipt
+        [entry]="receiptEntry()"
+        [reads]="reads()"
+        [otherUids]="otherUids()"
+        [isSelfConversation]="isSelfConversation()"
+      />
     }
   </div>
 

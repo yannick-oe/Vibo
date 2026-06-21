@@ -67,6 +67,8 @@ export class MessageListComponent {
 
   readonly otherUids = input<string[]>([]);
 
+  readonly isSelfConversation = input(false);
+
   readonly threadRequested = output<Message>();
 
   private readonly locale = inject(LOCALE_ID);

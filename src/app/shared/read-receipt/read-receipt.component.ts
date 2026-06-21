@@ -67,6 +67,8 @@ export class ReadReceiptComponent {
 
   readonly otherUids = input<string[]>([]);
 
+  readonly isSelfConversation = input(false);
+
   private readonly userService = inject(UserService);
 
   private readonly locale = inject(LOCALE_ID);
@@ -109,10 +111,13 @@ export class ReadReceiptComponent {
 
 
   /**
-   * Derives the receipt state from snapshot metadata and the read markers.
+   * Derives the receipt state from snapshot metadata and the read markers; the
+   * self-DM short-circuits to read once stored, since the author is the only
+   * participant and has inherently read their own note.
    */
   private deriveState(): ReceiptState {
     if (this.entry().hasPendingWrites) return 'sending';
+    if (this.isSelfConversation()) return 'read';
     return this.readByAll() ? 'read' : 'stored';
   }
 
@@ -120,7 +125,7 @@ export class ReadReceiptComponent {
   /**
    * True only when every other participant's lastReadAt is at or after this
    * message's createdAt; false without other participants or before createdAt
-   * resolves (no escalation to blue in self-conversations).
+   * resolves.
    */
   private readByAll(): boolean {
     const created = this.createdMillis();

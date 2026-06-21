@@ -15,6 +15,7 @@
           [showReceipt]="true"
           [reads]="reads()"
           [otherUids]="otherUids()"
+          [isSelfConversation]="isSelfConversation()"
           [enterAnimate]="entrance.shouldEnter(message)"
           (openThread)="threadRequested.emit(message)"
         ></li>

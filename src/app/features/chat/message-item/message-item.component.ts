@@ -96,10 +96,9 @@ export class MessageItemComponent {
   readonly reactionLimit = input(DESKTOP_REACTION_LIMIT);
 
   readonly showReceipt = input(false);
-
   readonly reads = input<ReadEntry[]>([]);
-
   readonly otherUids = input<string[]>([]);
+  readonly isSelfConversation = input(false);
 
   readonly enterAnimate = input(false);
 
