@@ -10,7 +10,7 @@
       </div>
     } @else {
       <div class="topbar__workspace">
-        <img class="topbar__brand-logo" [src]="wordmarkSrc()" [alt]="appName" />
+        <img class="topbar__brand-logo" [src]="wordmarkSrc()" [alt]="appName" width="548" height="254" />
       </div>
     }
     <button
@@ -34,7 +34,7 @@
     </button>
   } @else {
     <div class="topbar__brand">
-      <img class="topbar__logo" [src]="wordmarkSrc()" [alt]="appName" />
+      <img class="topbar__logo" [src]="wordmarkSrc()" [alt]="appName" width="548" height="254" />
     </div>
 
     <app-search-bar (userSelected)="openUserProfile($event)" />

@@ -35,6 +35,8 @@ const SMALL_SUFFIX = '_256.webp';
 
 const LARGE_SUFFIX = '_384.webp';
 
+const PLACEHOLDER_STEM = 'gast';
+
 
 /**
  * Derives the stem (basename without extension) of an avatar path.
@@ -44,6 +46,19 @@ function avatarStem(avatarPath: string): string {
   const base = avatarPath.split('/').pop() ?? '';
   const dot = base.lastIndexOf('.');
   return dot === -1 ? base : base.slice(0, dot);
+}
+
+
+/**
+ * Whether an avatar path points at a stem that actually ships in
+ * public/avatars/ — a themed avatar or the guest placeholder. Stale paths
+ * (e.g. legacy DABubble portraits no longer bundled) return false so callers
+ * can substitute the placeholder before the `<img>` requests a missing file.
+ * @param avatarPath Avatar asset path from a user document.
+ */
+export function isKnownAvatar(avatarPath: string): boolean {
+  const stem = avatarStem(avatarPath);
+  return stem === PLACEHOLDER_STEM || ANIMATED_AVATAR_STEMS.has(stem);
 }
 
 

@@ -459,3 +459,29 @@ but nothing is statically pinned. Discoverability instead lives in the picker:
   (`pending`, `*Open`, `*Focused`, `editing`, `own`, `deleted`, …) rather than the
   `is/has/should/can` prefix. Left as-is to avoid template-binding regressions
   before submission; a wholesale rename is a safe follow-up.
+
+## Lighthouse / performance pass (2026-06-21)
+- **Fonts: Latin-subset variable WOFF2, declared in `index.html`, Inter preloaded.**
+  The `@font-face` rules previously loaded the raw **variable TTFs** (Inter 854 KiB,
+  Nunito 269 KiB — the page's single largest payload). They were re-subset to the
+  Google-Fonts **Latin** unicode range and re-encoded to **WOFF2 keeping the full
+  `wght 100–900` axis** (Inter → 100 KiB, Nunito → 39 KiB; ~88 %/86 % smaller), so
+  semibold/medium/extrabold still render correctly — **no weight flattening**. All
+  `@font-face` now live in an inline `<style>` in `index.html` pointing at the
+  **non-fingerprinted** `public/fonts/*.woff2` copies (stable URLs), which lets the
+  critical Inter font be **preloaded** (`<link rel="preload" as="font" crossorigin>`)
+  and keeps `font-display: swap`. Italic is Inter-only and lazy-loaded; Nunito-italic
+  was dropped (heading font, never italic). This **supersedes** the CLAUDE.md note that
+  fonts are "fingerprinted into media/" — they are now served verbatim from `/fonts/`
+  with an immutable cache. **Trade-off:** the Latin subset means user-typed text in
+  non-Latin scripts (Cyrillic/CJK/…) falls back to the `Arial, sans-serif` stack; German
+  (umlauts, ß) and all UI glyphs are fully covered.
+- **`public/robots.txt` added** (`User-agent: * / Allow: /`). Firebase Hosting's SPA
+  rewrite (`** → /index.html`) served HTML for `/robots.txt`, which Lighthouse flagged as
+  an invalid robots.txt (SEO 92 on the production build); the real file restores SEO 100.
+- **Avatar resolver hardens against stale Firestore avatar paths.** Legacy DABubble-style
+  portrait paths (e.g. `avatars/Noah-Braun.png`) no longer ship in `public/avatars/`; a
+  user document still carrying one made the `<img>` request a missing file (console 404).
+  `isKnownAvatar()` now substitutes the guest placeholder for any unknown stem **before**
+  render, so the bad URL is never requested (the 404 is the underlying Firestore data,
+  which should be corrected at the source).

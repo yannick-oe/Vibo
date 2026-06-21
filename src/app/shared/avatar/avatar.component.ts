@@ -17,7 +17,7 @@ import {
 
 import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../services/registration.service';
 import { ReducedMotionService } from '../../services/reduced-motion.service';
-import { resolveAvatarMedia } from '../avatar-media';
+import { isKnownAvatar, resolveAvatarMedia } from '../avatar-media';
 
 /** Surface that renders the avatar; drives size and the motion behaviour. */
 export type AvatarSurface = 'topbar' | 'header' | 'profile' | 'row' | 'sidebar';
@@ -96,6 +96,7 @@ export class AvatarComponent {
    * for the continuously animated profile, otherwise the still frame.
    */
   private resolveBaseSrc(): string {
+    if (!isKnownAvatar(this.avatarPath())) return resolveAvatarPath(DEFAULT_AVATAR_PATH);
     const media = this.media();
     if (!media) return resolveAvatarPath(this.avatarPath());
     if (CONTINUOUS_SURFACES.has(this.surface()) && !this.motion.prefersReducedMotion()) {
