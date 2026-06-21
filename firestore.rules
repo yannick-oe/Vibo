@@ -46,7 +46,8 @@ service cloud.firestore {
     function editsOwnTextInWindow() {
       return resource.data.authorId == request.auth.uid
         && !('deletedAt' in resource.data)
-        && affectedKeys().hasOnly(['text'])
+        && affectedKeys().hasOnly(['text', 'editedAt'])
+        && request.resource.data.editedAt == request.time
         && request.time < resource.data.createdAt + duration.value(15, 'm');
     }
 

@@ -83,6 +83,11 @@ $message-hide-scale-to: 0.92;
   color: v.color('text-gray');
 }
 
+.message__edited {
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+}
+
 .message__bubble {
   width: fit-content;
   padding: v.space('md') v.space('lg');
@@ -140,6 +145,10 @@ $message-hide-scale-to: 0.92;
 
   &:focus {
     outline: none;
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
   }
 }
 

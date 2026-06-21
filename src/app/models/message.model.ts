@@ -23,6 +23,8 @@ export interface ReplyDoc {
   createdAt: Timestamp | FieldValue;
   /** Emoji reactions keyed by emoji character. */
   reactions: ReactionMap;
+  /** Last edit time; serverTimestamp() on write, Timestamp on read, absent when never edited. */
+  editedAt?: Timestamp | FieldValue;
   /** Uids that deleted the message only for themselves. */
   hiddenFor?: string[];
   /** Deletion time when deleted for everyone; renders as a tombstone. */

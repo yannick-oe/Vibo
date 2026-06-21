@@ -2,7 +2,6 @@
  * @file Single chat message row shared by the chat lists and the thread
  * panel: bubble, reactions, hover actions, edit mode and tombstone state.
  */
-import { formatDate } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -27,7 +26,15 @@ import { RecentEmojiService } from '../../../services/recent-emoji.service';
 import { DEFAULT_AVATAR_PATH } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
-import { delay, prefersReducedMotion, resolveDate } from './message-item.util';
+import {
+  delay,
+  insertAtCaret,
+  isSavableEdit,
+  messageTime,
+  prefersReducedMotion,
+  replyPreviewTime,
+  withinEditWindow,
+} from './message-item.util';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
 import { MessageActionsComponent } from '../message-actions/message-actions.component';
 import { MessageContentComponent } from '../message-content/message-content.component';
@@ -35,10 +42,8 @@ import { ReactionChipsComponent } from '../reaction-chips/reaction-chips.compone
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { ReadReceiptComponent } from '../../../shared/read-receipt/read-receipt.component';
 
-const TIME_FORMAT = 'HH:mm';
 const UNKNOWN_AUTHOR = 'Unbekannt';
 const ACTION_ERROR = 'Die Aktion konnte nicht ausgeführt werden.';
-const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const LONG_PRESS_MS = 500;
 const DESKTOP_REACTION_LIMIT = 20;
 const DELETE_POP_MS = 220;
@@ -154,6 +159,8 @@ export class MessageItemComponent {
 
   protected readonly isDeleted = computed(() => Boolean(this.entry().deletedAt));
 
+  protected readonly isEdited = computed(() => Boolean(this.entry().editedAt));
+
   protected readonly author = computed(() =>
     this.userService.users().find(user => user.uid === this.entry().authorId),
   );
@@ -162,9 +169,7 @@ export class MessageItemComponent {
 
   protected readonly authorAvatarPath = computed(() => this.author()?.avatarPath ?? DEFAULT_AVATAR_PATH);
 
-  protected readonly time = computed(() =>
-    formatDate(resolveDate(this.entry().createdAt), TIME_FORMAT, this.locale),
-  );
+  protected readonly time = computed(() => messageTime(this.entry().createdAt, this.locale));
 
   protected readonly replyCount = computed(() => {
     const entry = this.entry();
@@ -175,7 +180,7 @@ export class MessageItemComponent {
     this.replyCount() === 1 ? '1 Antwort' : `${this.replyCount()} Antworten`,
   );
 
-  protected readonly lastReplyTime = computed(() => this.resolveLastReplyTime());
+  protected readonly lastReplyTime = computed(() => replyPreviewTime(this.entry(), this.locale));
 
   protected readonly hasReactions = computed(() =>
     Object.values(this.entry().reactions).some(uids => uids.length > 0),
@@ -240,8 +245,7 @@ export class MessageItemComponent {
    */
   protected canEditNow(): boolean {
     if (!this.isOwn() || this.isDeleted() || !this.messagePath()) return false;
-    const createdAt = resolveDate(this.entry().createdAt).getTime();
-    return Date.now() - createdAt < EDIT_WINDOW_MS;
+    return withinEditWindow(this.entry().createdAt);
   }
 
 
@@ -309,19 +313,32 @@ export class MessageItemComponent {
    * Reports whether the edited text is non-empty and actually changed.
    */
   protected canSaveEdit(): boolean {
-    const trimmed = this.editText().trim();
-    return trimmed.length > 0 && trimmed !== this.entry().text;
+    return isSavableEdit(this.editText(), this.entry().text);
   }
 
 
   /**
-   * Persists the edited text and leaves edit mode.
+   * Persists the edited text and stamps editedAt; stays in edit mode on a
+   * failed write so the draft is not lost (the failure surfaces as a toast).
    */
   protected async saveEdit(): Promise<void> {
     const messagePath = this.messagePath();
     if (!messagePath || !this.canSaveEdit()) return;
-    await this.runAction(() => this.messageService.editMessage(messagePath, this.editText().trim()));
-    this.cancelEdit();
+    const saved = await this.runAction(() => this.messageService.editMessage(messagePath, this.editText().trim()));
+    if (saved) this.cancelEdit();
+  }
+
+
+  /**
+   * Handles edit-textarea keys: Enter saves (Shift+Enter inserts a newline,
+   * matching the composer), Escape cancels.
+   * @param event Keydown event of the edit textarea.
+   */
+  protected onEditKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') return this.cancelEdit();
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    void this.saveEdit();
   }
 
 
@@ -333,9 +350,7 @@ export class MessageItemComponent {
     this.editPickerOpen.set(false);
     const element = this.editTextarea()?.nativeElement;
     if (!element) return;
-    const start = element.selectionStart ?? element.value.length;
-    element.setRangeText(emoji, start, element.selectionEnd ?? start, 'end');
-    this.editText.set(element.value);
+    this.editText.set(insertAtCaret(element, emoji));
     element.focus();
   }
 
@@ -381,15 +396,5 @@ export class MessageItemComponent {
       this.toastService.show(ACTION_ERROR);
       return false;
     }
-  }
-
-
-  /**
-   * Formats the latest reply time as HH:mm; empty without replies.
-   */
-  private resolveLastReplyTime(): string {
-    const entry = this.entry();
-    if (!('lastReplyAt' in entry) || !entry.lastReplyAt) return '';
-    return formatDate(resolveDate(entry.lastReplyAt), TIME_FORMAT, this.locale);
   }
 }

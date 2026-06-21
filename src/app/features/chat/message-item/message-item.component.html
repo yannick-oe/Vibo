@@ -4,6 +4,9 @@
   <div class="message__meta">
     <span class="message__author">{{ authorName() }}</span>
     <span class="message__time">{{ time() }} Uhr</span>
+    @if (isEdited()) {
+      <span class="message__edited">(bearbeitet)</span>
+    }
     @if (isOwn() && showReceipt()) {
       <app-read-receipt [entry]="receiptEntry()" [reads]="reads()" [otherUids]="otherUids()" />
     }
@@ -21,7 +24,7 @@
         rows="3"
         [value]="editText()"
         (input)="onEditInput($event)"
-        (keydown.escape)="cancelEdit()"
+        (keydown)="onEditKeydown($event)"
       ></textarea>
       <div class="message__edit-toolbar">
         <span class="message__edit-picker-wrap">

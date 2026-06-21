@@ -218,13 +218,14 @@ export class MessageService {
 
 
   /**
-   * Replaces a message's text after an edit; nothing else changes.
+   * Replaces a message's text after an edit and stamps the edit time; the
+   * original createdAt, reactions, and read state are untouched.
    * @param messagePath Firestore path of the message document.
    * @param text Trimmed new message text.
    */
   editMessage(messagePath: string, text: string): Promise<void> {
     return runInInjectionContext(this.injector, () =>
-      updateDoc(doc(this.firestore, messagePath), { text }),
+      updateDoc(doc(this.firestore, messagePath), { text, editedAt: serverTimestamp() }),
     );
   }
 
