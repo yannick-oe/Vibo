@@ -146,6 +146,28 @@
   }
 }
 
+.topbar__menu-legal {
+  display: flex;
+  justify-content: center;
+  gap: v.space('md');
+  padding: v.space('sm-md') v.space('lg') v.space('xs');
+  margin-top: v.space('xs');
+  border-top: 1px solid v.color('lines');
+}
+
+.topbar__menu-legal-link {
+  font-size: v.font-size('min');
+  color: v.color('black');
+  cursor: pointer;
+  transition: color v.$transition-fast;
+
+  &:hover,
+  &:focus-visible {
+    color: v.color('primary');
+    text-decoration: underline;
+  }
+}
+
 .topbar__user-name {
   font-family: v.$font-base;
   font-size: v.font-size('h3');

@@ -3,6 +3,28 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Legal pages: German routes + GIPHY disclosure (2026-06-21)
+The public legal pages were **renamed to German routes** and the privacy policy gained a **GIPHY**
+disclosure. The pages were already bespoke, **phone-free Austrian-law** texts (§ 5 ECG / § 25
+MedienG and DSGVO/DSG, server `europe-west3`), so the original task's eRecht24-boilerplate edits
+(remove "Telefon", drop "Anfrage per E-Mail, Telefon oder Telefax", standardise "1170 Wien") were
+**already satisfied or moot**; the referenced `docs/legal/datenschutz-source.*` does not exist. Per
+the maintainer's choice we **kept the existing content** and added only what was missing.
+- **Routes**: `/legal/imprint` → **`/impressum`** ([LegalNoticeComponent](src/app/features/legal/legal-notice/legal-notice.component.ts)),
+  `/legal/privacy` → **`/datenschutz`** ([PrivacyPolicyComponent](src/app/features/legal/privacy-policy/privacy-policy.component.ts)).
+  The old paths **redirect** (no broken bookmarks/links). Both stay public (under the auth layout,
+  no guard) and lazy. Footer, registration consent link and the in-app profile menu point at the
+  new routes; menu legal links use `color('black')` (not `text-gray`) because the menu card is
+  **frosted glass**, the surface where `text-gray` is known to fail AA.
+- **GIPHY section** (new § 5, subsequent sections renumbered): IP transfer to GIPHY, Inc. (USA),
+  legal basis Art 6 (1) f, US-transfer note, link to `giphy.com/privacy` (GIPHY's canonical 301 to
+  their policy). Completes the service disclosures (Firebase Auth, Google sign-in, Firestore and
+  localStorage were already covered).
+- **Per-page `<title>` + meta description** via a small [PageMetaService](src/app/shared/page-meta.service.ts)
+  that **restores the app default on teardown**, so a legal page's title does not linger after
+  navigation (the app otherwise sets no per-route titles).
+
+
 ## Profile badges / Abzeichen (2026-06-20)
 Additive profile **badges shown next to the name**, an on-brand cosmic/dev enhancement **beyond the
 DA Figma** (no Figma design exists). The `users/{uid}` self-update rule is field-permissive, so the

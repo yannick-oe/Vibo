@@ -54,20 +54,21 @@ export const routes: Routes = [
         ],
       },
       {
-        path: 'legal',
-        children: [
-          {
-            path: 'imprint',
-            loadComponent: () =>
-              import('./features/legal/imprint/imprint.component').then(m => m.ImprintComponent),
-          },
-          {
-            path: 'privacy',
-            loadComponent: () =>
-              import('./features/legal/privacy/privacy.component').then(m => m.PrivacyComponent),
-          },
-        ],
+        path: 'impressum',
+        loadComponent: () =>
+          import('./features/legal/legal-notice/legal-notice.component').then(
+            m => m.LegalNoticeComponent,
+          ),
       },
+      {
+        path: 'datenschutz',
+        loadComponent: () =>
+          import('./features/legal/privacy-policy/privacy-policy.component').then(
+            m => m.PrivacyPolicyComponent,
+          ),
+      },
+      { path: 'legal/imprint', redirectTo: 'impressum', pathMatch: 'full' },
+      { path: 'legal/privacy', redirectTo: 'datenschutz', pathMatch: 'full' },
     ],
   },
   {

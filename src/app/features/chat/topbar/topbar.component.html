@@ -106,6 +106,10 @@
           Log out
         </button>
       </div>
+      <nav class="topbar__menu-legal" aria-label="Rechtliches">
+        <a class="topbar__menu-legal-link" routerLink="/impressum" (click)="close()">Impressum</a>
+        <a class="topbar__menu-legal-link" routerLink="/datenschutz" (click)="close()">Datenschutz</a>
+      </nav>
     </div>
   </app-dialog-shell>
 }

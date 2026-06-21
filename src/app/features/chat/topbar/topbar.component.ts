@@ -4,7 +4,7 @@
  */
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map } from 'rxjs';
 
 import { AuthService } from '../../../services/auth.service';
@@ -48,6 +48,7 @@ type TopbarState = 'closed' | 'menu';
     AuroraNameComponent,
     AvatarComponent,
     AvatarActivatorDirective,
+    RouterLink,
   ],
   templateUrl: './topbar.component.html',
   styleUrl: './topbar.component.scss',
