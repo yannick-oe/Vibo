@@ -157,6 +157,7 @@
 
 .topbar__menu-legal-link {
   font-size: v.font-size('min');
+  font-weight: v.$font-weight-regular;
   color: v.color('black');
   cursor: pointer;
   transition: color v.$transition-fast;
@@ -164,6 +165,7 @@
   &:hover,
   &:focus-visible {
     color: v.color('primary');
+    font-weight: v.$font-weight-regular;
     text-decoration: underline;
   }
 }
