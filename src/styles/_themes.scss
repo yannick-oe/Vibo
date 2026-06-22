@@ -1,8 +1,12 @@
+@use 'sass:map';
 @use 'variables' as v;
 
 :root {
   @each $key, $value in v.$colors {
     --color-#{$key}: #{$value};
+  }
+  @each $key in map.keys(v.$banner-colors) {
+    --banner-#{$key}: #{v.banner-color($key)};
   }
   --overlay-scrim: rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
@@ -47,8 +51,6 @@
   --link-on-aurora: #373ecb;
   --btn-disabled-bg: color-mix(in srgb, var(--color-lines) 25%, var(--color-white));
   --btn-disabled-text: var(--color-text-gray);
-  --banner-space: #0a0a20;
-  --banner-star: #e8edff;
   --aurora-name-a: #444df2;
   --aurora-name-b: #6d29c0;
   --aurora-name-c: #c4185f;

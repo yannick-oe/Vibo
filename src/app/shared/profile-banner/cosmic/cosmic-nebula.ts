@@ -1,31 +1,39 @@
 /**
  * @file Colored nebula clouds for the cosmic banner: a few large soft radial
- * blobs that sway and bloom additively in the token palette. Pure canvas
- * helpers, used only by the nebula-forward preset.
+ * blobs that slowly drift and gently pulse in opacity, in the decorative
+ * violet/magenta/indigo/rose banner palette. Pure canvas helpers, used only by
+ * the nebula preset; the twinkling star pinpoints come from the shared starfield.
  */
 import type { CosmicColors } from './cosmic-scene';
 
-/** One nebula blob: centre/size as fractions of the canvas plus a sway speed. */
+/** A decorative nebula tone keyed into the resolved palette. */
+type NebulaTone = 'nebulaViolet' | 'nebulaMagenta' | 'nebulaIndigo' | 'nebulaRose';
+
+/** One nebula blob: centre/size as fractions of the canvas plus drift/pulse speeds. */
 interface NebulaBlob {
   readonly cx: number;
   readonly cy: number;
   readonly radius: number;
   readonly sway: number;
-  readonly isAccent: boolean;
+  readonly pulse: number;
+  readonly tone: NebulaTone;
 }
 
 const NEBULA_BLOBS: readonly NebulaBlob[] = [
-  { cx: 0.26, cy: 0.34, radius: 0.5, sway: 0.00004, isAccent: false },
-  { cx: 0.72, cy: 0.54, radius: 0.55, sway: -0.00003, isAccent: true },
-  { cx: 0.5, cy: 0.72, radius: 0.42, sway: 0.00005, isAccent: false },
+  { cx: 0.26, cy: 0.36, radius: 0.55, sway: 0.00004, pulse: 0.0006, tone: 'nebulaViolet' },
+  { cx: 0.7, cy: 0.56, radius: 0.52, sway: -0.00003, pulse: 0.0005, tone: 'nebulaMagenta' },
+  { cx: 0.5, cy: 0.8, radius: 0.46, sway: 0.00005, pulse: 0.0007, tone: 'nebulaIndigo' },
+  { cx: 0.82, cy: 0.28, radius: 0.36, sway: -0.00004, pulse: 0.0008, tone: 'nebulaRose' },
 ];
 const NEBULA_ALPHA = 0.42;
 const NEBULA_DIM_ALPHA = 0.2;
 const NEBULA_SWAY_AMP = 0.05;
+const NEBULA_PULSE_DEPTH = 0.18;
 
 
 /**
- * Draws the nebula clouds for one frame (additive unless dimmed).
+ * Draws the nebula clouds for one frame (additive unless dimmed); each blob
+ * drifts and breathes in opacity, scaled by the preset intensity.
  * @param ctx Canvas 2D context.
  * @param width Canvas width in CSS pixels.
  * @param height Canvas height in CSS pixels.
@@ -52,13 +60,13 @@ export function drawNebula(
 
 
 /**
- * Fills the canvas with one swaying radial nebula blob.
+ * Fills the canvas with one swaying, gently pulsing radial nebula blob.
  * @param ctx Canvas 2D context.
  * @param width Canvas width in CSS pixels.
  * @param height Canvas height in CSS pixels.
  * @param blob Blob definition.
  * @param colors Resolved cosmic palette.
- * @param alpha Blob opacity.
+ * @param alpha Base blob opacity.
  * @param time Animation timestamp in ms.
  */
 function drawBlob(
@@ -71,16 +79,16 @@ function drawBlob(
   time: number,
 ): void {
   const cx = (blob.cx + Math.sin(time * blob.sway) * NEBULA_SWAY_AMP) * width;
-  const color = blob.isAccent ? colors.accent : colors.primary;
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = blobGradient(ctx, cx, blob.cy * height, blob.radius * width, color);
+  const pulse = 1 + NEBULA_PULSE_DEPTH * Math.sin(time * blob.pulse);
+  ctx.globalAlpha = Math.max(0, alpha * pulse);
+  ctx.fillStyle = blobGradient(ctx, cx, blob.cy * height, blob.radius * width, colors[blob.tone]);
   ctx.fillRect(0, 0, width, height);
   ctx.globalAlpha = 1;
 }
 
 
 /**
- * Soft radial gradient (color centre → transparent edge) for a blob.
+ * Soft radial gradient (colour centre → transparent edge) for a blob.
  * @param ctx Canvas 2D context.
  * @param cx Centre x in CSS pixels.
  * @param cy Centre y in CSS pixels.

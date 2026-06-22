@@ -40,6 +40,29 @@ $colors-dark: (
   @return var(--color-#{$key});
 }
 
+// ─── Banner (decorative) Colors ──────────────────────────────────────────────
+$banner-colors: (
+  'space':          #0a0a20,
+  'space-deep':     #05050f,
+  'aurora-teal':    #1fe5cf,
+  'aurora-green':   #3df59b,
+  'aurora-violet':  #8b63ff,
+  'aurora-glow':    #c79bff,
+  'nebula-magenta': #ff3fa4,
+  'nebula-violet':  #8a4dff,
+  'nebula-indigo':  #232a78,
+  'nebula-rose':    #ff8fd0,
+  'star':           #e8edff,
+);
+
+@function banner-color($key) {
+  @if not map.has-key($banner-colors, $key) {
+    @error 'Unknown banner-color token: #{$key}';
+  }
+
+  @return map.get($banner-colors, $key);
+}
+
 // ─── Font Sizes ──────────────────────────────────────────────────────────────
 $font-sizes: (
   display: 4.667rem,

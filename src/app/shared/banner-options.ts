@@ -10,10 +10,14 @@ export interface BannerOption {
   readonly label: string;
 }
 
+/** Aurora render mode: subtle horizontal bands, flowing vertical curtains, none. */
+export type AuroraStyle = 'none' | 'bands' | 'curtains';
+
 /** Mood knobs handed to the cosmic engine; each scales one scene layer. */
 export interface CosmicParams {
   readonly starDensity: number;
   readonly auroraIntensity: number;
+  readonly auroraStyle: AuroraStyle;
   readonly nebulaIntensity: number;
 }
 
@@ -28,12 +32,17 @@ export const BANNER_OPTIONS: readonly BannerOption[] = [
   { id: 'nebula', label: 'Nebula' },
 ];
 
-const NONE_PARAMS: CosmicParams = { starDensity: 0, auroraIntensity: 0, nebulaIntensity: 0 };
+const NONE_PARAMS: CosmicParams = {
+  starDensity: 0,
+  auroraIntensity: 0,
+  auroraStyle: 'none',
+  nebulaIntensity: 0,
+};
 
 const COSMIC_PARAMS: Readonly<Record<string, CosmicParams>> = {
-  aurora: { starDensity: 0.85, auroraIntensity: 1, nebulaIntensity: 0 },
-  starfield: { starDensity: 1.5, auroraIntensity: 0.35, nebulaIntensity: 0 },
-  nebula: { starDensity: 0.9, auroraIntensity: 0.5, nebulaIntensity: 1 },
+  aurora: { starDensity: 0.4, auroraIntensity: 1, auroraStyle: 'curtains', nebulaIntensity: 0 },
+  starfield: { starDensity: 1.5, auroraIntensity: 0.35, auroraStyle: 'bands', nebulaIntensity: 0 },
+  nebula: { starDensity: 0.9, auroraIntensity: 0, auroraStyle: 'none', nebulaIntensity: 1 },
 };
 
 /**
