@@ -13,9 +13,11 @@ const CURTAIN_FREQ = [0.00021, 0.00027, 0.00019, 0.00031, 0.00018, 0.00029, 0.00
 const CURTAIN_PHASE = [0, 0.9, 1.8, 2.7, 3.6, 4.5, 5.4];
 const CURTAIN_WIDTH = 0.34;
 const CURTAIN_BLUR = 26;
-const CURTAIN_ALPHA = 0.28;
-const CURTAIN_DIM_ALPHA = 0.2;
-const ALPHA_WOBBLE = 0.34;
+const CURTAIN_ALPHA = 0.17;
+const CURTAIN_DIM_ALPHA = 0.12;
+const ALPHA_WOBBLE = 0.26;
+const GLOBAL_SWAY_AMP = 0.05;
+const GLOBAL_SWAY_FREQ = 0.00008;
 const STOP_LOW = 0.14;
 const STOP_MID = 0.42;
 const STOP_HIGH = 0.68;
@@ -46,14 +48,16 @@ export function drawAuroraCurtains(
   ctx.globalCompositeOperation = isDimmed ? 'source-over' : 'screen';
   ctx.filter = `blur(${CURTAIN_BLUR}px)`;
   const alpha = (isDimmed ? CURTAIN_DIM_ALPHA : CURTAIN_ALPHA) * intensity;
-  for (let i = 0; i < CURTAIN_COUNT; i++) drawCurtain(ctx, width, height, i, colors, alpha, time);
+  const sway = GLOBAL_SWAY_AMP * Math.sin(time * GLOBAL_SWAY_FREQ);
+  for (let i = 0; i < CURTAIN_COUNT; i++) drawCurtain(ctx, width, height, i, colors, alpha, time, sway);
   ctx.restore();
 }
 
 
 /**
  * Fills one undulating vertical curtain with its teal→violet glow gradient; the
- * centre drifts and the opacity breathes, both driven by the same sine.
+ * centre drifts and the opacity breathes (same sine) over a shared slow
+ * horizontal sway of the whole aurora.
  * @param ctx Canvas 2D context.
  * @param width Canvas width in CSS pixels.
  * @param height Canvas height in CSS pixels.
@@ -61,6 +65,7 @@ export function drawAuroraCurtains(
  * @param colors Resolved cosmic palette.
  * @param alpha Base curtain opacity.
  * @param time Animation timestamp in ms.
+ * @param sway Shared horizontal offset as a fraction of width.
  */
 function drawCurtain(
   ctx: CanvasRenderingContext2D,
@@ -70,9 +75,10 @@ function drawCurtain(
   colors: CosmicColors,
   alpha: number,
   time: number,
+  sway: number,
 ): void {
   const wobble = Math.sin(time * CURTAIN_FREQ[index] + CURTAIN_PHASE[index]);
-  const centerX = (CURTAIN_BASE_X[index] + CURTAIN_AMP[index] * wobble) * width;
+  const centerX = (CURTAIN_BASE_X[index] + CURTAIN_AMP[index] * wobble + sway) * width;
   const half = (CURTAIN_WIDTH * width) / 2;
   ctx.globalAlpha = Math.max(0, alpha * (1 + ALPHA_WOBBLE * wobble));
   ctx.fillStyle = curtainGradient(ctx, height, colors);
