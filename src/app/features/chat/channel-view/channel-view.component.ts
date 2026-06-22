@@ -35,6 +35,7 @@ import { ChannelMembersDialogComponent } from '../channel-members-dialog/channel
 import { ChannelSettingsDialogComponent } from '../channel-settings-dialog/channel-settings-dialog.component';
 import { MessageInputComponent } from '../message-input/message-input.component';
 import { MessageListComponent } from '../message-list/message-list.component';
+import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
 
 const SEND_ERROR = 'Die Nachricht konnte nicht gesendet werden.';
 const HEAD_AVATAR_LIMIT = 3;
@@ -54,6 +55,7 @@ type ChannelDialog = 'settings' | 'members' | 'add';
     ChannelSettingsDialogComponent,
     MessageInputComponent,
     MessageListComponent,
+    TypingIndicatorComponent,
     ProfileDialogComponent,
   ],
   templateUrl: './channel-view.component.html',
@@ -134,7 +136,7 @@ export class ChannelViewComponent {
     channelMessagesPath(this.channelId()),
   );
 
-  private readonly conversationPath = computed(() =>
+  protected readonly conversationPath = computed(() =>
     conversationDocPath(this.messagesCollectionPath()),
   );
 

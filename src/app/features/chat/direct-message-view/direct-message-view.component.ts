@@ -35,6 +35,7 @@ import { displayBadges } from '../../../shared/badge-options';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MessageInputComponent } from '../message-input/message-input.component';
 import { MessageListComponent } from '../message-list/message-list.component';
+import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
 
 const SEND_ERROR = 'Die Nachricht konnte nicht gesendet werden.';
 const UNKNOWN_PARTNER = 'Unbekannt';
@@ -51,6 +52,7 @@ const SELF_SUFFIX = ' (Du)';
   imports: [
     MessageInputComponent,
     MessageListComponent,
+    TypingIndicatorComponent,
     ProfileDialogComponent,
     AuroraNameComponent,
     AvatarActivatorDirective,
@@ -131,7 +133,7 @@ export class DirectMessageViewComponent {
       : null,
   );
 
-  private readonly conversationPath = computed(() => {
+  protected readonly conversationPath = computed(() => {
     const path = this.messagesCollectionPath();
     return path ? conversationDocPath(path) : null;
   });

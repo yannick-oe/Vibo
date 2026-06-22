@@ -68,9 +68,12 @@
     }
   </div>
 
+  <app-typing-indicator [conversationPath]="conversationPath()" />
+
   <div class="channel__composer">
     <app-message-input
       [placeholder]="composerPlaceholder()"
+      [conversationPath]="conversationPath()"
       (send)="sendMessage($event)"
       (sendGif)="sendGif($event)"
     />

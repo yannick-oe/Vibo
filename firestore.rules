@@ -105,6 +105,11 @@ service cloud.firestore {
         && request.resource.data.lastReadAt == request.time;
     }
 
+    function typingDocValid() {
+      return request.resource.data.keys().hasOnly(['updatedAt'])
+        && request.resource.data.updatedAt == request.time;
+    }
+
     match /users/{uid} {
       allow read: if signedIn();
       allow create, update, delete: if signedIn() && request.auth.uid == uid;
@@ -200,6 +205,15 @@ service cloud.firestore {
         allow create, update: if signedIn() && request.auth.uid == uid
           && isChannelMember(channelId) && readDocValid();
       }
+
+      // Co-located per-user typing state; readable by any member. Each user
+      // writes only their own marker (throttled client-side); deletes clear it.
+      match /typing/{uid} {
+        allow read: if isChannelMember(channelId);
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && isChannelMember(channelId) && typingDocValid();
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
     }
 
     // Conversation ids are deterministic — both participant uids sorted
@@ -246,6 +260,15 @@ service cloud.firestore {
         allow read: if isParticipant(conversationId);
         allow create, update: if isParticipant(conversationId)
           && request.auth.uid == uid && readDocValid();
+      }
+
+      // Co-located per-user typing state; readable by either participant. Each
+      // writes only their own marker (throttled client-side); deletes clear it.
+      match /typing/{uid} {
+        allow read: if isParticipant(conversationId);
+        allow create, update: if isParticipant(conversationId)
+          && request.auth.uid == uid && typingDocValid();
+        allow delete: if isParticipant(conversationId) && request.auth.uid == uid;
       }
     }
   }

@@ -1,0 +1,60 @@
+@use 'variables' as v;
+
+$typing-dot-size: 4px;
+$typing-dot-gap: 3px;
+$typing-bounce-distance: 2px;
+
+:host {
+  display: block;
+}
+
+.typing {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  min-height: calc(#{v.font-size('min')} * #{v.$line-height-base});
+  padding: 0 v.space('lg');
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+}
+
+.typing__dots {
+  display: inline-flex;
+  gap: $typing-dot-gap;
+}
+
+.typing__dot {
+  width: $typing-dot-size;
+  height: $typing-dot-size;
+  border-radius: v.$radius-round;
+  background-color: v.color('text-gray');
+  animation: typing-bounce 1.2s ease-in-out infinite;
+
+  &:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+}
+
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+
+  30% {
+    transform: translateY(-$typing-bounce-distance);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing__dot {
+    animation: none;
+  }
+}

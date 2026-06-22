@@ -18,6 +18,7 @@ import { GifResult } from '../../../models/gif.model';
 import { ChannelService } from '../../../services/channel.service';
 import { PresenceService } from '../../../services/presence.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
+import { TypingService } from '../../../services/typing.service';
 import { UserService } from '../../../services/user.service';
 import { parseMentions } from '../mention-parser';
 import {
@@ -60,6 +61,8 @@ export class MessageInputComponent {
 
   readonly gifEnabled = input(true);
 
+  readonly conversationPath = input<string | null>(null);
+
   readonly send = output<string>();
 
   readonly sendGif = output<GifResult>();
@@ -69,6 +72,8 @@ export class MessageInputComponent {
   private readonly channelService = inject(ChannelService);
 
   private readonly presenceService = inject(PresenceService);
+
+  private readonly typingService = inject(TypingService);
 
   private readonly textarea = viewChild.required<ElementRef<HTMLTextAreaElement>>('textarea');
 
@@ -117,6 +122,7 @@ export class MessageInputComponent {
     element.style.height = 'auto';
     element.style.height = `${Math.min(element.scrollHeight, MAX_TEXTAREA_HEIGHT_PX)}px`;
     this.syncMention(element);
+    this.signalTyping();
   }
 
 
@@ -215,12 +221,39 @@ export class MessageInputComponent {
   protected submit(): void {
     if (!this.canSend()) return;
     this.send.emit(this.text().trim());
+    this.stopTyping();
     this.text.set('');
     this.mention.set(null);
     const element = this.textarea().nativeElement;
     element.value = '';
     element.style.height = 'auto';
     element.focus();
+  }
+
+
+  /**
+   * Clears typing state when the composer loses focus.
+   */
+  protected onBlur(): void {
+    this.stopTyping();
+  }
+
+
+  /**
+   * Reports typing activity for the bound conversation, if one is set.
+   */
+  private signalTyping(): void {
+    const path = this.conversationPath();
+    if (path) this.typingService.notifyTyping(path);
+  }
+
+
+  /**
+   * Clears typing state for the bound conversation, if one is set.
+   */
+  private stopTyping(): void {
+    const path = this.conversationPath();
+    if (path) this.typingService.clearTyping(path);
   }
 
 
