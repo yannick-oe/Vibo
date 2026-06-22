@@ -2,7 +2,7 @@
   @if (isMobile()) {
     @if (showBack()) {
       <button class="topbar__back" type="button" aria-label="Zurück" (click)="back()">
-        <img src="icons/arrow-left.svg" alt="" aria-hidden="true" />
+        <img src="app-icons/arrow-left.svg" alt="" aria-hidden="true" />
       </button>
       <div class="topbar__workspace">
         <img class="topbar__workspace-logo" src="logos/workspace-logo.svg" alt="" aria-hidden="true" />
@@ -62,7 +62,7 @@
           />
           <span class="topbar__status" aria-hidden="true"></span>
         </span>
-        <img class="topbar__chevron" src="icons/arrow-down.svg" alt="" aria-hidden="true" />
+        <img class="topbar__chevron" src="app-icons/arrow-down.svg" alt="" aria-hidden="true" />
       </button>
     </div>
   }
@@ -79,7 +79,7 @@
       </div>
       <div class="topbar__menu-items" role="menu">
         <button class="topbar__menu-item topbar__menu-item--profile" type="button" role="menuitem" (click)="openProfile()">
-          <img src="icons/account-circle.svg" alt="" aria-hidden="true" />
+          <img src="app-icons/account-circle.svg" alt="" aria-hidden="true" />
           Profil
         </button>
         <button
@@ -102,7 +102,7 @@
           {{ themeLabel() }}
         </button>
         <button class="topbar__menu-item topbar__menu-item--logout" type="button" role="menuitem" (click)="logout()">
-          <img src="icons/logout.svg" alt="" aria-hidden="true" />
+          <img src="app-icons/logout.svg" alt="" aria-hidden="true" />
           Log out
         </button>
       </div>

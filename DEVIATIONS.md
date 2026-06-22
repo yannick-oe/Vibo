@@ -3,6 +3,16 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Icon assets live under `/app-icons/`, not `/icons/` (2026-06-22)
+The `/icons/` path is **reserved by the production host** (a classic Apache autoindex
+alias), so requests to `/icons/*` are intercepted by the server and never reach our web
+root — every icon 404s on the live host even though the files exist. It is **invisible on
+the Angular dev server**, which has no such alias, so it only reproduces in production.
+Fix: the asset folder was renamed `public/icons` → **`public/app-icons`** and every
+reference updated (`src="app-icons/…"`, the TS icon-path constants, the SCSS bundled
+`url(.../public/app-icons/…)` hover icons and the dark-theme `img[src^='app-icons/']`
+recolor selector). No central icon-path helper exists, so each occurrence was updated.
+
 ## Legal pages: German routes + GIPHY disclosure (2026-06-21)
 The public legal pages were **renamed to German routes** and the privacy policy gained a **GIPHY**
 disclosure. The pages were already bespoke, **phone-free Austrian-law** texts (§ 5 ECG / § 25
@@ -371,7 +381,7 @@ but nothing is statically pinned. Discoverability instead lives in the picker:
   (smart vs. presentational). This is the standard Angular standalone layout and
   maps to the checklist's `components/` requirement.
 - **Assets in `public/` instead of `src/assets/` (or an `img/` folder).** This is
-  the Angular 17+ convention; `public/` holds `icons/`, `emojis/`, `avatars/`,
+  the Angular 17+ convention; `public/` holds `app-icons/`, `emojis/`, `avatars/`,
   `logos/`, `fonts/`, `illustrations/`, `sounds/`, `favicon/`. It maps to the
   checklist's images/assets requirement.
 - **No `pipes/` folder** because the app defines no custom pipes (the folder is

@@ -17,7 +17,7 @@ import { FirebaseError } from 'firebase/app';
 import { AuthService } from '../../../services/auth.service';
 import { ToastService } from '../../../services/toast.service';
 
-const SEND_ICON = 'icons/send-white.svg';
+const SEND_ICON = 'app-icons/send-white.svg';
 const TOAST_MESSAGE = 'E-Mail gesendet';
 const GENERAL_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es später erneut.';
 

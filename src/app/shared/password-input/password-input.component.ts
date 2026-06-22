@@ -7,8 +7,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 const SHOW_LABEL = 'Passwort anzeigen';
 const HIDE_LABEL = 'Passwort verbergen';
-const SHOW_ICON = 'icons/visibility.svg';
-const HIDE_ICON = 'icons/visibility-off.svg';
+const SHOW_ICON = 'app-icons/visibility.svg';
+const HIDE_ICON = 'app-icons/visibility-off.svg';
 
 /**
  * Pill-shaped password field with an optional leading icon and a trailing

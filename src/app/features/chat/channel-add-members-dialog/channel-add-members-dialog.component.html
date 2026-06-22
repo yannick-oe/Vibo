@@ -5,7 +5,7 @@
       <span class="add-members__context"># {{ channel().name }}</span>
     </div>
     <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="closed.emit()">
-      <img src="icons/close.svg" alt="" aria-hidden="true" />
+      <img src="app-icons/close.svg" alt="" aria-hidden="true" />
     </button>
   </header>
 
@@ -32,7 +32,7 @@
             [attr.aria-label]="'Entfernen: ' + user.name"
             (click)="removeUser(user.uid)"
           >
-            <img src="icons/close.svg" alt="" aria-hidden="true" />
+            <img src="app-icons/close.svg" alt="" aria-hidden="true" />
           </button>
         </li>
       }

@@ -17,7 +17,7 @@
   gap: v.space('md');
 
   > .btn-icon:hover img {
-    content: url('../../../../../public/icons/edit-square-hover.svg');
+    content: url('../../../../../public/app-icons/edit-square-hover.svg');
     filter: none;
   }
 }
@@ -47,7 +47,7 @@
   gap: v.space('sm');
 
   > .btn-icon:hover img {
-    content: url('../../../../../public/icons/add-hover.svg');
+    content: url('../../../../../public/app-icons/add-hover.svg');
     filter: none;
   }
 }
@@ -70,17 +70,17 @@
     color: v.color('primary');
 
     .workspace__caret {
-      content: url('../../../../../public/icons/arrow-drop-down-hover.svg');
+      content: url('../../../../../public/app-icons/arrow-drop-down-hover.svg');
       filter: none;
     }
 
     .workspace__section-icon[src*="workspaces.svg"] {
-      content: url('../../../../../public/icons/workspaces-hover.svg');
+      content: url('../../../../../public/app-icons/workspaces-hover.svg');
       filter: none;
     }
 
     .workspace__section-icon[src*="account-circle.svg"] {
-      content: url('../../../../../public/icons/account-circle-hover.svg');
+      content: url('../../../../../public/app-icons/account-circle-hover.svg');
       filter: none;
     }
   }
@@ -176,7 +176,7 @@
     outline: none;
 
     .workspace__item-icon {
-      content: url('../../../../../public/icons/tag-hover.svg');
+      content: url('../../../../../public/app-icons/tag-hover.svg');
       filter: none;
     }
   }
@@ -187,7 +187,7 @@
     color: v.color('primary');
 
     .workspace__item-icon {
-      content: url('../../../../../public/icons/tag-hover.svg');
+      content: url('../../../../../public/app-icons/tag-hover.svg');
       filter: none;
     }
   }
@@ -197,7 +197,7 @@
       color: v.color('primary');
 
       .workspace__item-icon {
-        content: url('../../../../../public/icons/add-circle-hover.svg');
+        content: url('../../../../../public/app-icons/add-circle-hover.svg');
         filter: none;
       }
     }

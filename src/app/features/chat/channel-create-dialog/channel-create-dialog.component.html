@@ -15,7 +15,7 @@
       <header class="create-channel__head">
         <h2 class="create-channel__title" id="create-channel-title">Channel erstellen</h2>
         <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="close()">
-          <img src="icons/close.svg" alt="" aria-hidden="true" />
+          <img src="app-icons/close.svg" alt="" aria-hidden="true" />
         </button>
       </header>
 
@@ -28,7 +28,7 @@
         <div class="form-field">
           <label class="form-label create-channel__label" for="create-channel-name">Channel-Name</label>
           <div class="form-input-wrapper form-input-wrapper--leading">
-            <img class="form-input-icon" src="icons/tag-grey.svg" alt="" aria-hidden="true" />
+            <img class="form-input-icon" src="app-icons/tag-grey.svg" alt="" aria-hidden="true" />
             <input
               #nameInput
               id="create-channel-name"
@@ -70,7 +70,7 @@
       <header class="create-channel__head">
         <h2 class="create-channel__title" id="create-channel-title">Leute hinzufügen</h2>
         <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="close()">
-          <img src="icons/close.svg" alt="" aria-hidden="true" />
+          <img src="app-icons/close.svg" alt="" aria-hidden="true" />
         </button>
       </header>
 
@@ -130,7 +130,7 @@
                     [attr.aria-label]="'Entfernen: ' + user.name"
                     (click)="removeUser(user.uid)"
                   >
-                    <img src="icons/close.svg" alt="" aria-hidden="true" />
+                    <img src="app-icons/close.svg" alt="" aria-hidden="true" />
                   </button>
                 </li>
               }

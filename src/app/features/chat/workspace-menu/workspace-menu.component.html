@@ -2,7 +2,7 @@
   @if (isMobile()) {
     <button class="workspace__search-trigger" type="button" (click)="isSearchOpen.set(true)">
       Gehe zu...
-      <img class="workspace__search-icon" src="icons/search.svg" alt="" aria-hidden="true" />
+      <img class="workspace__search-icon" src="app-icons/search.svg" alt="" aria-hidden="true" />
     </button>
   }
 
@@ -10,7 +10,7 @@
     <img class="workspace__head-logo" src="logos/workspace-logo.svg" alt="" aria-hidden="true" />
     <h2 class="workspace__title" id="workspace-title" tabindex="-1">{{ workspaceName }}</h2>
     <a class="btn btn-icon btn-sm" routerLink="/app/new-message" aria-label="Neue Nachricht">
-      <img src="icons/edit-square.svg" alt="" aria-hidden="true" />
+      <img src="app-icons/edit-square.svg" alt="" aria-hidden="true" />
     </a>
   </header>
 
@@ -26,15 +26,15 @@
         <img
           class="workspace__caret"
           [class.workspace__caret--closed]="!isChannelsOpen()"
-          src="icons/arrow-drop-down.svg"
+          src="app-icons/arrow-drop-down.svg"
           alt=""
           aria-hidden="true"
         />
-        <img class="workspace__section-icon" src="icons/workspaces.svg" alt="" aria-hidden="true" />
+        <img class="workspace__section-icon" src="app-icons/workspaces.svg" alt="" aria-hidden="true" />
         <span class="workspace__section-title">Channels</span>
       </button>
       <button class="btn btn-icon btn-sm" type="button" aria-label="Channel hinzufügen" (click)="openDialog()">
-        <img src="icons/add.svg" alt="" aria-hidden="true" />
+        <img src="app-icons/add.svg" alt="" aria-hidden="true" />
       </button>
     </div>
 
@@ -49,7 +49,7 @@
               #channelLink="routerLinkActive"
               [attr.aria-current]="channelLink.isActive ? 'page' : null"
             >
-              <img class="workspace__item-icon" src="icons/tag.svg" alt="" aria-hidden="true" />
+              <img class="workspace__item-icon" src="app-icons/tag.svg" alt="" aria-hidden="true" />
               <span class="workspace__item-name">{{ channel.name }}</span>
               <app-unread-badge
                 [conversationPath]="channelConvPath(channel.id)"
@@ -68,7 +68,7 @@
           >
             <img
               class="workspace__item-icon"
-              [src]="isMobile() ? 'icons/add-circle-hover.svg' : 'icons/add-circle.svg'"
+              [src]="isMobile() ? 'app-icons/add-circle-hover.svg' : 'app-icons/add-circle.svg'"
               alt=""
               aria-hidden="true"
             />
@@ -91,13 +91,13 @@
         <img
           class="workspace__caret"
           [class.workspace__caret--closed]="!isDirectOpen()"
-          src="icons/arrow-drop-down.svg"
+          src="app-icons/arrow-drop-down.svg"
           alt=""
           aria-hidden="true"
         />
         <img
           class="workspace__section-icon"
-          src="icons/account-circle.svg"
+          src="app-icons/account-circle.svg"
           alt=""
           aria-hidden="true"
         />
@@ -163,7 +163,7 @@
 
 @if (isMobile()) {
   <a class="workspace__fab" routerLink="/app/new-message" aria-label="Neue Nachricht">
-    <img src="icons/edit-square-white.svg" alt="" aria-hidden="true" />
+    <img src="app-icons/edit-square-white.svg" alt="" aria-hidden="true" />
   </a>
 }
 

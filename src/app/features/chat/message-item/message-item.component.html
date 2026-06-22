@@ -52,7 +52,7 @@
             aria-label="Emoji einfügen"
             (click)="editPickerOpen.set(!editPickerOpen()); $event.stopPropagation()"
           >
-            <img src="icons/smile.svg" alt="" aria-hidden="true" />
+            <img src="app-icons/smile.svg" alt="" aria-hidden="true" />
           </button>
           @if (editPickerOpen()) {
             <app-emoji-picker
@@ -69,7 +69,7 @@
             aria-label="Abbrechen"
             (click)="cancelEdit()"
           >
-            <img class="message__edit-btn-icon" src="icons/close.svg" alt="" aria-hidden="true" />
+            <img class="message__edit-btn-icon" src="app-icons/close.svg" alt="" aria-hidden="true" />
             <span class="message__edit-btn-label">Abbrechen</span>
           </button>
           <button
@@ -81,7 +81,7 @@
           >
             <img
               class="message__edit-btn-icon"
-              src="icons/check-circle.svg"
+              src="app-icons/check-circle.svg"
               alt=""
               aria-hidden="true"
             />

@@ -2,7 +2,7 @@
   <header class="settings__head">
     <h2 class="settings__title" id="channel-settings-title"># {{ channel().name }}</h2>
     <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="closed.emit()">
-      <img src="icons/close.svg" alt="" aria-hidden="true" />
+      <img src="app-icons/close.svg" alt="" aria-hidden="true" />
     </button>
   </header>
 
@@ -17,7 +17,7 @@
           [disabled]="isEditingName() && isPending()"
           (click)="isEditingName() ? saveName() : startNameEdit()"
         >
-          <img [src]="isEditingName() ? 'icons/check-circle.svg' : 'icons/edit.svg'" alt="" aria-hidden="true" />
+          <img [src]="isEditingName() ? 'app-icons/check-circle.svg' : 'app-icons/edit.svg'" alt="" aria-hidden="true" />
         </button>
       } @else if (isEditingName()) {
         <button class="settings__link" type="button" [disabled]="isPending()" (click)="saveName()">
@@ -30,7 +30,7 @@
     @if (isEditingName()) {
       <label class="sr-only" for="settings-name">Channel-Name</label>
       <div class="form-input-wrapper form-input-wrapper--leading">
-        <img class="form-input-icon" src="icons/tag-grey.svg" alt="" aria-hidden="true" />
+        <img class="form-input-icon" src="app-icons/tag-grey.svg" alt="" aria-hidden="true" />
         <input
           id="settings-name"
           class="form-input form-input--outlined"
@@ -58,7 +58,7 @@
           [disabled]="isEditingDescription() && isPending()"
           (click)="isEditingDescription() ? saveDescription() : startDescriptionEdit()"
         >
-          <img [src]="isEditingDescription() ? 'icons/check-circle.svg' : 'icons/edit.svg'" alt="" aria-hidden="true" />
+          <img [src]="isEditingDescription() ? 'app-icons/check-circle.svg' : 'app-icons/edit.svg'" alt="" aria-hidden="true" />
         </button>
       } @else if (isEditingDescription()) {
         <button class="settings__link" type="button" [disabled]="isPending()" (click)="saveDescription()">
@@ -119,7 +119,7 @@
         }
       </ul>
       <button class="settings__member settings__member--add" type="button" (click)="addMembersRequested.emit()">
-        <img class="settings__member-add-icon" src="icons/add-person.svg" alt="" aria-hidden="true" />
+        <img class="settings__member-add-icon" src="app-icons/add-person.svg" alt="" aria-hidden="true" />
         Mitglieder hinzufügen
       </button>
     </section>

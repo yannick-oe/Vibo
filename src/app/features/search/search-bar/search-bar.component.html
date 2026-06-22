@@ -14,7 +14,7 @@
     "
     (keydown)="onKeydown($event)"
   />
-  <img class="search-bar__icon" src="icons/search.svg" alt="" aria-hidden="true" />
+  <img class="search-bar__icon" src="app-icons/search.svg" alt="" aria-hidden="true" />
 </div>
 
 @if (results(); as found) {
@@ -33,7 +33,7 @@
               [attr.aria-selected]="flatIndex('channels', index) === activeIndex()"
               (click)="pick(hit)"
             >
-              <img class="search-bar__hash" src="icons/tag.svg" alt="" aria-hidden="true" />
+              <img class="search-bar__hash" src="app-icons/tag.svg" alt="" aria-hidden="true" />
               {{ hit.name }}
             </button>
           </li>

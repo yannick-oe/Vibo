@@ -8,9 +8,9 @@
       [attr.aria-expanded]="dialog() === 'settings'"
       (click)="openDialog('settings', $event)"
     >
-      <img class="channel__title-icon" src="icons/tag.svg" alt="" aria-hidden="true" />
+      <img class="channel__title-icon" src="app-icons/tag.svg" alt="" aria-hidden="true" />
       <span class="channel__name">{{ channel()?.name }}</span>
-      <img class="channel__caret" src="icons/arrow-down.svg" alt="" aria-hidden="true" />
+      <img class="channel__caret" src="app-icons/arrow-down.svg" alt="" aria-hidden="true" />
     </button>
 
     <div class="channel__members">
@@ -38,7 +38,7 @@
         [attr.aria-expanded]="dialog() === 'add'"
         (click)="openDialog('add', $event)"
       >
-        <img src="icons/add-person.svg" alt="" aria-hidden="true" />
+        <img src="app-icons/add-person.svg" alt="" aria-hidden="true" />
       </button>
     </div>
   </header>
@@ -57,7 +57,7 @@
     @if (showIntro()) {
       <div class="channel__intro">
         <h2 class="channel__intro-title">
-          <img class="channel__intro-hash" src="icons/tag.svg" alt="" aria-hidden="true" />
+          <img class="channel__intro-hash" src="app-icons/tag.svg" alt="" aria-hidden="true" />
           {{ channel()?.name }}
         </h2>
         <p class="channel__intro-text">

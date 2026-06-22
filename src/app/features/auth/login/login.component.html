@@ -9,7 +9,7 @@
     <div class="form-field">
       <label class="sr-only" for="login-email">E-Mail-Adresse</label>
       <div class="form-input-wrapper form-input-wrapper--leading">
-        <img class="form-input-icon" [src]="isEmailFocused ? 'icons/mail.svg' : 'icons/mail-grey.svg'" alt="" aria-hidden="true" />
+        <img class="form-input-icon" [src]="isEmailFocused ? 'app-icons/mail.svg' : 'app-icons/mail-grey.svg'" alt="" aria-hidden="true" />
         <input
           id="login-email"
           class="form-input"
@@ -33,7 +33,7 @@
         formControlName="password"
         placeholder="Passwort"
         autocomplete="current-password"
-        [leadingIcon]="isPasswordFocused ? 'icons/lock.svg' : 'icons/lock-grey.svg'"
+        [leadingIcon]="isPasswordFocused ? 'app-icons/lock.svg' : 'app-icons/lock-grey.svg'"
         describedBy="login-password-error"
         [isInvalid]="isInvalid('password')"
         (focus)="isPasswordFocused = true"
@@ -52,7 +52,7 @@
       [disabled]="isPending()"
       (click)="loginWithGoogle()"
     >
-      <img class="login-card__google-icon" src="icons/google.svg" alt="" aria-hidden="true" />
+      <img class="login-card__google-icon" src="app-icons/google.svg" alt="" aria-hidden="true" />
       Anmelden mit Google
     </button>
 

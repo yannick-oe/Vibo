@@ -42,7 +42,7 @@
           [attr.aria-expanded]="pickerOpen()"
           (click)="pickerOpen.set(!pickerOpen()); $event.stopPropagation()"
         >
-          <img src="icons/smile.svg" alt="" aria-hidden="true" />
+          <img src="app-icons/smile.svg" alt="" aria-hidden="true" />
         </button>
         @if (pickerOpen()) {
           <app-emoji-picker
@@ -70,7 +70,7 @@
         [attr.aria-expanded]="mention()?.type === '@'"
         (click)="toggleMentionButton()"
       >
-        <img src="icons/at.svg" alt="" aria-hidden="true" />
+        <img src="app-icons/at.svg" alt="" aria-hidden="true" />
       </button>
     </div>
     <button
@@ -80,7 +80,7 @@
       [disabled]="!canSend()"
       (click)="submit()"
     >
-      <img src="icons/send.svg" alt="" aria-hidden="true" />
+      <img src="app-icons/send.svg" alt="" aria-hidden="true" />
     </button>
   </div>
 </div>

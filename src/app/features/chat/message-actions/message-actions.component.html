@@ -24,7 +24,7 @@
     aria-label="Emoji auswählen"
     (click)="pickerRequested.emit(); $event.stopPropagation()"
   >
-    <img src="icons/add-reaction.svg" alt="" aria-hidden="true" />
+    <img src="app-icons/add-reaction.svg" alt="" aria-hidden="true" />
   </button>
 
   @if (isThreadable()) {
@@ -35,7 +35,7 @@
       [attr.aria-expanded]="isThreadOpen()"
       (click)="threadToggled.emit()"
     >
-      <img src="icons/comment.svg" alt="" aria-hidden="true" />
+      <img src="app-icons/comment.svg" alt="" aria-hidden="true" />
     </button>
   }
 
@@ -51,7 +51,7 @@
         (click)="toggleMenu(); $event.stopPropagation()"
         (touchend)="toggleMenuTouch($event)"
       >
-        <img src="icons/more-vert.svg" alt="" aria-hidden="true" />
+        <img src="app-icons/more-vert.svg" alt="" aria-hidden="true" />
       </button>
 
       @if (menuState() === 'menu') {

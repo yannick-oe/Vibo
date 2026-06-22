@@ -8,7 +8,7 @@
   <header class="profile__head">
     <h2 class="profile__title" id="profile-dialog-title">{{ headerTitle() }}</h2>
     <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="closed.emit()">
-      <img src="icons/close.svg" alt="" aria-hidden="true" />
+      <img src="app-icons/close.svg" alt="" aria-hidden="true" />
     </button>
   </header>
 
@@ -53,7 +53,7 @@
     @if (email(); as mailAddress) {
       <div class="profile__mail">
         <div class="profile__mail-label">
-          <img src="icons/mail.svg" alt="" aria-hidden="true" />
+          <img src="app-icons/mail.svg" alt="" aria-hidden="true" />
           E-Mail-Adresse
         </div>
         <a class="profile__mail-value" [href]="'mailto:' + mailAddress">{{ mailAddress }}</a>
@@ -63,7 +63,7 @@
     @if (!isSelf()) {
       <footer class="profile__actions">
         <button class="btn btn-primary" type="button" (click)="message()">
-          <img src="icons/comment-white.svg" alt="" aria-hidden="true" />
+          <img src="app-icons/comment-white.svg" alt="" aria-hidden="true" />
           Nachricht
         </button>
       </footer>
@@ -108,7 +108,7 @@
     <div class="profile__fields">
       <div class="form-field">
         <label class="form-label profile__label" for="profile-name">
-          <img src="icons/account-circle.svg" alt="" aria-hidden="true" />
+          <img src="app-icons/account-circle.svg" alt="" aria-hidden="true" />
           Vollständiger Name
         </label>
         <input
@@ -145,7 +145,7 @@
               aria-label="Status löschen"
               (click)="clearStatus()"
             >
-              <img src="icons/close.svg" alt="" aria-hidden="true" />
+              <img src="app-icons/close.svg" alt="" aria-hidden="true" />
             </button>
           }
         </div>

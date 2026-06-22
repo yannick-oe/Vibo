@@ -7,7 +7,7 @@
         <div class="new-message__chip-area">
           <span class="new-message__chip">
             @if (locked.kind === 'channel') {
-              <img class="new-message__chip-hash" src="icons/tag.svg" alt="" aria-hidden="true" />
+              <img class="new-message__chip-hash" src="app-icons/tag.svg" alt="" aria-hidden="true" />
             } @else {
               <img class="new-message__chip-avatar" appAvatarFallback [src]="locked.avatar" alt="" aria-hidden="true" />
             }
@@ -18,7 +18,7 @@
               [attr.aria-label]="'Empfänger entfernen: ' + locked.label"
               (click)="removeRecipient()"
             >
-              <img src="icons/close.svg" alt="" aria-hidden="true" />
+              <img src="app-icons/close.svg" alt="" aria-hidden="true" />
             </button>
           </span>
         </div>

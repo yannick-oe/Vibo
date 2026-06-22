@@ -1,7 +1,7 @@
 <section class="auth-card register-card">
   <header class="auth-card__head">
     <a class="btn btn-icon" routerLink="/auth/login" aria-label="Zurück zur Anmeldung">
-      <img src="icons/arrow-left.svg" alt="" aria-hidden="true" />
+      <img src="app-icons/arrow-left.svg" alt="" aria-hidden="true" />
     </a>
     <h1 #title class="register-card__title" tabindex="-1">Konto erstellen</h1>
   </header>
@@ -14,7 +14,7 @@
     <div class="form-field">
       <label class="sr-only" for="register-name">Name und Nachname</label>
       <div class="form-input-wrapper form-input-wrapper--leading">
-        <img class="form-input-icon icon-person" [src]="isNameFocused ? 'icons/person.svg' : 'icons/person-grey.svg'" alt="" aria-hidden="true" />
+        <img class="form-input-icon icon-person" [src]="isNameFocused ? 'app-icons/person.svg' : 'app-icons/person-grey.svg'" alt="" aria-hidden="true" />
         <input
           id="register-name"
           class="form-input"
@@ -34,7 +34,7 @@
     <div class="form-field">
       <label class="sr-only" for="register-email">E-Mail-Adresse</label>
       <div class="form-input-wrapper form-input-wrapper--leading">
-        <img class="form-input-icon" [src]="isEmailFocused ? 'icons/mail.svg' : 'icons/mail-grey.svg'" alt="" aria-hidden="true" />
+        <img class="form-input-icon" [src]="isEmailFocused ? 'app-icons/mail.svg' : 'app-icons/mail-grey.svg'" alt="" aria-hidden="true" />
         <input
           id="register-email"
           class="form-input"
@@ -58,7 +58,7 @@
         formControlName="password"
         placeholder="Passwort"
         autocomplete="new-password"
-        [leadingIcon]="isPasswordFocused ? 'icons/lock.svg' : 'icons/lock-grey.svg'"
+        [leadingIcon]="isPasswordFocused ? 'app-icons/lock.svg' : 'app-icons/lock-grey.svg'"
         describedBy="register-password-error"
         [isInvalid]="isInvalid('password')"
         (focus)="isPasswordFocused = true"
