@@ -18,6 +18,9 @@ export interface BadgeOption {
 /** Badge shown for a user that has no explicit badges field (demo default). */
 export const DEFAULT_BADGE_ID = 'developer';
 
+/** Badge auto-assigned to newly registered users; the rest stay manual. */
+export const NEW_USER_BADGE_ID = 'verified';
+
 const ICON_FOUNDER =
   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.25l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.3l-5.9 3.12 1.13-6.57L2.35 9.19l6.6-.96z"/></svg>';
 
