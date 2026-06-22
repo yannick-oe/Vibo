@@ -5,7 +5,6 @@ $consent-touch-target: 44px;
 $consent-box-size: 18px;
 $consent-mark-size: 14px;
 $consent-box-border: 1.5px;
-$consent-visual-top: calc(#{v.font-size('min')} * #{v.$line-height-base} / 2);
 
 :host {
   display: contents;
@@ -39,7 +38,7 @@ $consent-visual-top: calc(#{v.font-size('min')} * #{v.$line-height-base} / 2);
 }
 
 .form-checkbox-label {
-  align-items: flex-start;
+  align-items: center;
   gap: v.space('md');
 }
 
@@ -53,7 +52,7 @@ $consent-visual-top: calc(#{v.font-size('min')} * #{v.$line-height-base} / 2);
   &::before {
     content: '';
     position: absolute;
-    top: $consent-visual-top;
+    top: 50%;
     left: 50%;
     width: $consent-box-size;
     height: $consent-box-size;
@@ -71,7 +70,7 @@ $consent-visual-top: calc(#{v.font-size('min')} * #{v.$line-height-base} / 2);
 
   &:checked::after {
     inset: auto;
-    top: $consent-visual-top;
+    top: 50%;
     left: 50%;
     width: $consent-mark-size;
     height: $consent-mark-size;
