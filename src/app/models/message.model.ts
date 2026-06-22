@@ -11,6 +11,22 @@ import { FieldValue, Timestamp } from '@angular/fire/firestore';
 export type ReactionMap = Record<string, string[]>;
 
 /**
+ * A broadcast big-reaction event written onto a message so every viewer's
+ * existing message listener replays it once. Currently only the 😂 laugh
+ * burst; the id is deduped per client and the timestamp gates the replay.
+ */
+export interface BigReactionEvent {
+  /** Client-generated id; each client plays a given id at most once. */
+  id: string;
+  /** Effect to play; the only kind for now is the 😂 laugh burst. */
+  type: 'laugh';
+  /** Uid of the user who triggered it. */
+  by: string;
+  /** Trigger time: serverTimestamp() on write, Timestamp on read; gates replay. */
+  at: Timestamp | FieldValue;
+}
+
+/**
  * Firestore document stored at .../messages/{messageId}/replies/{replyId}.
  * Also the shared base shape of chat messages.
  */
@@ -41,6 +57,8 @@ export interface ReplyDoc {
   gifHeight?: number;
   /** GIF accessible label (the Giphy title). */
   gifAlt?: string;
+  /** Latest broadcast big-reaction event (a 😂 laugh), replayed live to all viewers. */
+  lastBigReaction?: BigReactionEvent;
 }
 
 /**

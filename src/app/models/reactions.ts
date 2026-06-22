@@ -24,6 +24,12 @@ export const BIG_REACTION_LABELS: Readonly<Record<string, string>> = {
 /** Ordered big-reaction emojis shown in the picker's Big Reactions section. */
 export const BIG_REACTION_EMOJIS: readonly string[] = Object.keys(BIG_REACTIONS);
 
+/**
+ * The 😂 reaction that, unlike the local big reactions above, broadcasts a
+ * shared laugh burst every viewer of the message plays in real time.
+ */
+export const LAUGH_EMOJI = '😂';
+
 
 /**
  * The single emoji the signed-in user currently reacts with, or null. Each

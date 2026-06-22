@@ -66,6 +66,15 @@ service cloud.firestore {
       return affectedKeys().hasOnly(['reactions']);
     }
 
+    // Broadcast "big laugh": any member/participant stamps the latest laugh
+    // event (their own uid, server time) so every viewer replays it once.
+    function setsBigReaction() {
+      return affectedKeys().hasOnly(['lastBigReaction'])
+        && request.resource.data.lastBigReaction.type == 'laugh'
+        && request.resource.data.lastBigReaction.by == request.auth.uid
+        && request.resource.data.lastBigReaction.at == request.time;
+    }
+
     // "Für mich löschen": a user may only append their own uid.
     function appendsSelfToHiddenFor() {
       return affectedKeys().hasOnly(['hiddenFor'])
@@ -87,7 +96,8 @@ service cloud.firestore {
       return editsOwnTextInWindow()
         || setsTombstone()
         || togglesReactionsOnly()
-        || appendsSelfToHiddenFor();
+        || appendsSelfToHiddenFor()
+        || setsBigReaction();
     }
 
     // Denormalization: the message author stamps the conversation's

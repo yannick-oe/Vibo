@@ -19,9 +19,11 @@ import { Timestamp } from '@angular/fire/firestore';
 
 import { Message } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
+import { BigReactionService } from '../../../services/big-reaction.service';
 import { ReadEntry } from '../../../services/read-state.service';
 import { LayoutService } from '../../../services/layout.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
+import { BigReactionTracker } from '../big-reaction-tracker';
 import { MessageEntranceTracker } from '../message-entrance';
 import { MessageItemComponent } from '../message-item/message-item.component';
 
@@ -81,6 +83,8 @@ export class MessageListComponent {
 
   private readonly layoutService = inject(LayoutService);
 
+  private readonly bigReactionService = inject(BigReactionService);
+
   protected readonly reactionLimit = computed(() =>
     this.layoutService.isMobile() ? MOBILE_REACTION_LIMIT : DESKTOP_REACTION_LIMIT,
   );
@@ -99,6 +103,8 @@ export class MessageListComponent {
   protected readonly groups = computed(() => this.groupMessages());
 
   protected readonly entrance = new MessageEntranceTracker();
+
+  private readonly bigReaction = new BigReactionTracker();
 
 
   /**
@@ -119,6 +125,18 @@ export class MessageListComponent {
     effect(() => this.handleContextSwitch(this.resetKey()));
     effect(() => this.handleMessagesRendered(this.groups()));
     effect(() => this.handleFocusTarget(this.groups()));
+    effect(() => this.playBigReactions(this.messages()));
+  }
+
+
+  /**
+   * Plays a laugh burst for each message whose broadcast laugh event is new
+   * since this context opened, reusing the existing message stream (no extra
+   * listener) and deduplicating by event id.
+   * @param messages Current messages (effect dependency).
+   */
+  private playBigReactions(messages: Message[]): void {
+    for (const id of this.bigReaction.collect(messages)) this.bigReactionService.play(id);
   }
 
 
@@ -159,6 +177,7 @@ export class MessageListComponent {
     this.renderedResetKey = resetKey;
     this.stickToBottom = true;
     this.entrance.open();
+    this.bigReaction.open();
   }
 
 

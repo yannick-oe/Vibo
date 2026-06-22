@@ -18,7 +18,7 @@ import {
 
 import { ChatEntry, Message } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
-import { EffectsService } from '../../../services/effects.service';
+import { BigReactionService } from '../../../services/big-reaction.service';
 import { ReadEntry } from '../../../services/read-state.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
 import { MessageService } from '../../../services/message.service';
@@ -113,7 +113,7 @@ export class MessageItemComponent {
 
   private readonly recentEmojiService = inject(RecentEmojiService);
 
-  private readonly effectsService = inject(EffectsService);
+  private readonly bigReactionService = inject(BigReactionService);
 
   private readonly messageFocusService = inject(MessageFocusService);
 
@@ -251,8 +251,8 @@ export class MessageItemComponent {
 
   /**
    * Sets the signed-in user's single reaction to `emoji` (replacing any
-   * existing one, or toggling it off); adding a reaction records the quick
-   * emoji and plays the full-screen effect of a special big reaction.
+   * existing one, or toggling it off); adding records the quick emoji and
+   * dispatches its effect (local big effect, or the broadcast 😂 laugh).
    * @param emoji Emoji character to set.
    */
   protected async react(emoji: string): Promise<void> {
@@ -263,7 +263,7 @@ export class MessageItemComponent {
     const isAdding = !(reactions[emoji] ?? []).includes(uid);
     if (isAdding) {
       this.recentEmojiService.record(emoji);
-      this.effectsService.playFor(emoji);
+      this.bigReactionService.onReactionAdded(emoji, messagePath);
     }
     this.barOpen.set(false);
     await this.runAction(() => this.messageService.setReaction(messagePath, emoji, reactions));
