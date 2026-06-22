@@ -1,4 +1,11 @@
 @use 'variables' as v;
+@use 'mixins' as m;
+
+$consent-touch-target: 44px;
+$consent-box-size: 18px;
+$consent-mark-size: 14px;
+$consent-box-border: 1.5px;
+$consent-visual-top: calc(#{v.font-size('min')} * #{v.$line-height-base} / 2);
 
 :host {
   display: contents;
@@ -29,4 +36,67 @@
 
 .icon-person {
   transform: scale(0.8);
+}
+
+.form-checkbox-label {
+  align-items: flex-start;
+  gap: v.space('md');
+}
+
+.form-checkbox {
+  width: $consent-touch-target;
+  height: $consent-touch-target;
+  border: none;
+  border-radius: 0;
+  background: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: $consent-visual-top;
+    left: 50%;
+    width: $consent-box-size;
+    height: $consent-box-size;
+    transform: translate(-50%, -50%);
+    border: $consent-box-border solid var(--field-border);
+    border-radius: v.$radius-xs;
+    background-color: v.color('white');
+    transition: border-color v.$transition-base, background-color v.$transition-base;
+  }
+
+  &:checked::before {
+    border-color: v.color('primary');
+    background-color: v.color('primary');
+  }
+
+  &:checked::after {
+    inset: auto;
+    top: $consent-visual-top;
+    left: 50%;
+    width: $consent-mark-size;
+    height: $consent-mark-size;
+    transform: translate(-50%, -50%);
+  }
+
+  &:focus-visible {
+    box-shadow: none;
+  }
+
+  &:focus-visible::before {
+    @include m.focus-ring;
+  }
+}
+
+.form-checkbox-label a {
+  display: inline-flex;
+  align-items: center;
+  min-height: $consent-touch-target;
+  padding: 0;
+  border: none;
+  text-decoration: underline;
+
+  &:hover {
+    border: none;
+    font-weight: inherit;
+  }
 }
