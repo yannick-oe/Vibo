@@ -19,6 +19,8 @@ import { ChannelService } from '../../../services/channel.service';
 import { RegistrationFormData, RegistrationService } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { AVATAR_OPTIONS } from '../../../shared/avatar-options';
+import { AvatarComponent } from '../../../shared/avatar/avatar.component';
+import { AvatarActivatorDirective } from '../../../shared/avatar/avatar-activator.directive';
 
 const SUCCESS_REDIRECT_DELAY_MS = 1500;
 const SUCCESS_TOAST_MESSAGE = 'Konto erfolgreich erstellt!';
@@ -34,6 +36,7 @@ const GENERAL_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es 
  */
 @Component({
   selector: 'app-avatar-picker',
+  imports: [AvatarComponent, AvatarActivatorDirective],
   templateUrl: './avatar-picker.component.html',
   styleUrl: './avatar-picker.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -20,11 +20,13 @@
   display: flex;
   justify-content: center;
 
-  img {
-    width: v.$avatar-preview;
-    height: v.$avatar-preview;
-    border-radius: v.$radius-round;
-  }
+}
+
+.avatar-card__preview-avatar {
+  display: block;
+  width: v.$avatar-preview;
+  height: v.$avatar-preview;
+  border-radius: v.$radius-round;
 }
 
 .avatar-card__name {
@@ -55,13 +57,7 @@
   border-radius: v.$radius-round;
   cursor: pointer;
   transition: border-color v.$transition-base;
-
-  img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border-radius: v.$radius-round;
-  }
+  overflow: hidden;
 
   &:hover {
     border-color: v.color('primary-hover');
@@ -74,6 +70,13 @@
   &:focus-visible {
     @include m.focus-ring;
   }
+}
+
+.avatar-card__option-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: v.$radius-round;
 }
 
 .avatar-card__actions {

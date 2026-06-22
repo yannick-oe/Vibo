@@ -37,6 +37,7 @@ import {
 } from '@angular/fire/firestore';
 
 import { UserDoc } from '../models/user.model';
+import { NEW_USER_BADGE_ID } from '../shared/badge-options';
 import { BANNER_NONE } from '../shared/banner-options';
 import {
   DEFAULT_AVATAR_PATH,
@@ -223,6 +224,7 @@ export class AuthService {
       banner: BANNER_NONE,
       status: '',
       animatedName: false,
+      badges: [NEW_USER_BADGE_ID],
       createdAt: serverTimestamp(),
     };
     return this.inContext(() => setDoc(doc(this.firestore, `users/${uid}`), document));

@@ -7,7 +7,12 @@
   </header>
 
   <div class="avatar-card__preview">
-    <img [src]="previewPath()" alt="Aktuell gewählter Avatar" />
+    <app-avatar
+      class="avatar-card__preview-avatar"
+      [avatarPath]="previewPath()"
+      surface="profile"
+      alt="Aktuell gewählter Avatar"
+    />
   </div>
 
   <p class="avatar-card__name">{{ userName() }}</p>
@@ -20,12 +25,20 @@
           <button
             class="avatar-card__option"
             type="button"
+            appAvatarActivator
+            #opt="avatarActivator"
             [class.avatar-card__option--selected]="isSelected(avatar.path)"
             [attr.aria-pressed]="isSelected(avatar.path)"
             [attr.aria-label]="'Avatar ' + avatar.label + ' wählen'"
             (click)="select(avatar.path)"
           >
-            <img [src]="avatar.path" alt="" aria-hidden="true" />
+            <app-avatar
+              class="avatar-card__option-avatar"
+              [avatarPath]="avatar.path"
+              surface="header"
+              [isActive]="opt.isActive()"
+              alt=""
+            />
           </button>
         </li>
       }
