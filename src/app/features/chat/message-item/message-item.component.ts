@@ -252,7 +252,7 @@ export class MessageItemComponent {
   /**
    * Sets the signed-in user's single reaction to `emoji` (replacing any
    * existing one, or toggling it off); adding records the quick emoji and
-   * dispatches its effect (local big effect, or the broadcast 😂 laugh).
+   * broadcasts its big-reaction effect (🎉/💖/🚀/😂) to all viewers.
    * @param emoji Emoji character to set.
    */
   protected async react(emoji: string): Promise<void> {

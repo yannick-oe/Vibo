@@ -1,12 +1,11 @@
 /**
- * @file Pure canvas particle helpers for the broadcast "laugh burst": 😂
- * glyphs launched up-left and up-right from a message, arcing under gravity
- * and fading like tears of joy, plus the single subtle pop used as the
- * reduced-motion fallback. No DOM or Angular access — the overlay owns the
- * canvas and the animation loop.
+ * @file Pure canvas particle helpers for the emoji-glyph big-reaction effects:
+ * the laugh burst (😂 glyphs launched up-left and up-right from a message,
+ * arcing under gravity and fading like tears of joy) and the single subtle pop
+ * used as the reduced-motion fallback for every reaction. No DOM or Angular
+ * access — the overlay owns the canvas and the animation loop.
  */
 
-const GLYPH = '😂';
 const EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 const BURST_MIN = 18;
 const BURST_MAX = 24;
@@ -25,8 +24,9 @@ const POP_GROWTH = 0.16;
 const HALF = 0.5;
 const TWO_PI = Math.PI * 2;
 
-/** One animated laugh glyph in canvas CSS-pixel space; life fades 1 → 0. */
-export interface LaughParticle {
+/** One animated emoji glyph in canvas CSS-pixel space; life fades 1 → 0. */
+export interface GlyphParticle {
+  glyph: string;
   x: number;
   y: number;
   vx: number;
@@ -52,26 +52,28 @@ function rand(min: number, max: number): number {
 
 /**
  * Builds a laugh burst of glyphs fanning out and upward from the origin.
+ * @param glyph Emoji character to render.
  * @param x Origin x in CSS pixels.
  * @param y Origin y in CSS pixels.
  */
-export function spawnBurst(x: number, y: number): LaughParticle[] {
+export function spawnBurst(glyph: string, x: number, y: number): GlyphParticle[] {
   const count = Math.round(rand(BURST_MIN, BURST_MAX));
-  return Array.from({ length: count }, () => makeGlyph(x, y));
+  return Array.from({ length: count }, () => makeGlyph(glyph, x, y));
 }
 
 
 /**
  * Creates one glyph launched left or right within an upward cone.
+ * @param glyph Emoji character to render.
  * @param x Origin x in CSS pixels.
  * @param y Origin y in CSS pixels.
  */
-function makeGlyph(x: number, y: number): LaughParticle {
+function makeGlyph(glyph: string, x: number, y: number): GlyphParticle {
   const speed = rand(SPEED_MIN, SPEED_MAX);
   const angle = rand(ANGLE_MIN, ANGLE_MAX);
   const direction = Math.random() < HALF ? -1 : 1;
   return {
-    x, y, vx: Math.cos(angle) * speed * direction, vy: -Math.sin(angle) * speed,
+    glyph, x, y, vx: Math.cos(angle) * speed * direction, vy: -Math.sin(angle) * speed,
     life: 1, decay: BURST_DECAY, size: rand(SIZE_MIN, SIZE_MAX),
     rotation: rand(0, TWO_PI), spin: rand(-SPIN_MAX, SPIN_MAX), pop: false,
   };
@@ -81,12 +83,13 @@ function makeGlyph(x: number, y: number): LaughParticle {
 /**
  * Builds the single subtle pop glyph for the reduced-motion fallback: it
  * stays put, grows slightly and fades — no particle storm.
+ * @param glyph Emoji character to render.
  * @param x Origin x in CSS pixels.
  * @param y Origin y in CSS pixels.
  */
-export function spawnPop(x: number, y: number): LaughParticle[] {
+export function spawnPop(glyph: string, x: number, y: number): GlyphParticle[] {
   return [{
-    x, y, vx: 0, vy: 0, life: 1, decay: POP_DECAY,
+    glyph, x, y, vx: 0, vy: 0, life: 1, decay: POP_DECAY,
     size: POP_SIZE, rotation: 0, spin: 0, pop: true,
   }];
 }
@@ -101,14 +104,14 @@ export function spawnPop(x: number, y: number): LaughParticle[] {
  */
 export function stepFrame(
   ctx: CanvasRenderingContext2D,
-  particles: LaughParticle[],
+  particles: GlyphParticle[],
   width: number,
   height: number,
-): LaughParticle[] {
+): GlyphParticle[] {
   ctx.clearRect(0, 0, width, height);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const alive: LaughParticle[] = [];
+  const alive: GlyphParticle[] = [];
   for (const particle of particles) {
     update(particle);
     draw(ctx, particle);
@@ -123,7 +126,7 @@ export function stepFrame(
  * fades while burst glyphs arc and spin.
  * @param p Glyph to advance.
  */
-function update(p: LaughParticle): void {
+function update(p: GlyphParticle): void {
   if (!p.pop) {
     p.vy += GRAVITY;
     p.rotation += p.spin;
@@ -140,13 +143,13 @@ function update(p: LaughParticle): void {
  * @param ctx Canvas 2D context.
  * @param p Glyph to draw.
  */
-function draw(ctx: CanvasRenderingContext2D, p: LaughParticle): void {
+function draw(ctx: CanvasRenderingContext2D, p: GlyphParticle): void {
   const scale = p.pop ? 1 + (1 - p.life) * POP_GROWTH : 1;
   ctx.save();
   ctx.globalAlpha = Math.max(0, p.life);
   ctx.translate(p.x, p.y);
   ctx.rotate(p.rotation);
   ctx.font = `${p.size * scale}px ${EMOJI_FONT}`;
-  ctx.fillText(GLYPH, 0, 0);
+  ctx.fillText(p.glyph, 0, 0);
   ctx.restore();
 }

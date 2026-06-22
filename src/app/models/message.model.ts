@@ -4,6 +4,8 @@
  */
 import { FieldValue, Timestamp } from '@angular/fire/firestore';
 
+import type { EffectKind } from './reactions';
+
 /**
  * Emoji reactions on a message: emoji character mapped to the uids of the
  * users who reacted with it.
@@ -12,14 +14,14 @@ export type ReactionMap = Record<string, string[]>;
 
 /**
  * A broadcast big-reaction event written onto a message so every viewer's
- * existing message listener replays it once. Currently only the 😂 laugh
- * burst; the id is deduped per client and the timestamp gates the replay.
+ * existing message listener replays it once. The id is deduped per client and
+ * the timestamp gates the replay; the type selects the screen effect.
  */
 export interface BigReactionEvent {
   /** Client-generated id; each client plays a given id at most once. */
   id: string;
-  /** Effect to play; the only kind for now is the 😂 laugh burst. */
-  type: 'laugh';
+  /** Effect to play: confetti, hearts, rocket or the 😂 laugh burst. */
+  type: EffectKind;
   /** Uid of the user who triggered it. */
   by: string;
   /** Trigger time: serverTimestamp() on write, Timestamp on read; gates replay. */
@@ -57,7 +59,7 @@ export interface ReplyDoc {
   gifHeight?: number;
   /** GIF accessible label (the Giphy title). */
   gifAlt?: string;
-  /** Latest broadcast big-reaction event (a 😂 laugh), replayed live to all viewers. */
+  /** Latest broadcast big-reaction event, replayed live once for all viewers. */
   lastBigReaction?: BigReactionEvent;
 }
 

@@ -66,11 +66,11 @@ service cloud.firestore {
       return affectedKeys().hasOnly(['reactions']);
     }
 
-    // Broadcast "big laugh": any member/participant stamps the latest laugh
-    // event (their own uid, server time) so every viewer replays it once.
+    // Broadcast big reaction: any member/participant stamps the latest event
+    // (their own uid, server time) so every viewer replays it once.
     function setsBigReaction() {
       return affectedKeys().hasOnly(['lastBigReaction'])
-        && request.resource.data.lastBigReaction.type == 'laugh'
+        && request.resource.data.lastBigReaction.type in ['confetti', 'hearts', 'rocket', 'laugh']
         && request.resource.data.lastBigReaction.by == request.auth.uid
         && request.resource.data.lastBigReaction.at == request.time;
     }

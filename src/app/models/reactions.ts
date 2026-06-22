@@ -4,14 +4,15 @@
  */
 import { ReactionMap } from './message.model';
 
-/** Kinds of celebratory full-screen effect a big reaction can trigger. */
-export type EffectKind = 'confetti' | 'hearts' | 'rocket';
+/** Kinds of celebratory screen effect a big reaction broadcasts to all viewers. */
+export type EffectKind = 'confetti' | 'hearts' | 'rocket' | 'laugh';
 
-/** Emoji whose selection fires a full-screen effect, mapped to that effect. */
+/** Emoji whose selection broadcasts a screen effect, mapped to that effect. */
 export const BIG_REACTIONS: Readonly<Record<string, EffectKind>> = {
   '🎉': 'confetti',
   '💖': 'hearts',
   '🚀': 'rocket',
+  '😂': 'laugh',
 };
 
 /** German display noun of each big reaction, used in its accessible label. */
@@ -19,16 +20,19 @@ export const BIG_REACTION_LABELS: Readonly<Record<string, string>> = {
   '🎉': 'Konfetti',
   '💖': 'Herzen',
   '🚀': 'Rakete',
+  '😂': 'Lachen',
+};
+
+/** Emoji rendered for each effect (the reduced-motion pop and the laugh glyphs). */
+export const EFFECT_EMOJI: Readonly<Record<EffectKind, string>> = {
+  confetti: '🎉',
+  hearts: '💖',
+  rocket: '🚀',
+  laugh: '😂',
 };
 
 /** Ordered big-reaction emojis shown in the picker's Big Reactions section. */
 export const BIG_REACTION_EMOJIS: readonly string[] = Object.keys(BIG_REACTIONS);
-
-/**
- * The 😂 reaction that, unlike the local big reactions above, broadcasts a
- * shared laugh burst every viewer of the message plays in real time.
- */
-export const LAUGH_EMOJI = '😂';
 
 
 /**

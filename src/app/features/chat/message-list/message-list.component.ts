@@ -130,13 +130,15 @@ export class MessageListComponent {
 
 
   /**
-   * Plays a laugh burst for each message whose broadcast laugh event is new
-   * since this context opened, reusing the existing message stream (no extra
-   * listener) and deduplicating by event id.
+   * Plays the screen effect for each message whose broadcast big-reaction event
+   * is new since this context opened, reusing the existing message stream (no
+   * extra listener) and deduplicating by event id.
    * @param messages Current messages (effect dependency).
    */
   private playBigReactions(messages: Message[]): void {
-    for (const id of this.bigReaction.collect(messages)) this.bigReactionService.play(id);
+    for (const fresh of this.bigReaction.collect(messages)) {
+      this.bigReactionService.play(fresh.messageId, fresh.type);
+    }
   }
 
 

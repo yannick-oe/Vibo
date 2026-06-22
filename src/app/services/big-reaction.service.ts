@@ -1,10 +1,10 @@
 /**
- * @file Broadcast "big laugh" reactions. Writes a 😂 laugh event onto a
- * message so every viewer's existing message listener picks it up — reusing
- * that per-conversation stream keeps this within the listener budget (§14):
- * no separate full-collection listener is added. Also exposes the play
- * request the laugh-burst overlay renders, and dispatches the local
- * full-screen effect of the brand big reactions via {@link EffectsService}.
+ * @file Broadcast big reactions. Writes a big-reaction event onto a message so
+ * every viewer's existing message listener picks it up — reusing that
+ * per-conversation stream keeps this within the listener budget (§14): no
+ * separate full-collection listener is added. Also exposes the play request
+ * the big-reaction overlay renders. Every big reaction (confetti, hearts,
+ * rocket, laugh) broadcasts and plays its own screen effect for all viewers.
  */
 import {
   EnvironmentInjector,
@@ -17,27 +17,27 @@ import {
 import { Firestore, doc, serverTimestamp, updateDoc } from '@angular/fire/firestore';
 
 import { BigReactionEvent } from '../models/message.model';
-import { LAUGH_EMOJI } from '../models/reactions';
+import { EffectKind, bigReactionEffect } from '../models/reactions';
 import { AuthService } from './auth.service';
-import { EffectsService } from './effects.service';
 
 const MESSAGE_ELEMENT_PREFIX = 'message-';
 
-/** Screen position a laugh burst originates from, in viewport CSS pixels. */
+/** Screen position a big-reaction effect originates from, in viewport CSS pixels. */
 export interface BurstOrigin {
   readonly x: number;
   readonly y: number;
 }
 
-/** One laugh-burst play request, consumed by the overlay; token forces change. */
-export interface LaughBurstRequest {
+/** One big-reaction play request, consumed by the overlay; token forces change. */
+export interface BigReactionRequest {
+  readonly type: EffectKind;
   readonly origin: BurstOrigin;
   readonly token: number;
 }
 
 /**
- * Owns the broadcast laugh reaction: triggering its write, requesting its
- * playback and routing the local big-reaction effects.
+ * Owns the broadcast big reactions: triggering their write and requesting
+ * their playback.
  */
 @Injectable({ providedIn: 'root' })
 export class BigReactionService {
@@ -47,38 +47,37 @@ export class BigReactionService {
 
   private readonly injector = inject(EnvironmentInjector);
 
-  private readonly effectsService = inject(EffectsService);
-
   private nextToken = 0;
 
-  private readonly requestState = signal<LaughBurstRequest | null>(null);
+  private readonly requestState = signal<BigReactionRequest | null>(null);
 
-  /** Latest laugh-burst request, consumed by the laugh-burst overlay. */
-  readonly request: Signal<LaughBurstRequest | null> = this.requestState.asReadonly();
+  /** Latest big-reaction request, consumed by the big-reaction overlay. */
+  readonly request: Signal<BigReactionRequest | null> = this.requestState.asReadonly();
 
 
   /**
-   * Dispatches the effect of a just-added reaction: the local full-screen
-   * effect of a brand big reaction, plus the broadcast laugh for 😂.
+   * Broadcasts the effect of a just-added reaction when it is a big reaction
+   * (confetti, hearts, rocket or laugh); normal reactions do nothing here.
    * @param emoji Reaction emoji the user added.
    * @param messagePath Firestore path of the reacted message.
    */
   onReactionAdded(emoji: string, messagePath: string): void {
-    this.effectsService.playFor(emoji);
-    if (emoji === LAUGH_EMOJI) this.trigger(messagePath);
+    const type = bigReactionEffect(emoji);
+    if (type) this.trigger(messagePath, type);
   }
 
 
   /**
-   * Writes a laugh event onto the message (fire-and-forget; the reaction
-   * write surfaces failures). The server timestamp lets every client replay
-   * it once after they started listening — see the play-once tracker.
+   * Writes a big-reaction event onto the message (fire-and-forget; the
+   * reaction write surfaces failures). The server timestamp lets every client
+   * replay it once after they started listening — see the play-once tracker.
    * @param messagePath Firestore path of the message document.
+   * @param type Effect type to broadcast.
    */
-  private trigger(messagePath: string): void {
+  private trigger(messagePath: string, type: EffectKind): void {
     const event: BigReactionEvent = {
       id: crypto.randomUUID(),
-      type: 'laugh',
+      type,
       by: this.authService.requireUid(),
       at: serverTimestamp(),
     };
@@ -89,20 +88,21 @@ export class BigReactionService {
 
 
   /**
-   * Requests a laugh burst at a message's on-screen position; skipped when
-   * the row is not currently rendered (the user is not looking at it).
-   * @param messageId Firestore id of the message the laugh targets.
+   * Requests a big-reaction effect at a message's on-screen position; skipped
+   * when the row is not currently rendered (the user is not looking at it).
+   * @param messageId Firestore id of the message the reaction targets.
+   * @param type Effect type to play.
    */
-  play(messageId: string): void {
+  play(messageId: string, type: EffectKind): void {
     const element = document.getElementById(`${MESSAGE_ELEMENT_PREFIX}${messageId}`);
     if (!element) return;
-    this.requestState.set({ origin: bubbleOrigin(element), token: this.nextToken++ });
+    this.requestState.set({ type, origin: bubbleOrigin(element), token: this.nextToken++ });
   }
 }
 
 
 /**
- * Center of a message row in viewport CSS pixels, used as the burst origin.
+ * Center of a message row in viewport CSS pixels, used as the effect origin.
  * @param element Message row element.
  */
 function bubbleOrigin(element: HTMLElement): BurstOrigin {

@@ -45,4 +45,6 @@
   @if (profileOverlay.uid(); as uid) {
     <app-profile-dialog [uid]="uid" (closed)="profileOverlay.close()" />
   }
+
+  <app-notification-toast />
 </div>

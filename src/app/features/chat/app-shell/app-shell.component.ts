@@ -20,6 +20,7 @@ import { CommandPaletteService } from '../../../services/command-palette.service
 import { LayoutService } from '../../../services/layout.service';
 import { ProfileOverlayService } from '../../../services/profile-overlay.service';
 import { ThreadService } from '../../../services/thread.service';
+import { NotificationToastComponent } from '../../../shared/notification-toast/notification-toast.component';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { ChannelCreateDialogComponent } from '../channel-create-dialog/channel-create-dialog.component';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
@@ -50,6 +51,7 @@ type MobileView = 'menu' | 'chat' | 'thread';
   imports: [
     ChannelCreateDialogComponent,
     CommandPaletteComponent,
+    NotificationToastComponent,
     ProfileDialogComponent,
     RouterOutlet,
     ThreadPanelComponent,
