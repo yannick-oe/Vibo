@@ -13,6 +13,8 @@ import {
   signal,
   viewChildren,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../../services/auth.service';
@@ -27,8 +29,14 @@ import { displayBadges } from '../../../shared/badge-options';
 import { BANNER_NONE, BANNER_OPTIONS } from '../../../shared/banner-options';
 import { ProfileBannerComponent } from '../../../shared/profile-banner/profile-banner.component';
 import { DialogAnchor, DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
+import {
+  NAME_MAX_LENGTH,
+  displayNameErrorMessage,
+  displayNameErrors,
+  displayNameValidator,
+  normalizeName,
+} from '../../../shared/validators/display-name.validators';
 
-const NAME_REQUIRED_ERROR = 'Bitte gib deinen Namen ein.';
 const SAVE_ERROR = 'Das Profil konnte nicht gespeichert werden.';
 const UNKNOWN_USER = 'Unbekannt';
 const STATUS_ACTIVE = 'Aktiv';
@@ -55,6 +63,7 @@ type ProfileMode = 'view' | 'edit';
 @Component({
   selector: 'app-profile-dialog',
   imports: [
+    ReactiveFormsModule,
     DialogShellComponent,
     ProfileBannerComponent,
     AuroraNameComponent,
@@ -88,9 +97,28 @@ export class ProfileDialogComponent {
 
   protected readonly mode = signal<ProfileMode>('view');
 
-  protected readonly nameDraft = signal('');
+  protected readonly nameControl = new FormControl<string>('', {
+    nonNullable: true,
+    validators: [displayNameValidator],
+  });
 
-  protected readonly nameError = signal('');
+  private readonly nameValue = toSignal(this.nameControl.valueChanges, { initialValue: '' });
+
+  protected readonly nameTouched = signal(false);
+
+  private readonly nameErrors = computed(() => displayNameErrors(this.nameValue()));
+
+  protected readonly nameInvalid = computed(() => this.nameErrors() !== null);
+
+  protected readonly showNameError = computed(() => this.nameTouched() && this.nameInvalid());
+
+  protected readonly nameErrorText = computed(() =>
+    this.showNameError() ? displayNameErrorMessage(this.nameErrors()) : '',
+  );
+
+  protected readonly nameLength = computed(() => normalizeName(this.nameValue()).length);
+
+  protected readonly nameMax = NAME_MAX_LENGTH;
 
   protected readonly selectedAvatar = signal(DEFAULT_AVATAR_PATH);
 
@@ -168,12 +196,12 @@ export class ProfileDialogComponent {
    */
   protected startEdit(): void {
     if (this.authService.isGuest()) return;
-    this.nameDraft.set(this.user()?.name ?? '');
+    this.nameControl.setValue(this.user()?.name ?? '');
+    this.nameTouched.set(false);
     this.selectedAvatar.set(this.user()?.avatarPath ?? DEFAULT_AVATAR_PATH);
     this.selectedBanner.set(this.user()?.banner ?? BANNER_NONE);
     this.statusDraft.set(this.user()?.status ?? '');
     this.animatedNameDraft.set(this.user()?.animatedName ?? false);
-    this.nameError.set('');
     this.mode.set('edit');
   }
 
@@ -183,18 +211,6 @@ export class ProfileDialogComponent {
    */
   protected cancelEdit(): void {
     this.mode.set('view');
-  }
-
-
-  /**
-   * Syncs the name draft with its input element and surfaces the
-   * empty-name error live (the save button is disabled meanwhile).
-   * @param event Input event of the name field.
-   */
-  protected onNameInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.nameDraft.set(value);
-    this.nameError.set(value.trim() ? '' : NAME_REQUIRED_ERROR);
   }
 
 
@@ -269,18 +285,27 @@ export class ProfileDialogComponent {
 
 
   /**
-   * Reports whether the draft is valid and differs from the profile.
+   * Reports whether the draft is valid and differs from the stored profile;
+   * drives the "Speichern" button's enabled state.
    */
   protected canSave(): boolean {
-    const name = this.nameDraft().trim();
-    if (!name) return false;
-    const changed =
+    if (this.nameInvalid() || this.isPending()) return false;
+    return this.hasChanges(normalizeName(this.nameValue()));
+  }
+
+
+  /**
+   * Reports whether the normalized draft differs from the stored profile.
+   * @param name Normalized display name from the draft.
+   */
+  private hasChanges(name: string): boolean {
+    return (
       name !== this.user()?.name ||
       this.selectedAvatar() !== this.user()?.avatarPath ||
       this.selectedBanner() !== (this.user()?.banner ?? BANNER_NONE) ||
       this.statusDraft() !== (this.user()?.status ?? '') ||
-      this.animatedNameDraft() !== (this.user()?.animatedName ?? false);
-    return changed && !this.isPending();
+      this.animatedNameDraft() !== (this.user()?.animatedName ?? false)
+    );
   }
 
 
@@ -289,7 +314,7 @@ export class ProfileDialogComponent {
    */
   private buildDraft(): ProfileDraft {
     return {
-      name: this.nameDraft(),
+      name: normalizeName(this.nameValue()),
       avatarPath: this.selectedAvatar(),
       banner: this.selectedBanner(),
       status: this.statusDraft(),
@@ -304,7 +329,7 @@ export class ProfileDialogComponent {
    */
   protected async save(): Promise<void> {
     if (this.authService.isGuest()) return;
-    if (!this.nameDraft().trim()) return this.nameError.set(NAME_REQUIRED_ERROR);
+    this.nameTouched.set(true);
     if (!this.canSave()) return;
     this.isPending.set(true);
     try {

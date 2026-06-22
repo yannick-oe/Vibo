@@ -21,15 +21,16 @@ import { Router, RouterLink } from '@angular/router';
 import { APP_NAME } from '../../../shared/app.constants';
 import { PasswordInputComponent } from '../../../shared/password-input/password-input.component';
 import { RegistrationService } from '../../../services/registration.service';
+import {
+  DISPLAY_NAME_ERRORS,
+  displayNameValidator,
+  normalizeName,
+} from '../../../shared/validators/display-name.validators';
 
-const NAME_MIN_LENGTH = 2;
 const PASSWORD_MIN_LENGTH = 6;
 
 const ERROR_MESSAGES: Record<string, Record<string, string>> = {
-  name: {
-    required: 'Bitte gib deinen Namen ein',
-    minlength: `Dein Name muss mindestens ${NAME_MIN_LENGTH} Zeichen lang sein`,
-  },
+  name: DISPLAY_NAME_ERRORS,
   email: {
     required: 'Bitte gib deine E-Mail-Adresse ein',
     email: 'Diese E-Mail-Adresse ist leider ungültig',
@@ -77,7 +78,7 @@ export class RegisterComponent implements OnInit, AfterViewInit {
   protected readonly appName = APP_NAME;
 
   protected readonly form = this.formBuilder.group({
-    name: ['', [Validators.required, Validators.minLength(NAME_MIN_LENGTH)]],
+    name: ['', [displayNameValidator]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)]],
     privacy: [false, Validators.requiredTrue],
@@ -161,7 +162,7 @@ export class RegisterComponent implements OnInit, AfterViewInit {
   protected continueToAvatar(): void {
     if (this.form.invalid) return;
     const { name, email, password } = this.form.getRawValue();
-    this.registration.setFormData({ name, email, password });
+    this.registration.setFormData({ name: normalizeName(name), email, password });
     this.router.navigate(['/auth/register/avatar']);
   }
 }

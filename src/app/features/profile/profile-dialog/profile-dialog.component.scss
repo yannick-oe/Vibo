@@ -9,6 +9,7 @@ $switch-height: 24px;
 $switch-thumb: 18px;
 $switch-inset: 3px;
 $switch-travel: 20px;
+$name-error-lines: 2;
 
 .profile__head {
   @include m.flex-between;
@@ -167,6 +168,10 @@ $switch-travel: 20px;
   font-size: v.font-size('min');
   color: v.color('text-gray');
   text-align: right;
+}
+
+.form-error.profile__name-error {
+  min-height: calc(#{v.font-size('min')} * #{v.$line-height-base} * #{$name-error-lines});
 }
 
 .profile__switch-field {

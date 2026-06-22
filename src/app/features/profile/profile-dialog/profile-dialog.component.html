@@ -114,13 +114,15 @@
         <input
           id="profile-name"
           class="form-input form-input--outlined"
+          [class.is-invalid]="showNameError()"
           type="text"
-          [value]="nameDraft()"
-          (input)="onNameInput($event)"
-          aria-describedby="profile-name-error"
-          [attr.aria-invalid]="nameError() !== ''"
+          [formControl]="nameControl"
+          aria-describedby="profile-name-counter profile-name-error"
+          [attr.aria-invalid]="showNameError()"
+          (blur)="nameTouched.set(true)"
         />
-        <p class="form-error" id="profile-name-error">{{ nameError() }}</p>
+        <p class="profile__status-counter" id="profile-name-counter">{{ nameLength() }}/{{ nameMax }} Zeichen</p>
+        <p class="form-error profile__name-error" id="profile-name-error" aria-live="polite">{{ nameErrorText() }}</p>
       </div>
 
       <div class="form-field">
