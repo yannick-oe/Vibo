@@ -112,9 +112,11 @@ export class ChannelViewComponent {
     this.channelService.channels().find(channel => channel.id === this.channelId()),
   );
 
-  protected readonly headMembers = computed(() => this.resolveHeadMembers());
+  private readonly resolvedMembers = computed(() => this.resolveMembers());
 
-  protected readonly memberCount = computed(() => this.channel()?.memberIds.length ?? 0);
+  protected readonly headMembers = computed(() => this.resolvedMembers().slice(0, HEAD_AVATAR_LIMIT));
+
+  protected readonly memberCount = computed(() => this.resolvedMembers().length);
 
   protected readonly showIntro = computed(
     () => this.messages().length === 0 && this.channel()?.createdBy === this.authService.currentUser()?.uid,
@@ -267,14 +269,13 @@ export class ChannelViewComponent {
 
 
   /**
-   * Resolves up to three member documents for the header avatar cluster.
+   * Resolves the channel's member documents, skipping any member uid without a
+   * user document (e.g. a deleted account) so the count and the avatar cluster
+   * reflect only real, renderable members — a single source for both.
    */
-  private resolveHeadMembers(): UserDoc[] {
+  private resolveMembers(): UserDoc[] {
     const memberIds = this.channel()?.memberIds ?? [];
     const users = new Map(this.userService.users().map(user => [user.uid, user]));
-    return memberIds
-      .map(uid => users.get(uid))
-      .filter((user): user is UserDoc => user !== undefined)
-      .slice(0, HEAD_AVATAR_LIMIT);
+    return memberIds.map(uid => users.get(uid)).filter((user): user is UserDoc => user !== undefined);
   }
 }
