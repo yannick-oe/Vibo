@@ -71,6 +71,8 @@ export class MessageListComponent {
 
   readonly threadRequested = output<Message>();
 
+  readonly authorSelected = output<string>();
+
   private readonly locale = inject(LOCALE_ID);
 
   private readonly authService = inject(AuthService);

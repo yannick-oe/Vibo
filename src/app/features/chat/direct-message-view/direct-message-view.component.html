@@ -6,8 +6,8 @@
         class="dm__partner-trigger"
         type="button"
         aria-label="Profil anzeigen"
-        [attr.aria-expanded]="profileOpen()"
-        (click)="profileOpen.set(true)"
+        [attr.aria-expanded]="profileUid() !== null"
+        (click)="profileUid.set(uid())"
       ></button>
       <span class="dm__avatar-wrap">
         <app-avatar
@@ -60,6 +60,7 @@
         [otherUids]="otherUids()"
         [isSelfConversation]="isSelf()"
         (threadRequested)="toggleThread($event)"
+        (authorSelected)="profileUid.set($event)"
       />
     </div>
   }
@@ -73,6 +74,6 @@
   </div>
 </section>
 
-@if (profileOpen()) {
-  <app-profile-dialog [uid]="uid()" (closed)="profileOpen.set(false)" />
+@if (profileUid(); as pid) {
+  <app-profile-dialog [uid]="pid" (closed)="profileUid.set(null)" />
 }

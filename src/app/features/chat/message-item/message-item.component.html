@@ -1,4 +1,15 @@
-<app-avatar class="message__avatar" [avatarPath]="authorAvatarPath()" surface="row" />
+@if (author(); as authorDoc) {
+  <button
+    class="message__avatar-button"
+    type="button"
+    [attr.aria-label]="'Profil von ' + authorName() + ' öffnen'"
+    (click)="openAuthor.emit(authorDoc.uid)"
+  >
+    <app-avatar class="message__avatar" [avatarPath]="authorAvatarPath()" surface="row" />
+  </button>
+} @else {
+  <app-avatar class="message__avatar" [avatarPath]="authorAvatarPath()" surface="row" />
+}
 
 <div class="message__body">
   <div class="message__meta">

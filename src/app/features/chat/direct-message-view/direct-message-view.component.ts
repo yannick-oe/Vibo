@@ -83,7 +83,7 @@ export class DirectMessageViewComponent {
 
   private focusedUid: string | null = null;
 
-  protected readonly profileOpen = signal(false);
+  protected readonly profileUid = signal<string | null>(null);
 
   protected readonly messages = toSignal(
     toObservable(this.uid).pipe(

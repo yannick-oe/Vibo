@@ -18,6 +18,7 @@
           [isSelfConversation]="isSelfConversation()"
           [enterAnimate]="entrance.shouldEnter(message)"
           (openThread)="threadRequested.emit(message)"
+          (openAuthor)="authorSelected.emit($event)"
         ></li>
       }
     </ul>

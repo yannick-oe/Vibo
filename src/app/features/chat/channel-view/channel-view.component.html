@@ -52,6 +52,7 @@
       [reads]="reads()"
       [otherUids]="otherUids()"
       (threadRequested)="toggleThread($event)"
+      (authorSelected)="openProfile($event)"
     />
     @if (showIntro()) {
       <div class="channel__intro">

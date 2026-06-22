@@ -103,6 +103,7 @@ export class MessageItemComponent {
   readonly enterAnimate = input(false);
 
   readonly openThread = output<void>();
+  readonly openAuthor = output<string>();
 
   private readonly userService = inject(UserService);
 
