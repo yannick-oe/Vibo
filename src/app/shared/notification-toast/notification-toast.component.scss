@@ -1,0 +1,125 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$notif-max-width: 360px;
+$notif-avatar: 40px;
+
+.notif-region {
+  position: fixed;
+  top: calc(#{v.$topbar-height} + #{v.space('sm')});
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: v.$z-tooltip;
+  width: min(#{$notif-max-width}, calc(100% - #{v.space('lg')}));
+  pointer-events: none;
+}
+
+.notif {
+  display: flex;
+  align-items: center;
+  gap: v.space('xs');
+  padding: v.space('xs');
+  border-radius: v.$radius-lg;
+  background-color: v.color('white');
+  box-shadow: v.$shadow-lg;
+  pointer-events: auto;
+  animation: notif-slide-in v.$transition-base;
+  @include m.glass;
+}
+
+.notif__open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: v.space('sm');
+  min-width: 0;
+  padding: v.space('xs');
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+.notif__avatar {
+  flex-shrink: 0;
+  width: $notif-avatar;
+  height: $notif-avatar;
+  border-radius: v.$radius-pill;
+  object-fit: cover;
+}
+
+.notif__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.notif__head {
+  display: flex;
+  align-items: baseline;
+  gap: v.space('xs');
+  min-width: 0;
+}
+
+.notif__name {
+  overflow: hidden;
+  color: v.color('black');
+  font-weight: v.$font-weight-semibold;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.notif__context {
+  flex-shrink: 0;
+  color: v.color('black');
+  font-size: v.font-size('min');
+}
+
+.notif__preview {
+  overflow: hidden;
+  color: v.color('black');
+  font-size: v.font-size('min');
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.notif__close {
+  display: flex;
+  flex-shrink: 0;
+  padding: v.space('xs');
+  border: none;
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+
+  img {
+    width: v.$icon-md;
+    height: v.$icon-md;
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+@keyframes notif-slide-in {
+  from {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif {
+    animation: none;
+  }
+}

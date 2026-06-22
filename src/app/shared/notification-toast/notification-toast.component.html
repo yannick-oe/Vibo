@@ -1,0 +1,26 @@
+<div class="notif-region" role="status" aria-live="polite">
+  @if (toast(); as n) {
+    <div class="notif">
+      <button class="notif__open" type="button" (click)="open(n.route)">
+        <img class="notif__avatar" appAvatarFallback [src]="n.senderAvatar" alt="" aria-hidden="true" />
+        <span class="notif__body">
+          <span class="notif__head">
+            <span class="notif__name">{{ n.senderName }}</span>
+            @if (n.context) {
+              <span class="notif__context">{{ n.context }}</span>
+            }
+          </span>
+          <span class="notif__preview">{{ n.preview }}</span>
+        </span>
+      </button>
+      <button
+        class="notif__close"
+        type="button"
+        aria-label="Benachrichtigung schließen"
+        (click)="dismiss()"
+      >
+        <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+      </button>
+    </div>
+  }
+</div>
