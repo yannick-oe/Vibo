@@ -421,10 +421,14 @@ but nothing is statically pinned. Discoverability instead lives in the picker:
   present as defense-in-depth.
 
 ## Security / config
-- **Shared guest credentials** (`gast@dabubble.dev`) are committed in
-  `auth.service.ts` by design: a single low-privilege account with no special
-  permissions, public-by-design exactly like the Firebase web `apiKey` in the
-  client config. It is not a real secret.
+- **Shared guest credentials** live in the gitignored environment config
+  (`environment.ts` / `environment.development.ts`), read via `environment.guestEmail`
+  and `environment.guestPassword` — no longer in tracked source. A single
+  low-privilege account with no special permissions, reached through the one-click
+  Gäste-Login button; the guest profile resets on every login so sessions never
+  leak. The password ships in the client bundle (unavoidable for a client-side
+  guest login) but is not committed to the repo; it was rotated out of version
+  control on 2026-07-01 (old literal removed from `auth.service.ts` and `README.md`).
 
 ## UI fixes (2026-06-16)
 - **Channel intro empty-state built from scratch (no pre-existing component).** The

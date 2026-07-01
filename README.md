@@ -6,10 +6,9 @@
 
 🔗 **Live demo:** <LIVE_URL>
 
-👉 **Try it instantly — no signup needed.** Use the **Gäste-Login** button, or sign in with the public shared demo account:
+👉 **Try it instantly — no signup needed.** Click the **Gäste-Login** button to jump straight into a public shared demo account.
 
-> **Email:** `gast@dabubble.dev` · **Password:** `DABubble-Gast-2026!`
-> _Public shared demo account — the guest profile resets on every login, so sessions never leak into each other._
+> _The guest profile resets on every login, so sessions never leak into each other._
 
 ---
 
@@ -149,7 +148,7 @@ Deploy the security rules separately:
 firebase deploy --only firestore:rules
 ```
 
-**Trying it out:** use the **Gäste-Login** button for instant access, or the demo account (`gast@dabubble.dev` / `DABubble-Gast-2026!`).
+**Trying it out:** click the **Gäste-Login** button for instant access to the public shared demo account.
 
 ---
 

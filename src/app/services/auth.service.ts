@@ -44,10 +44,11 @@ import {
   REMOTE_AVATAR_PREFIX,
   RegistrationFormData,
 } from './registration.service';
+import { environment } from '../../environments/environment';
 
 const GUEST_NAME = 'Gast';
-const GUEST_EMAIL = 'gast@dabubble.dev';
-const GUEST_PASSWORD = 'DABubble-Gast-2026!';
+const GUEST_EMAIL = environment.guestEmail;
+const GUEST_PASSWORD = environment.guestPassword;
 const GUEST_BANNER = 'nebula';
 const GUEST_STATUS = 'Nur zu Besuch im Kosmos ✨';
 const NOT_SIGNED_IN_ERROR = 'Operation requires a signed-in user.';
