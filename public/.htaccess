@@ -5,6 +5,8 @@
   RewriteEngine On
   RewriteBase /vibo/browser/
 
+  RewriteRule ^auth-action$ /#/auth/action?%{QUERY_STRING} [NE,R=302,L]
+
   # Serve existing files and directories directly.
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d

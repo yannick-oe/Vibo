@@ -51,6 +51,13 @@ export const routes: Routes = [
                 m => m.ResetPasswordComponent,
               ),
           },
+          {
+            path: 'action',
+            loadComponent: () =>
+              import('./features/auth/auth-action/auth-action.component').then(
+                m => m.AuthActionComponent,
+              ),
+          },
         ],
       },
       {
