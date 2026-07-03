@@ -1,0 +1,58 @@
+<section class="auth-card auth-card--wide action-card">
+  <header class="auth-card__head">
+    <h1 #title class="action-card__title" tabindex="-1">{{ pageTitle() }}</h1>
+  </header>
+
+  @switch (state()) {
+    @case ('checking') {
+      <p class="action-card__checking">Link wird geprüft …</p>
+    }
+    @case ('form') {
+      <p class="action-card__email">
+        Neues Passwort für <strong>{{ email() }}</strong> festlegen.
+      </p>
+      <form class="action-card__form" [formGroup]="form" (ngSubmit)="submit()">
+        <div class="form-field">
+          <label class="sr-only" for="action-password">Neues Passwort</label>
+          <app-password-input
+            inputId="action-password"
+            formControlName="password"
+            placeholder="Neues Passwort"
+            autocomplete="new-password"
+            describedBy="action-password-error"
+            [isInvalid]="isPasswordInvalid()"
+          />
+          <p class="form-error" id="action-password-error" aria-live="polite">
+            {{ passwordError() }}
+          </p>
+        </div>
+
+        <div class="action-card__actions">
+          <p class="form-error" role="alert">{{ generalError() }}</p>
+          <button class="btn btn-primary" type="submit" [disabled]="form.invalid || isPending()">
+            Passwort ändern
+          </button>
+        </div>
+      </form>
+    }
+    @case ('success') {
+      <div class="action-card__result">
+        <p>Dein Passwort wurde geändert. Du kannst dich jetzt mit deinem neuen Passwort anmelden.</p>
+        <a class="action-card__link" routerLink="/auth/login">Zum Login</a>
+      </div>
+    }
+    @case ('invalid') {
+      <div class="action-card__result">
+        <p role="alert">{{ invalidMessage() }}</p>
+        <a class="action-card__link" routerLink="/auth/forgot-password">Neue E-Mail anfordern</a>
+        <a class="action-card__link" routerLink="/auth/login">Zum Login</a>
+      </div>
+    }
+    @case ('notice') {
+      <div class="action-card__result">
+        <p>Diese Aktion kann in der App nicht bearbeitet werden. Bitte kehre zur Anmeldung zurück.</p>
+        <a class="action-card__link" routerLink="/auth/login">Zum Login</a>
+      </div>
+    }
+  }
+</section>
