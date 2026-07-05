@@ -10,6 +10,12 @@ import { FieldValue, Timestamp } from '@angular/fire/firestore';
 export interface UserDoc {
   /** Firebase Auth user id, duplicated for convenient querying. */
   uid: string;
+  /**
+   * Immutable unique @handle, mirrored by usernames/{username}. Written on
+   * every new document; optional only because legacy documents predate the
+   * field until the manual migration backfills them.
+   */
+  username?: string;
   /** Display name; "Gast" for anonymous accounts. */
   name: string;
   /** Account e-mail; null for guest (anonymous) accounts. */

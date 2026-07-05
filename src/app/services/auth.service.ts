@@ -34,6 +34,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  writeBatch,
 } from '@angular/fire/firestore';
 
 import { UserDoc } from '../models/user.model';
@@ -44,9 +45,11 @@ import {
   REMOTE_AVATAR_PREFIX,
   RegistrationFormData,
 } from './registration.service';
+import { UsernameService } from './username.service';
 import { environment } from '../../environments/environment';
 
 const GUEST_NAME = 'Gast';
+const GUEST_USERNAME = 'gast';
 const GUEST_EMAIL = environment.guestEmail;
 const GUEST_PASSWORD = environment.guestPassword;
 const GUEST_BANNER = 'nebula';
@@ -62,6 +65,8 @@ export class AuthService {
   private readonly auth = inject(Auth);
 
   private readonly firestore = inject(Firestore);
+
+  private readonly usernameService = inject(UsernameService);
 
   private readonly injector = inject(EnvironmentInjector);
 
@@ -82,8 +87,9 @@ export class AuthService {
 
 
   /**
-   * Creates the Firebase account, sets display name and avatar on the auth
-   * profile and stores the user document in Firestore.
+   * Creates the Firebase account, sets the initial display name (the chosen
+   * username) on the auth profile and atomically stores the user document
+   * together with the username claim.
    * @param data Validated registration form values.
    * @param avatarPath Public asset path of the selected avatar.
    * @returns Uid of the newly created user.
@@ -93,9 +99,10 @@ export class AuthService {
       createUserWithEmailAndPassword(this.auth, data.email, data.password),
     );
     await this.inContext(() =>
-      updateProfile(credential.user, { displayName: data.name, photoURL: avatarPath }),
+      updateProfile(credential.user, { displayName: data.username, photoURL: avatarPath }),
     );
-    await this.createUserDocument(credential.user.uid, data, avatarPath);
+    const document = this.buildRegisteredUserDoc(credential.user.uid, data, avatarPath);
+    await this.commitUserWithUsername(credential.user.uid, data.username, document);
     return credential.user.uid;
   }
 
@@ -193,6 +200,7 @@ export class AuthService {
   private resetGuestDocument(uid: string): Promise<void> {
     const document: UserDoc = {
       uid,
+      username: GUEST_USERNAME,
       name: GUEST_NAME,
       email: null,
       avatarPath: DEFAULT_AVATAR_PATH,
@@ -207,19 +215,21 @@ export class AuthService {
 
 
   /**
-   * Writes the Firestore document for a newly registered user.
+   * Builds the Firestore document for a newly registered user. The display
+   * name initializes to the chosen username and stays editable.
    * @param uid Firebase Auth user id.
    * @param data Validated registration form values.
    * @param avatarPath Public asset path of the selected avatar.
    */
-  private createUserDocument(
+  private buildRegisteredUserDoc(
     uid: string,
     data: RegistrationFormData,
     avatarPath: string,
-  ): Promise<void> {
-    const document: UserDoc = {
+  ): UserDoc {
+    return {
       uid,
-      name: data.name,
+      username: data.username,
+      name: data.username,
       email: data.email,
       avatarPath,
       banner: BANNER_NONE,
@@ -228,7 +238,23 @@ export class AuthService {
       badges: [NEW_USER_BADGE_ID],
       createdAt: serverTimestamp(),
     };
-    return this.inContext(() => setDoc(doc(this.firestore, `users/${uid}`), document));
+  }
+
+
+  /**
+   * Commits the user document and its username claim in one atomic batch,
+   * so a half-claimed handle can never exist.
+   * @param uid Firebase Auth user id.
+   * @param username Normalized username to claim.
+   * @param document User document to store.
+   */
+  private commitUserWithUsername(uid: string, username: string, document: UserDoc): Promise<void> {
+    return this.inContext(() => {
+      const batch = writeBatch(this.firestore);
+      this.usernameService.reserveInBatch(batch, username, uid);
+      batch.set(doc(this.firestore, `users/${uid}`), document);
+      return batch.commit();
+    });
   }
 
 
@@ -243,10 +269,24 @@ export class AuthService {
     );
     const snapshot = await this.inContext(() => getDoc(reference));
     if (!snapshot.exists()) {
-      await this.inContext(() => setDoc(reference, this.buildUserDoc(firebaseUser)));
+      await this.createGoogleUserDocuments(firebaseUser);
       return;
     }
     await this.normalizeAvatarPath(reference, snapshot);
+  }
+
+
+  /**
+   * First Google sign-in: derives an available username from the Google
+   * profile and commits the user document plus the claim atomically,
+   * because Google accounts never pass the registration form.
+   * @param firebaseUser Authenticated Firebase user.
+   */
+  private async createGoogleUserDocuments(firebaseUser: User): Promise<void> {
+    const source = firebaseUser.displayName ?? firebaseUser.email ?? firebaseUser.uid;
+    const username = await this.usernameService.availableUsernameFor(source, firebaseUser.uid);
+    const document = this.buildUserDoc(firebaseUser, username);
+    await this.commitUserWithUsername(firebaseUser.uid, username, document);
   }
 
 
@@ -270,10 +310,12 @@ export class AuthService {
    * Maps a Firebase user to the Firestore document shape. The avatar is
    * always the local placeholder; external photo URLs are ignored.
    * @param firebaseUser Authenticated Firebase user.
+   * @param username Normalized username claimed for the account.
    */
-  private buildUserDoc(firebaseUser: User): UserDoc {
+  private buildUserDoc(firebaseUser: User, username: string): UserDoc {
     return {
       uid: firebaseUser.uid,
+      username,
       name: firebaseUser.displayName ?? GUEST_NAME,
       email: firebaseUser.email,
       avatarPath: DEFAULT_AVATAR_PATH,

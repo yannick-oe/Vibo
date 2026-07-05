@@ -24,7 +24,7 @@ export function resolveAvatarPath(path?: string | null): string {
 
 /** Values collected by the registration form step. */
 export interface RegistrationFormData {
-  readonly name: string;
+  readonly username: string;
   readonly email: string;
   readonly password: string;
 }
@@ -53,7 +53,7 @@ export class RegistrationService {
 
   /**
    * Stores the values of the form step.
-   * @param data Validated name, e-mail and password.
+   * @param data Validated username, e-mail and password.
    */
   setFormData(data: RegistrationFormData): void {
     this.formData.set(data);

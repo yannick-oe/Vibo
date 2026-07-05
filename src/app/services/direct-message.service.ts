@@ -1,22 +1,48 @@
 /**
  * @file Direct-message conversations: deterministic ids, lazy conversation
- * documents and message streaming via the shared message service.
+ * documents (friendship-gated for new pairs), the live conversation list
+ * and message streaming via the shared message service.
  */
-import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { Firestore, doc, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
-import { Observable, of, switchMap } from 'rxjs';
+import {
+  EnvironmentInjector,
+  Injectable,
+  computed,
+  inject,
+  runInInjectionContext,
+} from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import {
+  DocumentReference,
+  Firestore,
+  collection,
+  collectionData,
+  doc,
+  getDoc,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from '@angular/fire/firestore';
+import { Observable, catchError, of, switchMap } from 'rxjs';
 
 import { DirectMessageDoc, buildConversationId } from '../models/direct-message.model';
 import { GifResult } from '../models/gif.model';
 import { Message } from '../models/message.model';
 import { AuthService } from './auth.service';
+import { FriendshipService } from './friendship.service';
 import { MessageService, directMessagesPath } from './message.service';
+import { ToastService } from './toast.service';
+
+const DM_COLLECTION = 'directMessages';
+const PARTICIPANT_IDS_FIELD = 'participantIds';
+const FRIENDSHIP_REQUIRED_MESSAGE = 'Neue Unterhaltungen sind nur mit Freunden möglich.';
 
 /**
  * Data access for direct conversations. The conversation document at
  * directMessages/{conversationId} is created lazily with the first sent
  * message — conversations that were only opened never produce a document.
+ * Creating a NEW conversation requires an accepted friendship (self-DM
+ * exempt); existing conversations are grandfathered and keep working.
  */
 @Injectable({ providedIn: 'root' })
 export class DirectMessageService {
@@ -24,9 +50,20 @@ export class DirectMessageService {
 
   private readonly authService = inject(AuthService);
 
+  private readonly friendshipService = inject(FriendshipService);
+
   private readonly messageService = inject(MessageService);
 
+  private readonly toastService = inject(ToastService);
+
   private readonly injector = inject(EnvironmentInjector);
+
+  readonly conversations = toSignal(this.streamConversations(), {
+    initialValue: [] as DirectMessageDoc[],
+  });
+
+  /** Partner uids of every conversation that already exists. */
+  readonly conversationPartnerUids = computed(() => this.collectPartnerUids());
 
 
   /**
@@ -54,26 +91,28 @@ export class DirectMessageService {
 
   /**
    * Sends a message to the partner, creating the conversation document on
-   * the first message.
+   * the first message. A blocked (non-friend) new conversation shows a
+   * toast and sends nothing.
    * @param partnerUid Uid of the conversation partner.
    * @param text Trimmed message text.
    */
   async send(partnerUid: string, text: string): Promise<void> {
     const conversationId = this.conversationIdWith(partnerUid);
-    await this.ensureConversation(conversationId, partnerUid);
+    if (!(await this.prepareConversation(conversationId, partnerUid))) return;
     await this.messageService.sendMessage(directMessagesPath(conversationId), text);
   }
 
 
   /**
    * Sends a GIF to the partner, creating the conversation document on the
-   * first message.
+   * first message. A blocked (non-friend) new conversation shows a toast
+   * and sends nothing.
    * @param partnerUid Uid of the conversation partner.
    * @param gif Selected GIF result.
    */
   async sendGif(partnerUid: string, gif: GifResult): Promise<void> {
     const conversationId = this.conversationIdWith(partnerUid);
-    await this.ensureConversation(conversationId, partnerUid);
+    if (!(await this.prepareConversation(conversationId, partnerUid))) return;
     await this.messageService.sendGif(directMessagesPath(conversationId), gif);
   }
 
@@ -110,21 +149,100 @@ export class DirectMessageService {
 
 
   /**
-   * Creates the conversation document if it does not exist yet.
+   * Ensures the conversation document exists before a send. Existing
+   * conversations always pass (grandfathered); a new one is only created
+   * for self-DMs or accepted friends, otherwise a toast explains the block.
    * @param conversationId Deterministic id of the conversation.
    * @param partnerUid Uid of the conversation partner.
+   * @returns Whether sending may proceed.
    */
-  private async ensureConversation(conversationId: string, partnerUid: string): Promise<void> {
+  private async prepareConversation(conversationId: string, partnerUid: string): Promise<boolean> {
     const reference = runInInjectionContext(this.injector, () =>
-      doc(this.firestore, `directMessages/${conversationId}`),
+      doc(this.firestore, `${DM_COLLECTION}/${conversationId}`),
     );
     const snapshot = await runInInjectionContext(this.injector, () => getDoc(reference));
-    if (snapshot.exists()) return;
+    if (snapshot.exists()) return true;
+    if (!this.mayStartConversationWith(partnerUid)) {
+      this.toastService.show(FRIENDSHIP_REQUIRED_MESSAGE);
+      return false;
+    }
+    await this.createConversation(reference, partnerUid);
+    return true;
+  }
+
+
+  /**
+   * Reports whether a new conversation with the partner may be created:
+   * the self conversation is exempt, everyone else needs an accepted
+   * friendship.
+   * @param partnerUid Uid of the conversation partner.
+   */
+  private mayStartConversationWith(partnerUid: string): boolean {
+    if (partnerUid === this.authService.requireUid()) return true;
+    return this.friendshipService.friendUids().has(partnerUid);
+  }
+
+
+  /**
+   * Writes the conversation document for a permitted new conversation.
+   * @param reference Document reference of the conversation.
+   * @param partnerUid Uid of the conversation partner.
+   */
+  private async createConversation(
+    reference: DocumentReference,
+    partnerUid: string,
+  ): Promise<void> {
     const conversation: DirectMessageDoc = {
       participantIds: sortedParticipants(this.authService.requireUid(), partnerUid),
       createdAt: serverTimestamp(),
     };
     await runInInjectionContext(this.injector, () => setDoc(reference, conversation));
+  }
+
+
+  /**
+   * Streams the signed-in user's existing conversations; emits an empty
+   * list while signed out so the subscription never reads without
+   * permission.
+   */
+  private streamConversations(): Observable<DirectMessageDoc[]> {
+    return toObservable(this.authService.currentUser).pipe(
+      switchMap(current =>
+        current
+          ? runInInjectionContext(this.injector, () => this.queryConversations(current.uid))
+          : of([]),
+      ),
+    );
+  }
+
+
+  /**
+   * Reads all conversations containing the given uid live; errors recover
+   * with an empty list so the UI stays functional.
+   * @param uid Uid whose conversations to stream.
+   */
+  private queryConversations(uid: string): Observable<DirectMessageDoc[]> {
+    const conversationsQuery = query(
+      collection(this.firestore, DM_COLLECTION),
+      where(PARTICIPANT_IDS_FIELD, 'array-contains', uid),
+    );
+    return (collectionData(conversationsQuery) as Observable<DirectMessageDoc[]>).pipe(
+      catchError(() => of([])),
+    );
+  }
+
+
+  /**
+   * Collects the partner uid of every existing conversation (the self
+   * conversation contributes no partner).
+   */
+  private collectPartnerUids(): ReadonlySet<string> {
+    const me = this.authService.currentUser()?.uid;
+    if (!me) return new Set();
+    const partners = this.conversations()
+      .flatMap(conversation => conversation.participantIds)
+      .filter(uid => uid !== me);
+    return new Set(partners);
   }
 }
 
