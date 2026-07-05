@@ -222,9 +222,7 @@
 }
 
 .workspace__status {
-  @include m.status-dot;
-  width: 14px;
-  height: 14px;
+  @include m.status-dot($size: v.$status-dot-md);
 
   position: absolute;
   right: 0;

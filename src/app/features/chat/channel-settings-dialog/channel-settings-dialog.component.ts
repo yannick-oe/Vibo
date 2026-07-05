@@ -15,6 +15,7 @@ import { resolveAvatarPath } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
+import { DEFAULT_CHANNEL_CREATED_BY } from '../../../shared/channels.constants';
 import {
   DialogAnchor,
   DialogShellComponent,
@@ -25,6 +26,7 @@ const NAME_DUPLICATE_ERROR = 'Ein Channel mit diesem Namen existiert bereits.';
 const SAVE_ERROR = 'Die Änderung konnte nicht gespeichert werden.';
 const LEAVE_ERROR = 'Der Channel konnte nicht verlassen werden.';
 const UNKNOWN_CREATOR = 'Unbekannt';
+const SYSTEM_CREATOR_NAME = 'Vibo-Team';
 const SELF_SUFFIX = ' (Du)';
 
 /** Resolved member row of the mobile members section. */
@@ -91,11 +93,11 @@ export class ChannelSettingsDialogComponent {
 
   protected readonly members = computed(() => this.resolveMembers());
 
-  protected readonly creatorName = computed(
-    () =>
-      this.userService.users().find(user => user.uid === this.channel().createdBy)?.name ??
-      UNKNOWN_CREATOR,
-  );
+  protected readonly creatorName = computed(() => {
+    const createdBy = this.channel().createdBy;
+    if (createdBy === DEFAULT_CHANNEL_CREATED_BY) return SYSTEM_CREATOR_NAME;
+    return this.userService.users().find(user => user.uid === createdBy)?.name ?? UNKNOWN_CREATOR;
+  });
 
 
   /**

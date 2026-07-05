@@ -2,13 +2,21 @@
 
 $nav-entry-min-height: 44px;
 
-.workspace__section--nav {
-  padding-left: v.space('md-lg');
+.workspace__nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-left: v.space('xl');
 }
 
-.workspace__nav-entry {
+.workspace__item--friends {
   min-height: $nav-entry-min-height;
-  width: 100%;
+
+  &:hover .workspace__item-icon,
+  &.workspace__item--active .workspace__item-icon {
+    content: url('../../../../../public/app-icons/add-person-hover.svg');
+    filter: none;
+  }
 }
 
 .workspace__count-badge {

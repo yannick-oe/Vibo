@@ -14,6 +14,28 @@
     </a>
   </header>
 
+  <div class="workspace__nav">
+    <a
+      class="workspace__item workspace__item--friends"
+      routerLink="/app/friends"
+      routerLinkActive="workspace__item--active"
+      #friendsLink="routerLinkActive"
+      [attr.aria-current]="friendsLink.isActive ? 'page' : null"
+    >
+      <img class="workspace__item-icon" src="app-icons/add-person.svg" alt="" aria-hidden="true" />
+      <span class="workspace__item-name">Freunde</span>
+      @if (incomingCount() > 0) {
+        <span
+          class="workspace__count-badge"
+          role="status"
+          [attr.aria-label]="incomingCount() + ' offene Freundschaftsanfragen'"
+        >
+          {{ incomingCount() }}
+        </span>
+      }
+    </a>
+  </div>
+
   <section class="workspace__section">
     <div class="workspace__section-head">
       <button
@@ -77,28 +99,6 @@
         </li>
       </ul>
     </div>
-  </section>
-
-  <section class="workspace__section workspace__section--nav">
-    <a
-      class="workspace__item workspace__nav-entry"
-      routerLink="/app/friends"
-      routerLinkActive="workspace__item--active"
-      #friendsLink="routerLinkActive"
-      [attr.aria-current]="friendsLink.isActive ? 'page' : null"
-    >
-      <img class="workspace__item-icon" src="app-icons/add-person.svg" alt="" aria-hidden="true" />
-      <span class="workspace__item-name">Freunde</span>
-      @if (incomingCount() > 0) {
-        <span
-          class="workspace__count-badge"
-          role="status"
-          [attr.aria-label]="incomingCount() + ' offene Freundschaftsanfragen'"
-        >
-          {{ incomingCount() }}
-        </span>
-      }
-    </a>
   </section>
 
   <section class="workspace__section">
