@@ -35,9 +35,13 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: v.space('sm-md');
+  gap: v.space('xs');
 
   @media (max-width: 1380px) {
+    width: auto;
+  }
+
+  &--mobile {
     width: auto;
   }
 }
@@ -51,8 +55,11 @@
   background: none;
   border-radius: v.$radius-pill;
   cursor: pointer;
+  transition: background-color v.$transition-fast;
 
   &:hover {
+    background-color: v.color('bg');
+
     .topbar__user-name {
       color: v.color('primary-hover');
     }
@@ -61,6 +68,10 @@
       content: url('../../../../../public/app-icons/arrow-down-hover.svg');
       filter: none;
     }
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
   }
 }
 
@@ -206,6 +217,14 @@
   position: absolute;
   right: 0;
   bottom: 0;
+}
+
+.topbar__attention-dot {
+  @include m.status-dot(v.color('error'), v.$status-dot-md);
+
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 
 .topbar__chevron {

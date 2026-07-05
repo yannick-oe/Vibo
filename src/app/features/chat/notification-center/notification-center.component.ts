@@ -87,9 +87,7 @@ export class NotificationCenterComponent {
     this.notificationService.unreadConversations().map(watch => this.rowFor(watch)),
   );
 
-  protected readonly badgeValue = computed(
-    () => this.requests().length + this.unreadRows().length,
-  );
+  protected readonly badgeValue = computed(() => this.notificationService.attentionCount());
 
   protected readonly badgeText = computed(() => {
     const value = this.badgeValue();

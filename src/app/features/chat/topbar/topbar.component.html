@@ -13,26 +13,31 @@
         <img class="topbar__brand-logo" [src]="wordmarkSrc()" [alt]="appName" width="548" height="254" />
       </div>
     }
-    <app-notification-center />
-    <button
-      class="topbar__user topbar__user--mobile"
-      type="button"
-      appAvatarActivator
-      #userAct="avatarActivator"
-      aria-haspopup="menu"
-      [attr.aria-expanded]="state() === 'menu'"
-      (click)="openMenu($event)"
-    >
-      <span class="topbar__avatar-wrap">
-        <app-avatar
-          class="topbar__avatar topbar__avatar--mobile"
-          [avatarPath]="avatarPath()"
-          surface="topbar"
-          [alt]="avatarAlt()"
-          [isActive]="userAct.isActive()"
-        />
-      </span>
-    </button>
+    <div class="topbar__profile topbar__profile--mobile">
+      <app-notification-center />
+      <button
+        class="topbar__user topbar__user--mobile"
+        type="button"
+        appAvatarActivator
+        #userAct="avatarActivator"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="state() === 'menu'"
+        (click)="openMenu($event)"
+      >
+        <span class="topbar__avatar-wrap">
+          <app-avatar
+            class="topbar__avatar topbar__avatar--mobile"
+            [avatarPath]="avatarPath()"
+            surface="topbar"
+            [alt]="avatarAlt()"
+            [isActive]="userAct.isActive()"
+          />
+          @if (hasAttention()) {
+            <span class="topbar__attention-dot" aria-hidden="true"></span>
+          }
+        </span>
+      </button>
+    </div>
   } @else {
     <div class="topbar__brand">
       <img class="topbar__logo" [src]="wordmarkSrc()" [alt]="appName" width="548" height="254" />
@@ -63,6 +68,9 @@
             [isActive]="userAct.isActive()"
           />
           <span class="topbar__status" aria-hidden="true"></span>
+          @if (hasAttention()) {
+            <span class="topbar__attention-dot" aria-hidden="true"></span>
+          }
         </span>
         <img class="topbar__chevron" src="app-icons/arrow-down.svg" alt="" aria-hidden="true" />
       </button>

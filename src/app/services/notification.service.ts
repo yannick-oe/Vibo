@@ -28,6 +28,7 @@ import { MessageDoc } from '../models/message.model';
 import { UserDoc } from '../models/user.model';
 import { AuthService } from './auth.service';
 import { ChannelService } from './channel.service';
+import { FriendshipService } from './friendship.service';
 import { ConversationMeta, ReadMarker, ReadStateService } from './read-state.service';
 import { UserService } from './user.service';
 import { resolveAvatarPath } from './registration.service';
@@ -76,6 +77,8 @@ export class NotificationService {
 
   private readonly readState = inject(ReadStateService);
 
+  private readonly friendshipService = inject(FriendshipService);
+
   private readonly injector = inject(EnvironmentInjector);
 
   private readonly firestore = inject(Firestore);
@@ -106,6 +109,15 @@ export class NotificationService {
     this.entriesState()
       .filter(entry => this.isUnread(entry))
       .map(entry => entry.watch),
+  );
+
+  /**
+   * Total of items awaiting attention (pending incoming friend requests +
+   * unread conversations) — the single source for the bell badge and the
+   * avatar attention dot.
+   */
+  readonly attentionCount = computed(
+    () => this.pendingRequestCount() + this.unreadConversations().length,
   );
 
   private readonly watchList = computed(() => this.buildList(), { equal: sameWatchKeys });
@@ -196,6 +208,19 @@ export class NotificationService {
   private handle(entries: WatchMeta[]): void {
     this.entriesState.set(entries);
     for (const entry of entries) this.process(entry.watch, entry.meta);
+  }
+
+
+  /**
+   * Pending incoming requests whose requester profile is already loaded —
+   * mirrors exactly what the notification panel can render, so the badge,
+   * the avatar dot and the panel rows can never disagree.
+   */
+  private pendingRequestCount(): number {
+    const users = this.userService.users();
+    return this.friendshipService
+      .pendingIncomingUids()
+      .filter(uid => users.some(user => user.uid === uid)).length;
   }
 
 
