@@ -1,0 +1,85 @@
+<button
+  class="notification-center__bell"
+  type="button"
+  aria-haspopup="dialog"
+  [attr.aria-expanded]="isOpen()"
+  [attr.aria-label]="bellLabel()"
+  (click)="open($event)"
+>
+  <img src="app-icons/notifications.svg" alt="" aria-hidden="true" />
+  @if (badgeText()) {
+    <span class="notification-center__badge" aria-hidden="true">{{ badgeText() }}</span>
+  }
+</button>
+
+@if (isOpen()) {
+  <app-dialog-shell
+    [anchor]="anchor()"
+    size="menu"
+    labelledBy="notification-center-title"
+    (closed)="close()"
+  >
+    <div class="notification-center__panel" aria-live="polite">
+      <h2 class="notification-center__title" id="notification-center-title">Benachrichtigungen</h2>
+
+      @if (requests().length > 0) {
+        <h3 class="notification-center__group">Freundschaftsanfragen</h3>
+        <ul class="notification-center__list">
+          @for (requester of requests(); track requester.uid) {
+            <li class="notification-center__request">
+              <img
+                class="notification-center__avatar"
+                appAvatarFallback
+                [src]="avatarSrc(requester.avatarPath)"
+                alt=""
+                aria-hidden="true"
+              />
+              <span class="notification-center__name">{{ requester.name }}</span>
+              <app-friend-action class="notification-center__action" [uid]="requester.uid" />
+            </li>
+          }
+        </ul>
+      }
+
+      @if (unreadRows().length > 0) {
+        <h3 class="notification-center__group">Ungelesen</h3>
+        <ul class="notification-center__list">
+          @for (row of unreadRows(); track row.key) {
+            <li>
+              <button class="notification-center__row" type="button" (click)="pick(row)">
+                @if (row.avatarPath) {
+                  <img
+                    class="notification-center__avatar"
+                    appAvatarFallback
+                    [src]="row.avatarPath"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                } @else {
+                  <img
+                    class="notification-center__channel-icon"
+                    src="app-icons/tag.svg"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                }
+                <span class="notification-center__row-text">
+                  <span class="notification-center__name">{{ row.name }}</span>
+                  <span class="notification-center__preview">{{ previewFor(row.key) }}</span>
+                </span>
+                <app-unread-badge
+                  [conversationPath]="row.convPath"
+                  [messagesPath]="row.messagesPath"
+                />
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      @if (isEmpty()) {
+        <p class="notification-center__empty">Keine neuen Benachrichtigungen.</p>
+      }
+    </div>
+  </app-dialog-shell>
+}
