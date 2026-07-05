@@ -37,6 +37,10 @@
       }
     </div>
 
+    @if (username(); as handle) {
+      <p class="profile__username">&#64;{{ handle }}</p>
+    }
+
     @if (userStatus(); as status) {
       <p class="profile__custom-status">{{ status }}</p>
     }

@@ -1,5 +1,6 @@
 /**
- * @file Registration form step: collects name, e-mail, password and consent.
+ * @file Registration form step: collects username, e-mail, password and
+ * consent, including the debounced availability check of the @handle.
  */
 import {
   AfterViewInit,
@@ -21,16 +22,17 @@ import { Router, RouterLink } from '@angular/router';
 import { APP_NAME } from '../../../shared/app.constants';
 import { PasswordInputComponent } from '../../../shared/password-input/password-input.component';
 import { RegistrationService } from '../../../services/registration.service';
+import { UsernameService } from '../../../services/username.service';
 import {
-  DISPLAY_NAME_ERRORS,
-  displayNameValidator,
-  normalizeName,
-} from '../../../shared/validators/display-name.validators';
+  USERNAME_ERRORS,
+  normalizeUsername,
+  usernameValidator,
+} from '../../../shared/validators/username.validators';
 
 const PASSWORD_MIN_LENGTH = 6;
 
 const ERROR_MESSAGES: Record<string, Record<string, string>> = {
-  name: DISPLAY_NAME_ERRORS,
+  username: USERNAME_ERRORS,
   email: {
     required: 'Bitte gib deine E-Mail-Adresse ein',
     email: 'Diese E-Mail-Adresse ist leider ungültig',
@@ -71,6 +73,8 @@ export class RegisterComponent implements OnInit, AfterViewInit {
 
   private readonly registration = inject(RegistrationService);
 
+  private readonly usernameService = inject(UsernameService);
+
   private readonly router = inject(Router);
 
   private readonly title = viewChild<ElementRef<HTMLHeadingElement>>('title');
@@ -78,13 +82,13 @@ export class RegisterComponent implements OnInit, AfterViewInit {
   protected readonly appName = APP_NAME;
 
   protected readonly form = this.formBuilder.group({
-    name: ['', [displayNameValidator]],
+    username: ['', [usernameValidator], [this.usernameService.availabilityValidator()]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)]],
     privacy: [false, Validators.requiredTrue],
   });
 
-  protected isNameFocused = false;
+  protected isUsernameFocused = false;
   protected isEmailFocused = false;
   protected isPasswordFocused = false;
 
@@ -157,12 +161,13 @@ export class RegisterComponent implements OnInit, AfterViewInit {
 
 
   /**
-   * Stores the form values and continues to the avatar step.
+   * Stores the form values and continues to the avatar step. Requires a
+   * fully valid form, which also blocks the pending availability check.
    */
   protected continueToAvatar(): void {
-    if (this.form.invalid) return;
-    const { name, email, password } = this.form.getRawValue();
-    this.registration.setFormData({ name: normalizeName(name), email, password });
+    if (!this.form.valid) return;
+    const { username, email, password } = this.form.getRawValue();
+    this.registration.setFormData({ username: normalizeUsername(username), email, password });
     this.router.navigate(['/auth/register/avatar']);
   }
 }

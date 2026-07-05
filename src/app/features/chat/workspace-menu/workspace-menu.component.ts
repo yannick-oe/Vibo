@@ -9,6 +9,8 @@ import { buildConversationId } from '../../../models/direct-message.model';
 import { AuthService } from '../../../services/auth.service';
 import { ChannelCreateService } from '../../../services/channel-create.service';
 import { ChannelService } from '../../../services/channel.service';
+import { DirectMessageService } from '../../../services/direct-message.service';
+import { FriendshipService } from '../../../services/friendship.service';
 import { LayoutService } from '../../../services/layout.service';
 import {
   channelMessagesPath,
@@ -36,10 +38,11 @@ interface SelfEntry {
 
 /**
  * Workspace navigation column showing the Devspace header, the live channel
- * list and the direct-message user list. The signed-in user leads the
- * direct-message list with a "(Du)" suffix, all other users follow
- * alphabetically. Both add-channel triggers open the creation dialog,
- * which the app shell renders at the top level via {@link ChannelCreateService}.
+ * list and the direct-message list. The signed-in user leads the
+ * direct-message list with a "(Du)" suffix; below it appear accepted
+ * friends and partners of already existing conversations, alphabetically.
+ * Both add-channel triggers open the creation dialog, which the app shell
+ * renders at the top level via {@link ChannelCreateService}.
  */
 @Component({
   selector: 'app-workspace-menu',
@@ -61,6 +64,10 @@ export class WorkspaceMenuComponent {
   private readonly channelService = inject(ChannelService);
 
   private readonly userService = inject(UserService);
+
+  private readonly friendshipService = inject(FriendshipService);
+
+  private readonly directMessageService = inject(DirectMessageService);
 
   private readonly channelCreate = inject(ChannelCreateService);
 
@@ -185,13 +192,27 @@ export class WorkspaceMenuComponent {
 
 
   /**
-   * Returns all users except the signed-in one, sorted alphabetically.
+   * Returns the direct-message partners of the signed-in user — accepted
+   * friends plus partners of already existing conversations — sorted
+   * alphabetically.
    */
   private sortOthers(): UserDoc[] {
     const selfUid = this.authService.currentUser()?.uid;
+    const visible = this.visibleDmUids();
     return this.userService
       .users()
-      .filter(user => user.uid !== selfUid)
+      .filter(user => user.uid !== selfUid && visible.has(user.uid))
       .sort((a, b) => a.name.localeCompare(b.name, SORT_LOCALE));
+  }
+
+
+  /**
+   * Unions accepted friends with partners of existing conversations.
+   */
+  private visibleDmUids(): ReadonlySet<string> {
+    return new Set([
+      ...this.friendshipService.friendUids(),
+      ...this.directMessageService.conversationPartnerUids(),
+    ]);
   }
 }

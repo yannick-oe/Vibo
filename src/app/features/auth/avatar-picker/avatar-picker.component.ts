@@ -64,7 +64,7 @@ export class AvatarPickerComponent implements AfterViewInit {
 
   protected readonly previewPath = computed(() => this.registration.avatarPath());
 
-  protected readonly userName = computed(() => this.registration.data()?.name ?? '');
+  protected readonly userName = computed(() => this.registration.data()?.username ?? '');
 
 
   /**

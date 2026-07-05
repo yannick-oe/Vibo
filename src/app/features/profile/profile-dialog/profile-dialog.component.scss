@@ -77,6 +77,12 @@ $name-error-lines: 2;
   flex-shrink: 0;
 }
 
+.profile__username {
+  font-size: v.font-size('body');
+  color: v.color('text-gray');
+  overflow-wrap: anywhere;
+}
+
 .profile__guest-note {
   padding: v.space('sm') v.space('md');
   border-radius: v.$radius-md;

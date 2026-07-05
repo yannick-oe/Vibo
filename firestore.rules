@@ -121,8 +121,43 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
+      // The immutable @username (3–20 chars, mirrors USERNAME_MIN/MAX_LENGTH):
+      // valid on create and backed by the usernames claim written in the
+      // same batch (getAfter), so profile and registry can never diverge.
+      function validNewUsername() {
+        return request.resource.data.username is string
+          && request.resource.data.username.size() >= 3
+          && request.resource.data.username.size() <= 20
+          && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == uid;
+      }
+
+      // Tolerant immutability: identical on both sides, including the
+      // both-absent case of legacy docs before the manual migration.
+      function usernameUnchanged() {
+        return request.resource.data.get('username', null) == resource.data.get('username', null);
+      }
+
       allow read: if signedIn();
-      allow create, update, delete: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid && validNewUsername();
+      allow update: if signedIn() && request.auth.uid == uid && usernameUnchanged();
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Global registry backing @username uniqueness; doc id = normalized
+    // username. Reads are public because the registration form checks
+    // availability before an account exists. Claims are immutable (no
+    // update/delete); `create` only ever matches a non-existing doc, which
+    // is the uniqueness guarantee, and requires the same-batch user doc to
+    // carry exactly this handle.
+    match /usernames/{name} {
+      allow read: if true;
+      allow create: if signedIn()
+        && name.matches('[a-z0-9]+([._][a-z0-9]+)*')
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == name;
+      allow update, delete: if false;
     }
 
     match /channels/{channelId} {
@@ -235,16 +270,94 @@ service cloud.firestore {
       return signedIn() && request.auth.uid in conversationId.split('_');
     }
 
+    // Friendship graph. Doc id = both uids sorted and joined with "_" —
+    // identical to the conversation-id convention, so a conversation id
+    // doubles as its friendship lookup for the DM gating below.
+    match /friendships/{friendshipId} {
+      function pairFromId() {
+        return friendshipId.split('_');
+      }
+
+      function isSortedPairId() {
+        return pairFromId().size() == 2 && pairFromId()[0] < pairFromId()[1];
+      }
+
+      function validFriendshipShape() {
+        return request.resource.data.keys()
+            .hasOnly(['participants', 'requestedBy', 'status', 'createdAt', 'respondedAt'])
+          && request.resource.data.participants == pairFromId()
+          && request.resource.data.requestedBy in pairFromId()
+          && request.resource.data.createdAt == request.time;
+      }
+
+      function isPendingRequest() {
+        return request.resource.data.requestedBy == request.auth.uid
+          && request.resource.data.status == 'pending'
+          && request.resource.data.respondedAt == null;
+      }
+
+      // Demo self-healing: the shared guest account re-creates its accepted
+      // founder friendship after every guest reset (see FriendshipService).
+      // Restricted to the one exact doc id of that pair. Replace the
+      // placeholder with "<guestUid>_<founderUid>" (uids sorted).
+      function demoFriendshipId() {
+        return 'EtMKQ4MK5Be5xZhXhngptGXr1Ee2_dHsxMektWfWvwbhQWUe9bILbavl1';
+      }
+
+      function isDemoSeed() {
+        return friendshipId == demoFriendshipId()
+          && request.resource.data.status == 'accepted'
+          && request.resource.data.respondedAt == request.time;
+      }
+
+      // Reads accept either proof of participation: the id (single-doc
+      // gets, incl. the seeding existence check on a missing doc) or the
+      // stored participants (the `array-contains` list query).
+      allow read: if isParticipant(friendshipId)
+        || (signedIn() && request.auth.uid in resource.data.participants);
+
+      allow create: if isParticipant(friendshipId)
+        && isSortedPairId()
+        && validFriendshipShape()
+        && (isPendingRequest() || isDemoSeed());
+
+      // Accept: only the recipient flips the pending doc to accepted.
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.participants
+        && request.auth.uid != resource.data.requestedBy
+        && resource.data.status == 'pending'
+        && affectedKeys().hasOnly(['status', 'respondedAt'])
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.respondedAt == request.time;
+
+      // Withdraw (requester, pending), decline (recipient, pending) and
+      // unfriend (either side, accepted) are all participant deletes.
+      allow delete: if signedIn() && request.auth.uid in resource.data.participants;
+    }
+
     match /directMessages/{conversationId} {
       // Reads accept either proof of participation: the id (single-doc
       // gets, incl. the lazy existence check on a missing doc) or the
       // stored participantIds (provable for the global-search list
       // query `where participantIds array-contains uid`).
+      // New conversations require an accepted friendship (the friendship
+      // doc shares the conversation id); the self conversation is exempt.
+      // Existing conversations are grandfathered: reads, message writes
+      // and the update below stay id-based and unchanged.
+      function isSelfConversation() {
+        return conversationId.split('_')[0] == conversationId.split('_')[1];
+      }
+
+      function hasAcceptedFriendship() {
+        return get(/databases/$(database)/documents/friendships/$(conversationId)).data.status == 'accepted';
+      }
+
       allow read: if isParticipant(conversationId)
         || (signedIn() && request.auth.uid in resource.data.participantIds);
       allow delete: if isParticipant(conversationId);
       allow create: if isParticipant(conversationId)
-        && request.resource.data.participantIds == conversationId.split('_');
+        && request.resource.data.participantIds == conversationId.split('_')
+        && (isSelfConversation() || hasAcceptedFriendship());
       // The only permitted update is the sender denormalizing the last
       // message; participation is proven from the deterministic id.
       allow update: if isParticipant(conversationId)

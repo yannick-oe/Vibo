@@ -7,6 +7,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FirebaseError } from 'firebase/app';
 
 import { AuthService } from '../../../services/auth.service';
+import { FriendshipService } from '../../../services/friendship.service';
 import { PasswordInputComponent } from '../../../shared/password-input/password-input.component';
 import { IntroComponent } from '../intro/intro.component';
 
@@ -38,6 +39,8 @@ const ERROR_MESSAGES: Record<string, Record<string, string>> = {
 })
 export class LoginComponent {
   private readonly authService = inject(AuthService);
+
+  private readonly friendshipService = inject(FriendshipService);
 
   private readonly formBuilder = inject(NonNullableFormBuilder);
 
@@ -100,11 +103,15 @@ export class LoginComponent {
 
 
   /**
-   * Signs in anonymously as guest.
+   * Signs in to the shared guest account and seeds the demo friendship
+   * with the founder so the public demo never starts socially empty.
    */
   protected async loginAsGuest(): Promise<void> {
     if (this.isPending()) return;
-    await this.runSignIn(() => this.authService.signInAsGuest());
+    await this.runSignIn(async () => {
+      await this.authService.signInAsGuest();
+      await this.friendshipService.ensureDemoFriendship();
+    });
   }
 
 

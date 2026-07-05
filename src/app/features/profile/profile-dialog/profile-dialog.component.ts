@@ -154,6 +154,8 @@ export class ProfileDialogComponent {
 
   protected readonly displayName = computed(() => this.user()?.name ?? UNKNOWN_USER);
 
+  protected readonly username = computed(() => this.user()?.username ?? '');
+
   protected readonly email = computed(() => this.user()?.email ?? null);
 
   protected readonly statusLabel = computed(() => (this.isSelf() ? STATUS_ACTIVE : STATUS_AWAY));

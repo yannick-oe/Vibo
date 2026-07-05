@@ -7,28 +7,28 @@
   </header>
 
   <p class="register-card__intro">
-    Mit deinem Namen und deiner E-Mail-Adresse hast du dein neues {{ appName }}-Konto.
+    Mit deinem Benutzernamen und deiner E-Mail-Adresse hast du dein neues {{ appName }}-Konto.
   </p>
 
   <form class="register-card__form" [formGroup]="form" (ngSubmit)="continueToAvatar()">
     <div class="form-field">
-      <label class="sr-only" for="register-name">Name und Nachname</label>
+      <label class="sr-only" for="register-username">Benutzername</label>
       <div class="form-input-wrapper form-input-wrapper--leading">
-        <img class="form-input-icon icon-person" [src]="isNameFocused ? 'app-icons/person.svg' : 'app-icons/person-grey.svg'" alt="" aria-hidden="true" />
+        <img class="form-input-icon icon-person" [src]="isUsernameFocused ? 'app-icons/person.svg' : 'app-icons/person-grey.svg'" alt="" aria-hidden="true" />
         <input
-          id="register-name"
+          id="register-username"
           class="form-input"
           type="text"
-          formControlName="name"
-          autocomplete="name"
-          placeholder="Name und Nachname"
-          aria-describedby="register-name-error"
-          [attr.aria-invalid]="isInvalid('name')"
-          (focus)="isNameFocused = true"
-          (blur)="isNameFocused = false"
+          formControlName="username"
+          autocomplete="username"
+          placeholder="Benutzername"
+          aria-describedby="register-username-error"
+          [attr.aria-invalid]="isInvalid('username')"
+          (focus)="isUsernameFocused = true"
+          (blur)="isUsernameFocused = false"
         />
       </div>
-      <p class="form-error" id="register-name-error" aria-live="polite">{{ errorMessage('name') }}</p>
+      <p class="form-error" id="register-username-error" aria-live="polite">{{ errorMessage('username') }}</p>
     </div>
 
     <div class="form-field">
@@ -87,7 +87,7 @@
     </div>
 
     <div class="register-card__actions">
-      <button class="btn btn-primary" type="submit" [disabled]="form.invalid">Weiter</button>
+      <button class="btn btn-primary" type="submit" [disabled]="!form.valid">Weiter</button>
     </div>
   </form>
 </section>
