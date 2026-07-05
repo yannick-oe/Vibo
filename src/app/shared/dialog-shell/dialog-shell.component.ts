@@ -1,6 +1,11 @@
 /**
  * @file Generic modal shell: scrim, focus trap, close behaviors and focus
- * restore for projected dialog content.
+ * restore for projected dialog content. In the mobile bottom-sheet mode the
+ * card additionally supports pointer-driven swipe-to-dismiss (grabber, or
+ * content pulled down while scrolled to top) — an addition to, never a
+ * replacement of, Escape, the X button and the scrim tap. The grabber is
+ * the guaranteed touch surface (touch-action: none); on content the
+ * browser may claim the pan (pointercancel), which safely springs back.
  */
 import {
   AfterViewInit,
@@ -9,15 +14,25 @@ import {
   ElementRef,
   OnDestroy,
   computed,
+  inject,
   input,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
+
+import { LayoutService } from '../../services/layout.service';
+import { ReducedMotionService } from '../../services/reduced-motion.service';
 
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled])';
 const ANCHORED_BOTTOM_INSET_PX = 24;
 const ANCHOR_GAP_PX = 8;
 const ANCHOR_MIN_VIEWPORT_PX = 768;
+const SWIPE_DISMISS_FRACTION = 0.33;
+const SWIPE_FLICK_VELOCITY_PX_PER_MS = 0.6;
+const GRABBER_ZONE_PX = 36;
+const GRABBER_SELECTOR = '.dialog-shell__grabber';
+const SETTLE_DURATION_MS = 250;
 
 /** Width preset of the dialog card, mapped to the Figma measurements. */
 export type DialogSize = 'default' | 'members' | 'add-members' | 'profile' | 'menu' | 'search';
@@ -89,6 +104,33 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
   private readonly card = viewChild.required<ElementRef<HTMLElement>>('card');
 
+  private readonly layoutService = inject(LayoutService);
+
+  private readonly reducedMotion = inject(ReducedMotionService);
+
+  protected readonly isDragging = signal(false);
+
+  protected readonly isSettling = signal(false);
+
+  private readonly dragOffset = signal<number | null>(null);
+
+  protected readonly sheetTransform = computed(() => {
+    const offset = this.dragOffset();
+    return offset === null ? null : `translateY(${offset}px)`;
+  });
+
+  private dragEligible = false;
+
+  private grabberDrag = false;
+
+  private dragStartY = 0;
+
+  private lastMoveY = 0;
+
+  private lastMoveTime = 0;
+
+  private velocity = 0;
+
 
   /**
    * Focuses the first focusable element once the dialog is rendered.
@@ -152,5 +194,170 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
   private focusableElements(): HTMLElement[] {
     const elements = this.card().nativeElement.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
     return [...elements].filter(element => element.offsetParent !== null);
+  }
+
+
+  /**
+   * Starts tracking a potential swipe: only in sheet mode, and only when
+   * the gesture begins on the grabber or on content scrolled to the top.
+   * @param event Pointerdown event on the card.
+   */
+  protected onPointerDown(event: PointerEvent): void {
+    if (!this.isSheetMode() || !event.isPrimary) return;
+    const card = this.card().nativeElement;
+    this.grabberDrag = this.isOnGrabber(event, card);
+    this.dragEligible = this.grabberDrag || !this.hasScrolledContent(event.target, card);
+    if (!this.dragEligible) return;
+    this.dragStartY = event.clientY;
+    this.lastMoveY = event.clientY;
+    this.lastMoveTime = event.timeStamp;
+    this.velocity = 0;
+  }
+
+
+  /**
+   * Moves the sheet with a downward drag (clamped at its rest position);
+   * an upward move on content hands the gesture back to native scrolling.
+   * @param event Pointermove event on the card.
+   */
+  protected onPointerMove(event: PointerEvent): void {
+    if (!this.dragEligible || !event.isPrimary) return;
+    const delta = event.clientY - this.dragStartY;
+    if (!this.isDragging()) {
+      if (delta <= 0) return this.abortUnlessGrabber(delta);
+      this.beginDrag(event);
+    }
+    this.trackVelocity(event);
+    this.dragOffset.set(Math.max(0, delta));
+  }
+
+
+  /**
+   * Settles the released sheet: dismiss beyond the distance threshold or
+   * on a fast downward flick, otherwise spring back.
+   */
+  protected onPointerUp(): void {
+    if (!this.isDragging()) return this.resetDragTracking();
+    const offset = this.dragOffset() ?? 0;
+    const height = this.card().nativeElement.offsetHeight;
+    const dismiss =
+      offset > height * SWIPE_DISMISS_FRACTION || this.velocity > SWIPE_FLICK_VELOCITY_PX_PER_MS;
+    this.settle(dismiss, height);
+  }
+
+
+  /**
+   * Springs back when the browser takes over the pointer (e.g. scrolling).
+   */
+  protected onPointerCancel(): void {
+    if (this.isDragging()) return this.settle(false, this.card().nativeElement.offsetHeight);
+    this.resetDragTracking();
+  }
+
+
+  /**
+   * Whether the card currently renders as a mobile bottom sheet; the
+   * full-screen search variant has no sheet gesture.
+   */
+  private isSheetMode(): boolean {
+    return this.layoutService.isMobile() && this.size() !== 'search';
+  }
+
+
+  /**
+   * Whether the gesture started on the grabber element or within the
+   * grabber zone at the top edge of the card.
+   * @param event Pointerdown event.
+   * @param card Sheet card element.
+   */
+  private isOnGrabber(event: PointerEvent, card: HTMLElement): boolean {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (target?.closest(GRABBER_SELECTOR)) return true;
+    return event.clientY - card.getBoundingClientRect().top <= GRABBER_ZONE_PX;
+  }
+
+
+  /**
+   * Whether any scroll container between the event target and the card is
+   * scrolled away from the top (then the gesture belongs to scrolling).
+   * @param target Element the gesture started on.
+   * @param card Sheet card element.
+   */
+  private hasScrolledContent(target: EventTarget | null, card: HTMLElement): boolean {
+    let node = target instanceof HTMLElement ? target : null;
+    while (node && node !== card.parentElement) {
+      if (node.scrollTop > 0) return true;
+      node = node.parentElement;
+    }
+    return false;
+  }
+
+
+  /**
+   * Drops the drag eligibility when content moves upward without the
+   * grabber, so inner scrolling is never hijacked.
+   * @param delta Vertical distance from the start position.
+   */
+  private abortUnlessGrabber(delta: number): void {
+    if (!this.grabberDrag && delta < 0) this.dragEligible = false;
+  }
+
+
+  /**
+   * Activates the visual drag and captures the pointer on the card.
+   * @param event First downward pointermove of the gesture.
+   */
+  private beginDrag(event: PointerEvent): void {
+    this.isDragging.set(true);
+    this.isSettling.set(false);
+    this.card().nativeElement.setPointerCapture(event.pointerId);
+  }
+
+
+  /**
+   * Tracks the current downward velocity in pixels per millisecond.
+   * @param event Latest pointermove event.
+   */
+  private trackVelocity(event: PointerEvent): void {
+    const elapsed = event.timeStamp - this.lastMoveTime;
+    if (elapsed > 0) this.velocity = (event.clientY - this.lastMoveY) / elapsed;
+    this.lastMoveY = event.clientY;
+    this.lastMoveTime = event.timeStamp;
+  }
+
+
+  /**
+   * Animates the sheet off-screen (dismiss) or back to rest; with reduced
+   * motion both states apply instantly without a transition.
+   * @param dismiss Whether the sheet is dismissed.
+   * @param height Current sheet height in pixels.
+   */
+  private settle(dismiss: boolean, height: number): void {
+    this.isDragging.set(false);
+    this.resetDragTracking();
+    if (this.reducedMotion.prefersReducedMotion()) return this.finishSettle(dismiss);
+    this.isSettling.set(true);
+    this.dragOffset.set(dismiss ? height : 0);
+    setTimeout(() => this.finishSettle(dismiss), SETTLE_DURATION_MS);
+  }
+
+
+  /**
+   * Clears the settle state and emits the close event of a dismissal.
+   * @param dismiss Whether the sheet was dismissed.
+   */
+  private finishSettle(dismiss: boolean): void {
+    this.isSettling.set(false);
+    this.dragOffset.set(null);
+    if (dismiss) this.closed.emit();
+  }
+
+
+  /**
+   * Resets the per-gesture tracking flags.
+   */
+  private resetDragTracking(): void {
+    this.dragEligible = false;
+    this.grabberDrag = false;
   }
 }

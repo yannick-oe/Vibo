@@ -99,6 +99,20 @@
 
 @include m.sheet-keyframes;
 
+.dialog-shell__grabber {
+  display: none;
+}
+
+.dialog-shell__card--dragging {
+  animation: none;
+  transition: none;
+}
+
+.dialog-shell__card--settling {
+  animation: none;
+  transition: transform v.$transition-base;
+}
+
 @include m.respond-md {
   .dialog-shell {
     align-items: flex-end;
@@ -113,7 +127,36 @@
     @include m.sheet-card;
 
     position: static;
-    padding: v.space('md') v.space('md') v.space('lg');
+    padding: 0 v.space('md') v.space('lg');
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+
+    &::before {
+      display: none;
+    }
+  }
+
+  .dialog-shell__grabber {
+    display: block;
+    flex-shrink: 0;
+    align-self: stretch;
+    padding: v.space('sm') 0 v.space('sm-md');
+    touch-action: none;
+    cursor: grab;
+
+    &::before {
+      content: '';
+      display: block;
+      width: v.space('xxl');
+      height: v.space('xs');
+      margin-inline: auto;
+      border-radius: v.$radius-pill;
+      background-color: v.color('lines');
+    }
+  }
+
+  .dialog-shell__card--search .dialog-shell__grabber {
+    display: none;
   }
 
   .dialog-shell--search {
@@ -135,5 +178,9 @@
 @media (prefers-reduced-motion: reduce) {
   .dialog-shell__card {
     animation: none;
+  }
+
+  .dialog-shell__card--settling {
+    transition: none;
   }
 }
