@@ -40,9 +40,9 @@
         }
       }
       @if (found.users.length > 0) {
-        <li class="search-bar__group" role="presentation">Mitglieder</li>
+        <li class="search-bar__group" role="presentation">Nutzer</li>
         @for (hit of found.users; track hit.uid; let index = $index) {
-          <li>
+          <li class="search-bar__user-row">
             <button
               class="search-bar__option"
               type="button"
@@ -60,8 +60,18 @@
                   aria-hidden="true"
                 ></span>
               </span>
-              {{ hit.name }}
+              <span class="search-bar__user-names">
+                <span class="search-bar__user-name">{{ hit.name }}</span>
+                @if (hit.username) {
+                  <span class="search-bar__user-handle">&#64;{{ hit.username }}</span>
+                }
+              </span>
             </button>
+            <app-friend-action
+              class="search-bar__user-action"
+              [uid]="hit.uid"
+              (navigated)="onActionNavigated()"
+            />
           </li>
         }
       }

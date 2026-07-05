@@ -15,7 +15,6 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 
 import { AuthService } from '../../../services/auth.service';
 import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
@@ -29,6 +28,7 @@ import { displayBadges } from '../../../shared/badge-options';
 import { BANNER_NONE, BANNER_OPTIONS } from '../../../shared/banner-options';
 import { ProfileBannerComponent } from '../../../shared/profile-banner/profile-banner.component';
 import { DialogAnchor, DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
+import { FriendActionComponent } from '../../../shared/friend-action/friend-action.component';
 import {
   NAME_MAX_LENGTH,
   displayNameErrorMessage,
@@ -65,6 +65,7 @@ type ProfileMode = 'view' | 'edit';
   imports: [
     ReactiveFormsModule,
     DialogShellComponent,
+    FriendActionComponent,
     ProfileBannerComponent,
     AuroraNameComponent,
     AvatarComponent,
@@ -86,8 +87,6 @@ export class ProfileDialogComponent {
   private readonly authService = inject(AuthService);
 
   private readonly toastService = inject(ToastService);
-
-  private readonly router = inject(Router);
 
   protected readonly avatars = AVATAR_OPTIONS;
 
@@ -344,13 +343,6 @@ export class ProfileDialogComponent {
   }
 
 
-  /**
-   * Opens the direct conversation with the shown user and closes.
-   */
-  protected async message(): Promise<void> {
-    this.closed.emit();
-    await this.router.navigate(['/app/dm', this.uid()]);
-  }
 }
 
 

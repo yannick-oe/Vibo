@@ -31,6 +31,7 @@ import {
 } from '../../../services/search.service';
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
+import { FriendActionComponent } from '../../../shared/friend-action/friend-action.component';
 
 const DEBOUNCE_MS = 250;
 const MIN_TERM_LENGTH = 2;
@@ -48,7 +49,7 @@ type SearchHit = ChannelHit | UserHit | MessageHit;
  */
 @Component({
   selector: 'app-search-bar',
-  imports: [AvatarFallbackDirective, ReactiveFormsModule],
+  imports: [AvatarFallbackDirective, FriendActionComponent, ReactiveFormsModule],
   templateUrl: './search-bar.component.html',
   styleUrl: './search-bar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -159,6 +160,17 @@ export class SearchBarComponent {
    */
   focusInput(): void {
     this.searchInput().nativeElement.focus();
+  }
+
+
+  /**
+   * Closes the dropdown after a friend-action navigation (opened DM) so
+   * the search does not linger over the target view.
+   */
+  protected onActionNavigated(): void {
+    this.results.set(null);
+    this.searchControl.setValue('');
+    this.picked.emit();
   }
 
 

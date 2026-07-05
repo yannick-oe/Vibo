@@ -63,6 +63,38 @@ $dropdown-max-height: 480px;
   color: v.color('text-gray');
 }
 
+.search-bar__user-row {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+
+  .search-bar__option {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.search-bar__user-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.search-bar__user-name {
+  @include m.text-ellipsis;
+}
+
+.search-bar__user-handle {
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  @include m.text-ellipsis;
+}
+
+.search-bar__user-action {
+  flex-shrink: 0;
+  padding-right: v.space('xs');
+}
+
 .search-bar__option {
   display: flex;
   align-items: center;

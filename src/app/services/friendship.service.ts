@@ -59,6 +59,12 @@ export class FriendshipService {
   /** Uids of all accepted friends of the signed-in user. */
   readonly friendUids = computed(() => this.collectFriendUids());
 
+  /** Uids of users whose friend requests are awaiting the own answer. */
+  readonly pendingIncomingUids = computed(() => this.pendingPartners(false));
+
+  /** Uids of users the signed-in user has open requests to. */
+  readonly pendingOutgoingUids = computed(() => this.pendingPartners(true));
+
 
   /**
    * Reactive relationship of the signed-in user to another user, for UI
@@ -195,6 +201,21 @@ export class FriendshipService {
     if (!match) return 'none';
     if (match.status === 'accepted') return 'friends';
     return match.requestedBy === me ? 'pendingOutgoing' : 'pendingIncoming';
+  }
+
+
+  /**
+   * Collects the other participant of every pending friendship, filtered
+   * by request direction.
+   * @param outgoing True for own requests, false for incoming ones.
+   */
+  private pendingPartners(outgoing: boolean): string[] {
+    const me = this.authService.currentUser()?.uid;
+    if (!me) return [];
+    return this.friendships()
+      .filter(f => f.status === 'pending' && (f.requestedBy === me) === outgoing)
+      .flatMap(f => f.participants)
+      .filter(uid => uid !== me);
   }
 
 
