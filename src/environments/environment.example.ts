@@ -17,4 +17,5 @@ export const environment = {
   giphyApiKey: 'YOUR_GIPHY_API_KEY',
   guestEmail: 'GUEST_ACCOUNT_EMAIL',
   guestPassword: 'GUEST_ACCOUNT_PASSWORD',
+  founderUid: 'FOUNDER_ACCOUNT_UID',
 };
