@@ -21,6 +21,7 @@
     [style.right.px]="anchor()?.right ?? null"
     [style.maxHeight]="anchoredMaxHeight()"
     [style.transform]="sheetTransform()"
+    [style.touchAction]="isDragging() ? 'none' : null"
     role="dialog"
     aria-modal="true"
     [attr.aria-labelledby]="labelledBy()"

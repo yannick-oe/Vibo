@@ -30,7 +30,7 @@ const ANCHOR_GAP_PX = 8;
 const ANCHOR_MIN_VIEWPORT_PX = 768;
 const SWIPE_DISMISS_FRACTION = 0.33;
 const SWIPE_FLICK_VELOCITY_PX_PER_MS = 0.6;
-const GRABBER_ZONE_PX = 36;
+const DRAG_START_SLOP_PX = 8;
 const GRABBER_SELECTOR = '.dialog-shell__grabber';
 const SETTLE_DURATION_MS = 250;
 
@@ -133,19 +133,42 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Focuses the first focusable element once the dialog is rendered.
+   * Focuses the first focusable element once the dialog is rendered and
+   * registers the non-passive touchmove guard that keeps eligible sheet
+   * drags alive on real touch devices (Angular listeners are passive, so
+   * they cannot prevent the browser from claiming the pan for scrolling).
    */
   ngAfterViewInit(): void {
     this.focusableElements()[0]?.focus();
+    this.card().nativeElement.addEventListener('touchmove', this.onNativeTouchMove, {
+      passive: false,
+    });
   }
 
 
   /**
-   * Returns focus to the element that opened the dialog.
+   * Returns focus to the element that opened the dialog and removes the
+   * native touchmove guard.
    */
   ngOnDestroy(): void {
+    this.card().nativeElement.removeEventListener('touchmove', this.onNativeTouchMove);
     this.previouslyFocused?.focus();
   }
+
+
+  /**
+   * Prevents the browser from turning an eligible sheet drag into a native
+   * scroll (which would fire pointercancel mid-drag): only downward moves
+   * of an eligible gesture and moves of an active drag are consumed; every
+   * upward move stays untouched so inner scrolling is never hijacked.
+   * @param event Native touchmove event on the card.
+   */
+  private readonly onNativeTouchMove = (event: TouchEvent): void => {
+    if (!this.dragEligible && !this.isDragging()) return;
+    if (!event.cancelable) return;
+    const y = event.touches[0]?.clientY ?? this.dragStartY;
+    if (this.isDragging() || y > this.dragStartY) event.preventDefault();
+  };
 
 
   /**
@@ -205,7 +228,7 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
   protected onPointerDown(event: PointerEvent): void {
     if (!this.isSheetMode() || !event.isPrimary) return;
     const card = this.card().nativeElement;
-    this.grabberDrag = this.isOnGrabber(event, card);
+    this.grabberDrag = this.isOnGrabber(event);
     this.dragEligible = this.grabberDrag || !this.hasScrolledContent(event.target, card);
     if (!this.dragEligible) return;
     this.dragStartY = event.clientY;
@@ -216,19 +239,22 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Moves the sheet with a downward drag (clamped at its rest position);
-   * an upward move on content hands the gesture back to native scrolling.
+   * Moves the sheet with a downward drag (clamped at its rest position).
+   * The drag only engages beyond a small slop, so a tiny downward contact
+   * roll at the start of an upward scroll never claims the gesture; an
+   * upward move on content hands the gesture back to native scrolling.
    * @param event Pointermove event on the card.
    */
   protected onPointerMove(event: PointerEvent): void {
     if (!this.dragEligible || !event.isPrimary) return;
     const delta = event.clientY - this.dragStartY;
     if (!this.isDragging()) {
-      if (delta <= 0) return this.abortUnlessGrabber(delta);
+      if (delta < 0) return this.abortUnlessGrabber(delta);
+      if (delta <= DRAG_START_SLOP_PX) return;
       this.beginDrag(event);
     }
     this.trackVelocity(event);
-    this.dragOffset.set(Math.max(0, delta));
+    this.dragOffset.set(Math.max(0, delta - DRAG_START_SLOP_PX));
   }
 
 
@@ -265,15 +291,14 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Whether the gesture started on the grabber element or within the
-   * grabber zone at the top edge of the card.
+   * Whether the gesture started on the grabber element itself. A geometric
+   * zone is deliberately not used: it would claim touches on adjacent card
+   * content (especially once the card is scrolled) and deaden scrolling.
    * @param event Pointerdown event.
-   * @param card Sheet card element.
    */
-  private isOnGrabber(event: PointerEvent, card: HTMLElement): boolean {
+  private isOnGrabber(event: PointerEvent): boolean {
     const target = event.target instanceof HTMLElement ? event.target : null;
-    if (target?.closest(GRABBER_SELECTOR)) return true;
-    return event.clientY - card.getBoundingClientRect().top <= GRABBER_ZONE_PX;
+    return !!target?.closest(GRABBER_SELECTOR);
   }
 
 
