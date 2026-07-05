@@ -22,7 +22,6 @@ import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/regist
 import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MobileSearchViewComponent } from '../../search/mobile-search-view/mobile-search-view.component';
-import { FriendActionComponent } from '../../../shared/friend-action/friend-action.component';
 import { UnreadBadgeComponent } from '../../../shared/unread-badge/unread-badge.component';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
@@ -49,7 +48,6 @@ interface SelfEntry {
   selector: 'app-workspace-menu',
   imports: [
     AvatarFallbackDirective,
-    FriendActionComponent,
     MobileSearchViewComponent,
     ProfileDialogComponent,
     RouterLink,
@@ -78,8 +76,6 @@ export class WorkspaceMenuComponent {
   protected readonly channels = this.channelService.channels;
 
   protected readonly isChannelsOpen = signal(true);
-
-  protected readonly isFriendsOpen = signal(true);
 
   protected readonly isDirectOpen = signal(true);
 
@@ -135,22 +131,8 @@ export class WorkspaceMenuComponent {
 
   protected readonly others = computed(() => this.sortOthers());
 
-  protected readonly friends = computed(() =>
-    this.usersFor(this.friendshipService.friendUids()),
-  );
-
-  protected readonly incomingRequests = computed(() =>
-    this.usersFor(this.friendshipService.pendingIncomingUids()),
-  );
-
-  protected readonly outgoingRequests = computed(() =>
-    this.usersFor(this.friendshipService.pendingOutgoingUids()),
-  );
-
-  protected readonly incomingCount = computed(() => this.incomingRequests().length);
-
-  protected readonly hasRequests = computed(
-    () => this.incomingRequests().length + this.outgoingRequests().length > 0,
+  protected readonly incomingCount = computed(
+    () => this.friendshipService.pendingIncomingUids().length,
   );
 
 
@@ -177,14 +159,6 @@ export class WorkspaceMenuComponent {
    */
   protected toggleDirect(): void {
     this.isDirectOpen.update(open => !open);
-  }
-
-
-  /**
-   * Toggles the friends section.
-   */
-  protected toggleFriends(): void {
-    this.isFriendsOpen.update(open => !open);
   }
 
 
@@ -222,40 +196,16 @@ export class WorkspaceMenuComponent {
 
 
   /**
-   * Returns the direct-message partners of the signed-in user — accepted
-   * friends plus partners of already existing conversations — sorted
-   * alphabetically.
+   * Returns the partners of the signed-in user's existing conversations,
+   * sorted alphabetically. Friends without a conversation live in the
+   * dedicated friends view, keeping the selection state unambiguous.
    */
   private sortOthers(): UserDoc[] {
     const selfUid = this.authService.currentUser()?.uid;
-    const visible = this.visibleDmUids();
+    const partners = this.directMessageService.conversationPartnerUids();
     return this.userService
       .users()
-      .filter(user => user.uid !== selfUid && visible.has(user.uid))
+      .filter(user => user.uid !== selfUid && partners.has(user.uid))
       .sort((a, b) => a.name.localeCompare(b.name, SORT_LOCALE));
-  }
-
-
-  /**
-   * Resolves user documents for a set or list of uids, sorted by name.
-   * @param uids Uids to resolve.
-   */
-  private usersFor(uids: ReadonlySet<string> | string[]): UserDoc[] {
-    const wanted = uids instanceof Set ? uids : new Set(uids);
-    return this.userService
-      .users()
-      .filter(user => wanted.has(user.uid))
-      .sort((a, b) => a.name.localeCompare(b.name, SORT_LOCALE));
-  }
-
-
-  /**
-   * Unions accepted friends with partners of existing conversations.
-   */
-  private visibleDmUids(): ReadonlySet<string> {
-    return new Set([
-      ...this.friendshipService.friendUids(),
-      ...this.directMessageService.conversationPartnerUids(),
-    ]);
   }
 }

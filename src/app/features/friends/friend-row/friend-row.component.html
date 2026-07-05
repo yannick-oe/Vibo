@@ -1,0 +1,15 @@
+<span class="friend-row__avatar-wrap">
+  <img class="friend-row__avatar" appAvatarFallback [src]="avatarSrc()" alt="" aria-hidden="true" />
+  <span
+    class="friend-row__presence"
+    [class.friend-row__presence--offline]="!presenceService.isOnline(uid())"
+    aria-hidden="true"
+  ></span>
+</span>
+<span class="friend-row__names">
+  <span class="friend-row__name">{{ name() }}</span>
+  @if (username()) {
+    <span class="friend-row__handle">&#64;{{ username() }}</span>
+  }
+</span>
+<app-friend-action class="friend-row__action" [uid]="uid()" />

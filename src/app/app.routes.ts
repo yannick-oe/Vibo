@@ -113,6 +113,13 @@ export const routes: Routes = [
             m => m.NewMessageComponent,
           ),
       },
+      {
+        path: 'friends',
+        loadComponent: () =>
+          import('./features/friends/friends-view/friends-view.component').then(
+            m => m.FriendsViewComponent,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: 'auth/login' },

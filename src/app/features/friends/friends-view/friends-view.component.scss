@@ -1,0 +1,110 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$touch-target: 44px;
+$content-max-width: 720px;
+$empty-min-height: 160px;
+
+:host {
+  display: block;
+  height: 100%;
+  overflow-y: auto;
+  @include m.scrollbar-thin;
+}
+
+.friends {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('md');
+  width: min($content-max-width, 100%);
+  margin-inline: auto;
+  padding: v.space('lg') v.space('md') v.space('xl');
+}
+
+.friends__title {
+  font-size: v.font-size('h3');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.friends__tabs {
+  display: flex;
+  gap: v.space('xs');
+  padding: v.space('xs');
+  border-radius: v.$radius-pill;
+  background-color: v.color('bg');
+}
+
+.friends__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: v.space('xs');
+  flex: 1;
+  min-height: $touch-target;
+  padding: 0 v.space('md');
+  border: none;
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('text-gray');
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &--active {
+    background-color: v.color('primary');
+    color: v.color('white');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+.friends__tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: v.space('lg');
+  height: v.space('lg');
+  padding: 0 v.space('xs');
+  border-radius: v.$radius-pill;
+  background-color: v.color('error');
+  color: v.color('white');
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  line-height: 1;
+}
+
+.friends__panel {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('sm');
+}
+
+.friends__group {
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-bold;
+  color: v.color('text-gray');
+  text-transform: uppercase;
+}
+
+.friends__list {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+}
+
+.friends__empty,
+.friends__empty-row {
+  min-height: $empty-min-height;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: v.space('md');
+  text-align: center;
+  font-size: v.font-size('body');
+  color: v.color('text-gray');
+}

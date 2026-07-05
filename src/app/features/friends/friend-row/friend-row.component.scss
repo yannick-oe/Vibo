@@ -1,0 +1,69 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$row-min-height: 44px;
+$avatar-size: 40px;
+
+:host {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: v.space('sm-md');
+  width: 100%;
+  min-height: $row-min-height;
+  padding: v.space('xs') v.space('sm');
+  border-radius: v.$radius-lg;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+}
+
+.friend-row__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.friend-row__avatar {
+  width: $avatar-size;
+  height: $avatar-size;
+  border-radius: v.$radius-round;
+  object-fit: cover;
+}
+
+.friend-row__presence {
+  @include m.status-dot;
+
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+.friend-row__presence--offline {
+  background-color: v.color('text-gray');
+}
+
+.friend-row__names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.friend-row__name {
+  font-size: v.font-size('body');
+  color: v.color('black');
+  @include m.text-ellipsis;
+}
+
+.friend-row__handle {
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  @include m.text-ellipsis;
+}
+
+.friend-row__action {
+  margin-left: auto;
+}

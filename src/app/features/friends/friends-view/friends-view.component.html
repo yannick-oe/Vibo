@@ -1,0 +1,165 @@
+<section class="friends">
+  <header class="friends__head">
+    <h1 #title class="friends__title" tabindex="-1">Freunde</h1>
+  </header>
+
+  <div class="friends__search">
+    <label class="sr-only" for="friends-search">Nutzer suchen</label>
+    <div class="form-input-wrapper form-input-wrapper--leading">
+      <img class="form-input-icon" src="app-icons/search.svg" alt="" aria-hidden="true" />
+      <input
+        #searchInput
+        id="friends-search"
+        class="form-input"
+        type="search"
+        [formControl]="searchControl"
+        placeholder="Nutzer suchen"
+        autocomplete="off"
+      />
+    </div>
+  </div>
+
+  @if (isSearching()) {
+    <h2 class="friends__group" aria-live="polite">Ergebnisse</h2>
+    <ul class="friends__list">
+      @for (hit of searchResults(); track hit.uid) {
+        <li>
+          <app-friend-row
+            [uid]="hit.uid"
+            [name]="hit.name"
+            [username]="hit.username"
+            [avatarPath]="hit.avatarPath"
+          />
+        </li>
+      } @empty {
+        <li class="friends__empty-row">Keine Nutzer gefunden.</li>
+      }
+    </ul>
+  } @else {
+    <div
+      class="friends__tabs"
+      role="tablist"
+      aria-label="Freunde-Bereiche"
+      (keydown)="onTablistKeydown($event)"
+    >
+      <button
+        id="friends-tab-all"
+        class="friends__tab"
+        type="button"
+        role="tab"
+        aria-controls="friends-panel-all"
+        [attr.aria-selected]="activeTab() === 'all'"
+        [attr.tabindex]="activeTab() === 'all' ? 0 : -1"
+        [class.friends__tab--active]="activeTab() === 'all'"
+        (click)="selectTab('all')"
+      >
+        Alle
+      </button>
+      <button
+        id="friends-tab-requests"
+        class="friends__tab"
+        type="button"
+        role="tab"
+        aria-controls="friends-panel-requests"
+        [attr.aria-selected]="activeTab() === 'requests'"
+        [attr.tabindex]="activeTab() === 'requests' ? 0 : -1"
+        [class.friends__tab--active]="activeTab() === 'requests'"
+        (click)="selectTab('requests')"
+      >
+        Anfragen
+        @if (incomingCount() > 0) {
+          <span class="friends__tab-badge" [attr.aria-label]="incomingCount() + ' offene Anfragen'">
+            {{ incomingCount() }}
+          </span>
+        }
+      </button>
+    </div>
+
+    @if (activeTab() === 'all') {
+      <div id="friends-panel-all" class="friends__panel" role="tabpanel" aria-labelledby="friends-tab-all">
+        @if (hasFriends()) {
+          @if (onlineFriends().length > 0) {
+            <h2 class="friends__group">Online — {{ onlineFriends().length }}</h2>
+            <ul class="friends__list">
+              @for (friend of onlineFriends(); track friend.uid) {
+                <li>
+                  <app-friend-row
+                    [uid]="friend.uid"
+                    [name]="friend.name"
+                    [username]="friend.username ?? ''"
+                    [avatarPath]="friend.avatarPath"
+                  />
+                </li>
+              }
+            </ul>
+          }
+          @if (offlineFriends().length > 0) {
+            <h2 class="friends__group">Offline — {{ offlineFriends().length }}</h2>
+            <ul class="friends__list">
+              @for (friend of offlineFriends(); track friend.uid) {
+                <li>
+                  <app-friend-row
+                    [uid]="friend.uid"
+                    [name]="friend.name"
+                    [username]="friend.username ?? ''"
+                    [avatarPath]="friend.avatarPath"
+                  />
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <div class="friends__empty">
+            <p>Noch keine Freunde — finde Leute über die Suche.</p>
+            <button class="btn btn-primary" type="button" (click)="focusSearch()">Nutzer suchen</button>
+          </div>
+        }
+      </div>
+    } @else {
+      <div
+        id="friends-panel-requests"
+        class="friends__panel"
+        role="tabpanel"
+        aria-labelledby="friends-tab-requests"
+      >
+        @if (hasRequests()) {
+          @if (incoming().length > 0) {
+            <h2 class="friends__group">Eingehend — {{ incoming().length }}</h2>
+            <ul class="friends__list">
+              @for (requester of incoming(); track requester.uid) {
+                <li>
+                  <app-friend-row
+                    [uid]="requester.uid"
+                    [name]="requester.name"
+                    [username]="requester.username ?? ''"
+                    [avatarPath]="requester.avatarPath"
+                  />
+                </li>
+              }
+            </ul>
+          }
+          @if (outgoing().length > 0) {
+            <h2 class="friends__group">Ausgehend — {{ outgoing().length }}</h2>
+            <ul class="friends__list">
+              @for (recipient of outgoing(); track recipient.uid) {
+                <li>
+                  <app-friend-row
+                    [uid]="recipient.uid"
+                    [name]="recipient.name"
+                    [username]="recipient.username ?? ''"
+                    [avatarPath]="recipient.avatarPath"
+                  />
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <div class="friends__empty">
+            <p>Keine offenen Anfragen.</p>
+            <button class="btn btn-primary" type="button" (click)="focusSearch()">Nutzer suchen</button>
+          </div>
+        }
+      </div>
+    }
+  }
+</section>

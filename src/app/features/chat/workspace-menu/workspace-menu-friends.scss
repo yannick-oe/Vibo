@@ -1,5 +1,16 @@
 @use 'variables' as v;
 
+$nav-entry-min-height: 44px;
+
+.workspace__section--nav {
+  padding-left: v.space('md-lg');
+}
+
+.workspace__nav-entry {
+  min-height: $nav-entry-min-height;
+  width: 100%;
+}
+
 .workspace__count-badge {
   display: inline-flex;
   align-items: center;
@@ -15,30 +26,16 @@
   line-height: 1;
 }
 
-.workspace__friends-empty,
-.workspace__subgroup {
+.workspace__dm-empty {
   font-size: v.font-size('min');
   color: v.color('text-gray');
 }
 
-.workspace__friends-empty {
-  min-height: v.space('xl');
-  display: flex;
-  align-items: center;
-}
+.workspace__dm-empty-link {
+  color: v.color('primary');
+  text-decoration: none;
 
-.workspace__subgroup {
-  font-weight: v.$font-weight-bold;
-}
-
-.workspace__request {
-  display: flex;
-  align-items: center;
-  gap: v.space('sm');
-  width: 100%;
-  flex-wrap: wrap;
-}
-
-.workspace__request-action {
-  margin-left: auto;
+  &:hover {
+    text-decoration: underline;
+  }
 }
