@@ -176,10 +176,6 @@ $name-error-lines: 2;
   text-align: right;
 }
 
-.form-error.profile__name-error {
-  min-height: calc(#{v.font-size('min')} * #{v.$line-height-base} * #{$name-error-lines});
-}
-
 .profile__switch-field {
   display: flex;
   align-items: center;

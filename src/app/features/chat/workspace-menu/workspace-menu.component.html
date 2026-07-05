@@ -84,6 +84,90 @@
       <button
         class="workspace__section-toggle"
         type="button"
+        aria-controls="workspace-friends"
+        [attr.aria-expanded]="isFriendsOpen()"
+        (click)="toggleFriends()"
+      >
+        <img
+          class="workspace__caret"
+          [class.workspace__caret--closed]="!isFriendsOpen()"
+          src="app-icons/arrow-drop-down.svg"
+          alt=""
+          aria-hidden="true"
+        />
+        <img class="workspace__section-icon" src="app-icons/add-person.svg" alt="" aria-hidden="true" />
+        <span class="workspace__section-title">Freunde</span>
+        @if (incomingCount() > 0) {
+          <span
+            class="workspace__count-badge"
+            role="status"
+            [attr.aria-label]="incomingCount() + ' offene Freundschaftsanfragen'"
+          >
+            {{ incomingCount() }}
+          </span>
+        }
+      </button>
+    </div>
+
+    <div class="workspace__collapsible" [class.workspace__collapsible--open]="isFriendsOpen()">
+      <ul class="workspace__list" id="workspace-friends">
+        @for (friend of friends(); track friend.uid) {
+          <li>
+            <a
+              class="workspace__item"
+              [routerLink]="['/app/dm', friend.uid]"
+              routerLinkActive="workspace__item--active"
+              #friendLink="routerLinkActive"
+              [attr.aria-current]="friendLink.isActive ? 'page' : null"
+            >
+              <span class="workspace__avatar-wrap">
+                <img class="workspace__avatar" appAvatarFallback [src]="avatarSrc(friend.avatarPath)" alt="" aria-hidden="true" />
+                <span
+                  class="workspace__status"
+                  [class.workspace__status--offline]="!presenceService.isOnline(friend.uid)"
+                  aria-hidden="true"
+                ></span>
+              </span>
+              <span class="workspace__item-name">{{ friend.name }}</span>
+            </a>
+          </li>
+        } @empty {
+          @if (!hasRequests()) {
+            <li class="workspace__friends-empty">
+              Noch keine Freunde — finde Leute über die Suche.
+            </li>
+          }
+        }
+        @if (hasRequests()) {
+          <li class="workspace__subgroup" role="presentation">Anfragen</li>
+          @for (requester of incomingRequests(); track requester.uid) {
+            <li class="workspace__request">
+              <span class="workspace__avatar-wrap">
+                <img class="workspace__avatar" appAvatarFallback [src]="avatarSrc(requester.avatarPath)" alt="" aria-hidden="true" />
+              </span>
+              <span class="workspace__item-name">{{ requester.name }}</span>
+              <app-friend-action class="workspace__request-action" [uid]="requester.uid" />
+            </li>
+          }
+          @for (recipient of outgoingRequests(); track recipient.uid) {
+            <li class="workspace__request">
+              <span class="workspace__avatar-wrap">
+                <img class="workspace__avatar" appAvatarFallback [src]="avatarSrc(recipient.avatarPath)" alt="" aria-hidden="true" />
+              </span>
+              <span class="workspace__item-name">{{ recipient.name }}</span>
+              <app-friend-action class="workspace__request-action" [uid]="recipient.uid" />
+            </li>
+          }
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section class="workspace__section">
+    <div class="workspace__section-head">
+      <button
+        class="workspace__section-toggle"
+        type="button"
         aria-controls="workspace-direct"
         [attr.aria-expanded]="isDirectOpen()"
         (click)="toggleDirect()"

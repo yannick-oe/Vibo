@@ -13,6 +13,7 @@ import { PresenceService } from '../../../services/presence.service';
 import { ThreadService } from '../../../services/thread.service';
 import { DEFAULT_AVATAR_PATH } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
+import { NotificationCenterComponent } from '../notification-center/notification-center.component';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { SearchBarComponent } from '../../search/search-bar/search-bar.component';
 import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
@@ -43,6 +44,7 @@ type TopbarState = 'closed' | 'menu';
   selector: 'app-topbar',
   imports: [
     DialogShellComponent,
+    NotificationCenterComponent,
     ProfileDialogComponent,
     SearchBarComponent,
     AuroraNameComponent,

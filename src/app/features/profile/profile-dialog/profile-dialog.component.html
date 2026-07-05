@@ -66,10 +66,7 @@
 
     @if (!isSelf()) {
       <footer class="profile__actions">
-        <button class="btn btn-primary" type="button" (click)="message()">
-          <img src="app-icons/comment-white.svg" alt="" aria-hidden="true" />
-          Nachricht
-        </button>
+        <app-friend-action [uid]="uid()" (navigated)="closed.emit()" />
       </footer>
     }
   } @else {
