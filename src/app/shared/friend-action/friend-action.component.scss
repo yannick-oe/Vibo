@@ -1,0 +1,77 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$touch-target: 44px;
+$menu-min-width: 220px;
+
+:host {
+  display: inline-flex;
+  position: relative;
+}
+
+.friend-action {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: v.space('xs');
+  position: relative;
+}
+
+.friend-action__btn {
+  min-height: $touch-target;
+}
+
+.friend-action__more {
+  min-width: $touch-target;
+  min-height: $touch-target;
+}
+
+.friend-action__menu {
+  position: absolute;
+  top: calc(100% + #{v.space('xs')});
+  right: 0;
+  z-index: v.$z-dropdown;
+  min-width: $menu-min-width;
+  padding: v.space('sm');
+  border-radius: v.$radius-lg;
+  @include m.glass;
+}
+
+.friend-action__menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: $touch-target;
+  padding: 0 v.space('sm-md');
+  border: none;
+  border-radius: v.$radius-md;
+  background: none;
+  cursor: pointer;
+  font-size: v.font-size('body');
+  color: v.color('black');
+  text-align: left;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &--danger {
+    color: v.color('error');
+  }
+}
+
+.friend-action__confirm-text {
+  padding: v.space('xs') v.space('sm-md');
+  font-size: v.font-size('min');
+  color: v.color('black');
+}
+
+.friend-action__confirm-actions {
+  display: flex;
+  flex-direction: column;
+}

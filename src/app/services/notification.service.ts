@@ -28,7 +28,7 @@ import { MessageDoc } from '../models/message.model';
 import { UserDoc } from '../models/user.model';
 import { AuthService } from './auth.service';
 import { ChannelService } from './channel.service';
-import { ConversationMeta, ReadStateService } from './read-state.service';
+import { ConversationMeta, ReadMarker, ReadStateService } from './read-state.service';
 import { UserService } from './user.service';
 import { resolveAvatarPath } from './registration.service';
 import {
@@ -57,6 +57,7 @@ export interface NotificationToast {
 interface WatchMeta {
   readonly watch: ConversationWatch;
   readonly meta: ConversationMeta | undefined;
+  readonly marker: ReadMarker | undefined;
 }
 
 /**
@@ -93,6 +94,19 @@ export class NotificationService {
 
   /** The active incoming-message toast, consumed by the toast component. */
   readonly toast: Signal<NotificationToast | null> = this.toastState.asReadonly();
+
+  private readonly entriesState = signal<WatchMeta[]>([]);
+
+  /**
+   * Conversations with unread messages (last message newer than the own
+   * read marker, sent by someone else), derived from the same small-doc
+   * streams that drive the toast — consumed by the notification center.
+   */
+  readonly unreadConversations = computed(() =>
+    this.entriesState()
+      .filter(entry => this.isUnread(entry))
+      .map(entry => entry.watch),
+  );
 
   private readonly watchList = computed(() => this.buildList(), { equal: sameWatchKeys });
 
@@ -143,6 +157,7 @@ export class NotificationService {
     this.currentUid = uid;
     this.baseline = Date.now();
     this.seen.clear();
+    this.entriesState.set([]);
     this.dismiss();
   }
 
@@ -160,20 +175,39 @@ export class NotificationService {
 
 
   /**
-   * Streams one conversation's metadata paired with its watch descriptor.
+   * Streams one conversation's metadata and the own read marker paired
+   * with its watch descriptor.
    * @param watch Conversation to watch.
    */
   private watch(watch: ConversationWatch): Observable<WatchMeta> {
-    return this.readState.conversationMeta(watch.convPath).pipe(map(meta => ({ watch, meta })));
+    const uid = this.currentUid;
+    return combineLatest([
+      this.readState.conversationMeta(watch.convPath),
+      uid ? this.readState.readMarker(watch.convPath, uid) : of(undefined),
+    ]).pipe(map(([meta, marker]) => ({ watch, meta, marker })));
   }
 
 
   /**
-   * Processes a metadata snapshot for every watched conversation.
+   * Publishes the snapshot for the unread aggregation and processes every
+   * watched conversation for the toast.
    * @param entries Watched conversations with their latest metadata.
    */
   private handle(entries: WatchMeta[]): void {
+    this.entriesState.set(entries);
     for (const entry of entries) this.process(entry.watch, entry.meta);
+  }
+
+
+  /**
+   * True when a conversation's last message is newer than the own read
+   * marker and was sent by someone else; a missing marker means unread.
+   * @param entry Watched conversation with its latest metadata.
+   */
+  private isUnread(entry: WatchMeta): boolean {
+    const author = entry.meta?.lastMessageAuthorId;
+    if (!author || author === this.currentUid) return false;
+    return millisOf(entry.meta?.lastMessageAt) > millisOf(entry.marker?.lastReadAt);
   }
 
 
@@ -200,7 +234,7 @@ export class NotificationService {
    * @param authorId Uid of the message author.
    */
   private async notify(watch: ConversationWatch, authorId: string): Promise<void> {
-    const preview = await this.readPreview(watch.messagesPath);
+    const preview = await this.latestPreview(watch.messagesPath);
     const sender = this.senderDoc(authorId);
     this.toastState.set({
       senderName: sender?.name ?? UNKNOWN_SENDER,
@@ -215,11 +249,12 @@ export class NotificationService {
 
 
   /**
-   * One-shot read of the conversation's latest message for the preview; a
-   * single bounded read, not a listener.
+   * One-shot read of the conversation's latest message for a short, safe
+   * preview; a single bounded read, not a listener. Also used by the
+   * notification center when its panel opens.
    * @param messagesPath Path of the conversation's messages collection.
    */
-  private async readPreview(messagesPath: string): Promise<string> {
+  async latestPreview(messagesPath: string): Promise<string> {
     const snapshot = await runInInjectionContext(this.injector, () =>
       getDocs(query(collection(this.firestore, messagesPath), orderBy('createdAt', 'desc'), limit(1))),
     );

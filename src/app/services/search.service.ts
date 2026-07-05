@@ -35,6 +35,7 @@ export interface UserHit {
   readonly kind: 'user';
   readonly uid: string;
   readonly name: string;
+  readonly username: string;
   readonly avatarPath: string;
 }
 
@@ -137,7 +138,8 @@ export class SearchService {
 
 
   /**
-   * Filters workspace members by name and e-mail.
+   * Filters workspace users by display name and e-mail (substring) and by
+   * the normalized immutable username (prefix).
    * @param term Normalized search term.
    */
   private searchUsers(term: string): UserHit[] {
@@ -146,10 +148,17 @@ export class SearchService {
       .filter(
         user =>
           user.name.toLowerCase().includes(term) ||
-          (user.email ?? '').toLowerCase().includes(term),
+          (user.email ?? '').toLowerCase().includes(term) ||
+          (user.username ?? '').startsWith(term),
       )
       .slice(0, MAX_GROUP_RESULTS)
-      .map(user => ({ kind: 'user', uid: user.uid, name: user.name, avatarPath: user.avatarPath }));
+      .map(user => ({
+        kind: 'user',
+        uid: user.uid,
+        name: user.name,
+        username: user.username ?? '',
+        avatarPath: user.avatarPath,
+      }));
   }
 
 

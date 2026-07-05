@@ -1,0 +1,89 @@
+@if (!isSelf()) {
+  <div class="friend-action">
+    @switch (state()) {
+      @case ('none') {
+        <button
+          class="btn btn-primary friend-action__btn"
+          type="button"
+          [disabled]="isBusy()"
+          (click)="sendRequest()"
+        >
+          Anfrage senden
+        </button>
+      }
+      @case ('pendingOutgoing') {
+        <button
+          class="btn btn-secondary friend-action__btn"
+          type="button"
+          [disabled]="isBusy()"
+          (click)="withdrawRequest()"
+        >
+          Anfrage zurückziehen
+        </button>
+      }
+      @case ('pendingIncoming') {
+        <button
+          class="btn btn-primary friend-action__btn"
+          type="button"
+          [disabled]="isBusy()"
+          (click)="acceptRequest()"
+        >
+          Annehmen
+        </button>
+        <button
+          class="btn btn-secondary friend-action__btn"
+          type="button"
+          [disabled]="isBusy()"
+          (click)="declineRequest()"
+        >
+          Ablehnen
+        </button>
+      }
+      @case ('friends') {
+        <button class="btn btn-primary friend-action__btn" type="button" (click)="openConversation()">
+          Nachricht senden
+        </button>
+        <button
+          class="btn btn-icon friend-action__more"
+          type="button"
+          aria-label="Weitere Aktionen"
+          aria-haspopup="true"
+          [attr.aria-expanded]="isMenuOpen()"
+          (click)="toggleMenu()"
+        >
+          <img src="app-icons/more-vert.svg" alt="" aria-hidden="true" />
+        </button>
+        @if (isMenuOpen()) {
+          <div class="friend-action__menu" role="menu" aria-label="Weitere Freundschaftsaktionen">
+            @if (!isConfirming()) {
+              <button
+                class="friend-action__menu-item friend-action__menu-item--danger"
+                type="button"
+                role="menuitem"
+                [disabled]="isBusy()"
+                (click)="startRemove()"
+              >
+                Freund entfernen
+              </button>
+            } @else {
+              <p class="friend-action__confirm-text">Freund wirklich entfernen?</p>
+              <div class="friend-action__confirm-actions">
+                <button
+                  class="friend-action__menu-item friend-action__menu-item--danger"
+                  type="button"
+                  [disabled]="isBusy()"
+                  (click)="confirmRemove()"
+                >
+                  Entfernen
+                </button>
+                <button class="friend-action__menu-item" type="button" (click)="cancelRemove()">
+                  Abbrechen
+                </button>
+              </div>
+            }
+          </div>
+        }
+      }
+    }
+  </div>
+}
