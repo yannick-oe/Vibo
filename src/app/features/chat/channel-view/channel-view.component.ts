@@ -29,7 +29,7 @@ import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
-import { DialogAnchor, anchorBelow } from '../../../shared/dialog-shell/dialog-shell.component';
+import { DialogAnchor, anchorBelow } from '../../../shared/dialog-shell/dialog-anchor';
 import { ChannelAddMembersDialogComponent } from '../channel-add-members-dialog/channel-add-members-dialog.component';
 import { ChannelMembersDialogComponent } from '../channel-members-dialog/channel-members-dialog.component';
 import { ChannelSettingsDialogComponent } from '../channel-settings-dialog/channel-settings-dialog.component';

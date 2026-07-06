@@ -1,13 +1,13 @@
 /**
  * @file Two-step modal dialog for creating a channel (Figma "Channel
- * erstellen" and "Leute hinzufügen" frames).
+ * erstellen" and "Leute hinzufügen" frames), rendered through the shared
+ * dialog shell (scrim, focus trap, Escape, mobile bottom sheet).
  */
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  OnDestroy,
   computed,
   inject,
   output,
@@ -32,12 +32,12 @@ import { resolveAvatarPath } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
+import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
 
 const NAME_REQUIRED_ERROR = 'Bitte gib einen Channel-Namen ein.';
 const NAME_DUPLICATE_ERROR = 'Ein Channel mit diesem Namen existiert bereits.';
 const CREATE_ERROR = 'Der Channel konnte nicht erstellt werden.';
 const DUPLICATE_CHECK_DEBOUNCE_MS = 300;
-const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled])';
 
 type DialogStep = 'details' | 'members';
 
@@ -46,18 +46,18 @@ type MemberMode = 'all' | 'selected';
 /**
  * Modal flow creating a channel: step one collects a unique name and an
  * optional description, step two picks the members (everyone or specific
- * people). On create the channel is persisted and opened. The dialog traps
- * focus, closes on Escape or the close button and returns focus to the
- * element that opened it.
+ * people). On create the channel is persisted and opened. Focus trap,
+ * Escape, scrim click and the mobile sheet gesture come from the shared
+ * dialog shell.
  */
 @Component({
   selector: 'app-channel-create-dialog',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, DialogShellComponent],
   templateUrl: './channel-create-dialog.component.html',
   styleUrl: './channel-create-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ChannelCreateDialogComponent implements AfterViewInit, OnDestroy {
+export class ChannelCreateDialogComponent implements AfterViewInit {
   private readonly authService = inject(AuthService);
 
   private readonly channelService = inject(ChannelService);
@@ -69,10 +69,6 @@ export class ChannelCreateDialogComponent implements AfterViewInit, OnDestroy {
   private readonly router = inject(Router);
 
   protected readonly workspaceName = WORKSPACE_NAME;
-
-  private readonly previouslyFocused = document.activeElement as HTMLElement | null;
-
-  private readonly dialog = viewChild<ElementRef<HTMLElement>>('dialog');
 
   private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
 
@@ -124,18 +120,11 @@ export class ChannelCreateDialogComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Focuses the channel-name input once the dialog is rendered.
+   * Focuses the channel-name input once the dialog is rendered (after the
+   * shell's default first-focusable focus).
    */
   ngAfterViewInit(): void {
     this.nameInput()?.nativeElement.focus();
-  }
-
-
-  /**
-   * Returns focus to the element that opened the dialog.
-   */
-  ngOnDestroy(): void {
-    this.previouslyFocused?.focus();
   }
 
 
@@ -144,15 +133,6 @@ export class ChannelCreateDialogComponent implements AfterViewInit, OnDestroy {
    */
   protected close(): void {
     this.closed.emit();
-  }
-
-
-  /**
-   * Closes the dialog when the click lands on the scrim itself.
-   * @param event Click event on the overlay.
-   */
-  protected onOverlayClick(event: Event): void {
-    if (event.target === event.currentTarget) this.close();
   }
 
 
@@ -226,37 +206,6 @@ export class ChannelCreateDialogComponent implements AfterViewInit, OnDestroy {
     if (channelId === null) return;
     await this.router.navigate(['/app/channel', channelId]);
     this.closed.emit();
-  }
-
-
-  /**
-   * Keeps Tab and Shift+Tab cycling inside the dialog.
-   * @param event Keydown event of the Tab key.
-   */
-  protected trapFocus(event: Event): void {
-    if (!(event instanceof KeyboardEvent)) return;
-    const focusables = this.focusableElements();
-    if (focusables.length === 0) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
-
-
-  /**
-   * Lists the currently visible focusable elements inside the dialog.
-   */
-  private focusableElements(): HTMLElement[] {
-    const root = this.dialog()?.nativeElement;
-    if (!root) return [];
-    const elements = root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    return [...elements].filter(element => element.offsetParent !== null);
   }
 
 

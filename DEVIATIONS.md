@@ -3,6 +3,59 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Bottom sheets: interactive finger-tracking physics (2026-07-06)
+The mobile bottom sheets previously *decided* dismissal from pointer tracking but never
+*rendered* the drag: the `sheet-slide-up` entrance animation (`animation-fill-mode: both`)
+kept overriding the inline drag transform in the cascade (a filled CSS animation beats
+inline styles), and the mid-file `--dragging`/`--settling` overrides lost to the later
+`respond-md` sheet rules at equal specificity — so sheets "just vanished" at the threshold.
+Reworked in the shared dialog-shell (physics helpers in `sheet-physics.ts`):
+- **1:1 finger tracking** (per-move `translateY`, compound `--dragging` selector at file end
+  kills animation/transition on the transformed element; measurements cached on drag start,
+  no per-frame layout reads; transform/opacity only).
+- **Velocity-matched settle**: release duration = remaining distance / smoothed release
+  velocity, clamped by `SETTLE_MIN_DURATION_MS`/`SETTLE_MAX_DURATION_MS`; the easing starts
+  at slope 1 so the animation continues the finger's motion; a `--dragged` state prevents
+  the entrance animation from replaying after a spring-back.
+- **Rubber-band overdrag** above rest (dampened, asymptote `OVERDRAG_LIMIT_PX`) instead of a
+  hard clamp; **scrim opacity coupled to drag progress** (scrim moved to an overlay
+  `::before` so the card is unaffected and scrim clicks still hit the overlay itself).
+- Gestures on a **focused** text field are never drag-eligible (text selection); unfocused
+  inputs are. Grabber drags may engage upward. A new drag can catch a settling sheet — or
+  one still in its entrance animation — at its rendered position (`readTranslateY` on drag
+  start). Non-primary pointers are ignored end-to-end (a second finger cannot settle the
+  drag), and a flick velocity older than `VELOCITY_STALE_MS` is discarded on release (flick
+  → hold → lift springs back instead of dismissing). Kept: dismiss threshold + flick
+  constants, Escape/X/scrim close, inner-scroll handoff, pointercancel spring-back,
+  reduced motion ⇒ instant states.
+The **channel-create dialog** was migrated onto the shared dialog-shell (it re-implemented
+scrim/focus-trap/Escape/sheet styling itself, so its sheet had a decorative handle but no
+gesture); its desktop balloon-inflate entrance was dropped in favor of the shell's standard
+appearance, aligning it with every other dialog.
+
+## Friends view rows: row = profile, icons = quick actions (2026-07-06)
+On narrow viewports the "Nachricht senden" text button consumed the row and truncated the
+name/@username to single characters. Discord-pattern rework (no Figma frame for this view):
+the avatar/name area is one large button (44px min target, visible focus ring) opening the
+profile dialog via `ProfileOverlayService` — the dialog carries the full friend-action set;
+beside it the shared friend-action renders a **compact** mode ('friends' state only): the
+message action as an icon button (`comment.svg`, ≥44px, `aria-label`
+"Nachricht an {Name} senden", CSS hover/focus tooltip) next to the existing more-vert
+overflow. Desktop gets the same icon treatment for consistency. The quick-action buttons
+are *siblings* of the profile button (never nested), so their clicks cannot bubble into
+the row action. Other friend-action surfaces (profile dialog, search dropdown,
+notification center) keep the text buttons (`compact` defaults to false).
+Review-hardened details: the row button's accessible name comes from its **visible
+content** plus a visually-hidden ", Profil anzeigen" suffix (an `aria-label` would strip
+the unique @handle from AT/voice control — display names are not unique); a **172px
+minimum width** on the profile button makes the text-button states (Anfrage senden /
+zurückziehen / Annehmen+Ablehnen) wrap below the identity instead of crushing it at
+320px; the tooltips render on **hover-capable devices only** (`display: none` on touch —
+their invisible nowrap boxes otherwise created horizontal overflow), are right-aligned
+under the buttons and are suppressed while the overflow menu is open; the dialog shell
+falls back to the view's `h1[tabindex="-1"]` when the opening element left the DOM while
+the dialog was open (live Firestore lists).
+
 ## Icon assets live under `/app-icons/`, not `/icons/` (2026-06-22)
 The `/icons/` path is **reserved by the production host** (a classic Apache autoindex
 alias), so requests to `/icons/*` are intercepted by the server and never reach our web

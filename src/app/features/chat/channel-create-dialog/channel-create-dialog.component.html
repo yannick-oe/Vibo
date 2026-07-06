@@ -1,167 +1,154 @@
-<div
-  class="create-channel"
-  (click)="onOverlayClick($event)"
-  (keydown.escape)="close()"
-  (keydown.tab)="trapFocus($event)"
->
-  <section
-    #dialog
-    class="create-channel__dialog"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="create-channel-title"
-  >
-    @if (step() === 'details') {
-      <header class="create-channel__head">
-        <h2 class="create-channel__title" id="create-channel-title">Channel erstellen</h2>
-        <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="close()">
-          <img src="app-icons/close.svg" alt="" aria-hidden="true" />
-        </button>
-      </header>
+<app-dialog-shell labelledBy="create-channel-title" (closed)="close()">
+  @if (step() === 'details') {
+    <header class="create-channel__head">
+      <h2 class="create-channel__title" id="create-channel-title">Channel erstellen</h2>
+      <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="close()">
+        <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+      </button>
+    </header>
 
-      <p class="create-channel__intro">
-        Channels dienen deinem Team zur Kommunikation. Am besten sollten sie themenbezogen
-        sein &mdash; #marketing zum Beispiel.
-      </p>
+    <p class="create-channel__intro">
+      Channels dienen deinem Team zur Kommunikation. Am besten sollten sie themenbezogen
+      sein &mdash; #marketing zum Beispiel.
+    </p>
 
-      <form class="create-channel__form" [formGroup]="detailsForm" (ngSubmit)="goToMembers()">
-        <div class="form-field">
-          <label class="form-label create-channel__label" for="create-channel-name">Channel-Name</label>
-          <div class="form-input-wrapper form-input-wrapper--leading">
-            <img class="form-input-icon" src="app-icons/tag-grey.svg" alt="" aria-hidden="true" />
-            <input
-              #nameInput
-              id="create-channel-name"
-              class="form-input form-input--outlined"
-              type="text"
-              formControlName="name"
-              placeholder="z.B. Kooperationsprojekte"
-              aria-describedby="create-channel-name-error"
-              [attr.aria-invalid]="nameInvalid()"
-            />
-          </div>
-          <p class="form-error" id="create-channel-name-error">{{ nameError() }}</p>
-        </div>
-
-        <div class="form-field">
-          <label class="form-label create-channel__label" for="create-channel-description">
-            Beschreibung <span class="create-channel__optional">(optional)</span>
-          </label>
+    <form class="create-channel__form" [formGroup]="detailsForm" (ngSubmit)="goToMembers()">
+      <div class="form-field">
+        <label class="form-label create-channel__label" for="create-channel-name">Channel-Name</label>
+        <div class="form-input-wrapper form-input-wrapper--leading">
+          <img class="form-input-icon" src="app-icons/tag-grey.svg" alt="" aria-hidden="true" />
           <input
-            id="create-channel-description"
+            #nameInput
+            id="create-channel-name"
             class="form-input form-input--outlined"
             type="text"
-            formControlName="description"
-            placeholder="Dein Text hier"
+            formControlName="name"
+            placeholder="z.B. Kooperationsprojekte"
+            aria-describedby="create-channel-name-error"
+            [attr.aria-invalid]="nameInvalid()"
+          />
+        </div>
+        <p class="form-error" id="create-channel-name-error">{{ nameError() }}</p>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label create-channel__label" for="create-channel-description">
+          Beschreibung <span class="create-channel__optional">(optional)</span>
+        </label>
+        <input
+          id="create-channel-description"
+          class="form-input form-input--outlined"
+          type="text"
+          formControlName="description"
+          placeholder="Dein Text hier"
+        />
+      </div>
+
+      <footer class="create-channel__actions">
+        <button
+          class="btn btn-primary"
+          type="submit"
+          [disabled]="nameControl.invalid || nameControl.pending"
+        >
+          Erstellen
+        </button>
+      </footer>
+    </form>
+  } @else {
+    <header class="create-channel__head">
+      <h2 class="create-channel__title" id="create-channel-title">Leute hinzufügen</h2>
+      <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="close()">
+        <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+      </button>
+    </header>
+
+    <form class="create-channel__form" [formGroup]="membersForm" (ngSubmit)="create()">
+      <fieldset class="create-channel__modes">
+        <legend class="sr-only">Mitglieder auswählen</legend>
+        <label class="create-channel__mode">
+          <input
+            #firstRadio
+            class="form-radio"
+            type="radio"
+            value="all"
+            formControlName="mode"
+          />
+          <span>
+            Alle Mitglieder von <span class="create-channel__workspace">{{ workspaceName }}</span> hinzufügen
+          </span>
+        </label>
+        <label class="create-channel__mode">
+          <input
+            class="form-radio"
+            type="radio"
+            value="selected"
+            formControlName="mode"
+          />
+          <span>Bestimmte Leute hinzufügen</span>
+        </label>
+      </fieldset>
+
+      @if (memberMode() === 'selected') {
+        <div class="form-field">
+          <label class="sr-only" for="create-channel-search">Name eingeben</label>
+          <input
+            #searchInput
+            id="create-channel-search"
+            class="form-input form-input--outlined"
+            type="text"
+            formControlName="search"
+            placeholder="Name eingeben"
           />
         </div>
 
-        <footer class="create-channel__actions">
-          <button
-            class="btn btn-primary"
-            type="submit"
-            [disabled]="nameControl.invalid || nameControl.pending"
-          >
-            Erstellen
-          </button>
-        </footer>
-      </form>
-    } @else {
-      <header class="create-channel__head">
-        <h2 class="create-channel__title" id="create-channel-title">Leute hinzufügen</h2>
-        <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="close()">
-          <img src="app-icons/close.svg" alt="" aria-hidden="true" />
-        </button>
-      </header>
+        @if (selectedUsers().length > 0) {
+          <ul class="create-channel__chips">
+            @for (user of selectedUsers(); track user.uid) {
+              <li class="create-channel__chip">
+                <img
+                  class="create-channel__chip-avatar"
+                  [src]="avatarSrc(user.avatarPath)"
+                  alt=""
+                  aria-hidden="true"
+                />
+                {{ user.name }}
+                <button
+                  class="create-channel__chip-remove"
+                  type="button"
+                  [attr.aria-label]="'Entfernen: ' + user.name"
+                  (click)="removeUser(user.uid)"
+                >
+                  <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+                </button>
+              </li>
+            }
+          </ul>
+        }
 
-      <form class="create-channel__form" [formGroup]="membersForm" (ngSubmit)="create()">
-        <fieldset class="create-channel__modes">
-          <legend class="sr-only">Mitglieder auswählen</legend>
-          <label class="create-channel__mode">
-            <input
-              #firstRadio
-              class="form-radio"
-              type="radio"
-              value="all"
-              formControlName="mode"
-            />
-            <span>
-              Alle Mitglieder von <span class="create-channel__workspace">{{ workspaceName }}</span> hinzufügen
-            </span>
-          </label>
-          <label class="create-channel__mode">
-            <input
-              class="form-radio"
-              type="radio"
-              value="selected"
-              formControlName="mode"
-            />
-            <span>Bestimmte Leute hinzufügen</span>
-          </label>
-        </fieldset>
-
-        @if (memberMode() === 'selected') {
-          <div class="form-field">
-            <label class="sr-only" for="create-channel-search">Name eingeben</label>
-            <input
-              #searchInput
-              id="create-channel-search"
-              class="form-input form-input--outlined"
-              type="text"
-              formControlName="search"
-              placeholder="Name eingeben"
-            />
-          </div>
-
-          @if (selectedUsers().length > 0) {
-            <ul class="create-channel__chips">
-              @for (user of selectedUsers(); track user.uid) {
-                <li class="create-channel__chip">
+        @if (candidates().length > 0) {
+          <ul class="create-channel__results">
+            @for (user of candidates(); track user.uid) {
+              <li>
+                <button class="create-channel__result" type="button" (click)="selectUser(user)">
                   <img
-                    class="create-channel__chip-avatar"
+                    class="create-channel__result-avatar"
                     [src]="avatarSrc(user.avatarPath)"
                     alt=""
                     aria-hidden="true"
                   />
                   {{ user.name }}
-                  <button
-                    class="create-channel__chip-remove"
-                    type="button"
-                    [attr.aria-label]="'Entfernen: ' + user.name"
-                    (click)="removeUser(user.uid)"
-                  >
-                    <img src="app-icons/close.svg" alt="" aria-hidden="true" />
-                  </button>
-                </li>
-              }
-            </ul>
-          }
-
-          @if (candidates().length > 0) {
-            <ul class="create-channel__results">
-              @for (user of candidates(); track user.uid) {
-                <li>
-                  <button class="create-channel__result" type="button" (click)="selectUser(user)">
-                    <img
-                      class="create-channel__result-avatar"
-                      [src]="avatarSrc(user.avatarPath)"
-                      alt=""
-                      aria-hidden="true"
-                    />
-                    {{ user.name }}
-                  </button>
-                </li>
-              }
-            </ul>
-          }
+                </button>
+              </li>
+            }
+          </ul>
         }
+      }
 
-        <footer class="create-channel__actions">
-          <button class="btn btn-primary" type="submit" [disabled]="!canCreate() || isPending()">
-            Erstellen
-          </button>
-        </footer>
-      </form>
-    }
-  </section>
-</div>
+      <footer class="create-channel__actions">
+        <button class="btn btn-primary" type="submit" [disabled]="!canCreate() || isPending()">
+          Erstellen
+        </button>
+      </footer>
+    </form>
+  }
+</app-dialog-shell>

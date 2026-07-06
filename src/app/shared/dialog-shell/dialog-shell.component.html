@@ -2,6 +2,10 @@
   class="dialog-shell"
   [class.dialog-shell--anchored]="anchor() !== null"
   [class.dialog-shell--search]="size() === 'search'"
+  [class.dialog-shell--dragging]="isDragging()"
+  [class.dialog-shell--settling]="isSettling()"
+  [style.--sheet-scrim-opacity]="scrimOpacity()"
+  [style.--sheet-settle-ms]="settleDurationStyle()"
   (click)="onOverlayClick($event)"
 >
   <section
@@ -16,6 +20,7 @@
     [class.dialog-shell__card--anchor-right]="hasRightAnchor()"
     [class.dialog-shell__card--dragging]="isDragging()"
     [class.dialog-shell__card--settling]="isSettling()"
+    [class.dialog-shell__card--dragged]="hasDragged()"
     [style.top.px]="anchor()?.top ?? null"
     [style.left.px]="anchor()?.left ?? null"
     [style.right.px]="anchor()?.right ?? null"
@@ -29,8 +34,8 @@
     (keydown.tab)="trapFocus($event)"
     (pointerdown)="onPointerDown($event)"
     (pointermove)="onPointerMove($event)"
-    (pointerup)="onPointerUp()"
-    (pointercancel)="onPointerCancel()"
+    (pointerup)="onPointerUp($event)"
+    (pointercancel)="onPointerCancel($event)"
   >
     <div class="dialog-shell__grabber" aria-hidden="true"></div>
     <ng-content />

@@ -3,9 +3,13 @@
  * restore for projected dialog content. In the mobile bottom-sheet mode the
  * card additionally supports pointer-driven swipe-to-dismiss (grabber, or
  * content pulled down while scrolled to top) — an addition to, never a
- * replacement of, Escape, the X button and the scrim tap. The grabber is
- * the guaranteed touch surface (touch-action: none); on content the
- * browser may claim the pan (pointercancel), which safely springs back.
+ * replacement of, Escape, the X button and the scrim tap. While dragging,
+ * the sheet follows the finger 1:1 with rubber-band resistance above the
+ * rest position and the scrim opacity coupled to the progress; the release
+ * velocity feeds the settle animation so motion continues seamlessly from
+ * the release point. The grabber is the guaranteed touch surface
+ * (touch-action: none); on content the browser may claim the pan
+ * (pointercancel), which safely springs back.
  */
 import {
   AfterViewInit,
@@ -23,51 +27,27 @@ import {
 
 import { LayoutService } from '../../services/layout.service';
 import { ReducedMotionService } from '../../services/reduced-motion.service';
+import { DialogAnchor, DialogSize } from './dialog-anchor';
+import { focusableElementsIn, trapFocusWithin } from './dialog-focus';
+import {
+  DRAG_START_SLOP_PX,
+  VELOCITY_STALE_MS,
+  dragOffsetFor,
+  hasScrolledContent,
+  isActiveTextEntry,
+  isOnGrabber,
+  readTranslateY,
+  scrimOpacityFor,
+  settleDurationMs,
+  shouldDismiss,
+  smoothedVelocity,
+} from './sheet-physics';
 
-const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled])';
 const ANCHORED_BOTTOM_INSET_PX = 24;
-const ANCHOR_GAP_PX = 8;
-const ANCHOR_MIN_VIEWPORT_PX = 768;
-const SWIPE_DISMISS_FRACTION = 0.33;
-const SWIPE_FLICK_VELOCITY_PX_PER_MS = 0.6;
-const DRAG_START_SLOP_PX = 8;
-const GRABBER_SELECTOR = '.dialog-shell__grabber';
-const SETTLE_DURATION_MS = 250;
+const FOCUS_FALLBACK_SELECTOR = 'h1[tabindex="-1"]';
 
-/** Width preset of the dialog card, mapped to the Figma measurements. */
-export type DialogSize = 'default' | 'members' | 'add-members' | 'profile' | 'menu' | 'search';
-
-/** Viewport position a dialog card is anchored to (Figma prototype). */
-export interface DialogAnchor {
-  /** Top edge of the card in viewport pixels. */
-  readonly top: number;
-  /** Left edge for trigger-left-aligned cards. */
-  readonly left?: number;
-  /** Right inset for cards aligned with a reference right edge. */
-  readonly right?: number;
-}
-
-
-/**
- * Builds the anchor docking a dialog below its trigger per the Figma
- * prototype; null on small viewports, where dialogs center instead.
- * @param trigger Element the dialog is anchored to.
- * @param align Left-align with the trigger or right-align with an edge.
- * @param edgeElement Element whose right edge right-aligned cards use;
- * defaults to the trigger itself.
- */
-export function anchorBelow(
-  trigger: HTMLElement,
-  align: 'left' | 'right',
-  edgeElement?: HTMLElement,
-): DialogAnchor | null {
-  if (window.innerWidth <= ANCHOR_MIN_VIEWPORT_PX) return null;
-  const rect = trigger.getBoundingClientRect();
-  const top = rect.bottom + ANCHOR_GAP_PX;
-  if (align === 'left') return { top, left: rect.left };
-  const edge = (edgeElement ?? trigger).getBoundingClientRect().right;
-  return { top, right: window.innerWidth - edge };
-}
+export { anchorBelow } from './dialog-anchor';
+export type { DialogAnchor, DialogSize } from './dialog-anchor';
 
 /**
  * Modal wrapper shared by the channel-management dialogs: renders the
@@ -112,11 +92,24 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
   protected readonly isSettling = signal(false);
 
+  protected readonly hasDragged = signal(false);
+
   private readonly dragOffset = signal<number | null>(null);
+
+  private readonly settleMs = signal(0);
 
   protected readonly sheetTransform = computed(() => {
     const offset = this.dragOffset();
     return offset === null ? null : `translateY(${offset}px)`;
+  });
+
+  protected readonly settleDurationStyle = computed(() =>
+    this.isSettling() ? `${this.settleMs()}ms` : null,
+  );
+
+  protected readonly scrimOpacity = computed(() => {
+    const offset = this.dragOffset();
+    return offset === null ? null : String(scrimOpacityFor(offset, this.sheetHeight));
   });
 
   private dragEligible = false;
@@ -125,11 +118,17 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
   private dragStartY = 0;
 
+  private dragBaseOffset = 0;
+
+  private sheetHeight = 0;
+
   private lastMoveY = 0;
 
   private lastMoveTime = 0;
 
   private velocity = 0;
+
+  private settleTimer: ReturnType<typeof setTimeout> | null = null;
 
 
   /**
@@ -139,7 +138,7 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
    * they cannot prevent the browser from claiming the pan for scrolling).
    */
   ngAfterViewInit(): void {
-    this.focusableElements()[0]?.focus();
+    focusableElementsIn(this.card().nativeElement)[0]?.focus();
     this.card().nativeElement.addEventListener('touchmove', this.onNativeTouchMove, {
       passive: false,
     });
@@ -147,12 +146,24 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Returns focus to the element that opened the dialog and removes the
-   * native touchmove guard.
+   * Removes the native touchmove guard, drops a still-pending settle
+   * timer and restores focus.
    */
   ngOnDestroy(): void {
+    this.clearSettleTimer();
     this.card().nativeElement.removeEventListener('touchmove', this.onNativeTouchMove);
-    this.previouslyFocused?.focus();
+    this.restoreFocus();
+  }
+
+
+  /**
+   * Returns focus to the element that opened the dialog; if that element
+   * left the DOM while the dialog was open (live lists), the view's
+   * programmatically focusable heading keeps the keyboard position.
+   */
+  private restoreFocus(): void {
+    if (this.previouslyFocused?.isConnected) return this.previouslyFocused.focus();
+    document.querySelector<HTMLElement>(FOCUS_FALLBACK_SELECTOR)?.focus();
   }
 
 
@@ -196,40 +207,24 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
    * @param event Keydown event of the Tab key.
    */
   protected trapFocus(event: Event): void {
-    if (!(event instanceof KeyboardEvent)) return;
-    const focusables = this.focusableElements();
-    if (focusables.length === 0) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
-
-
-  /**
-   * Lists the currently visible focusable elements inside the card.
-   */
-  private focusableElements(): HTMLElement[] {
-    const elements = this.card().nativeElement.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    return [...elements].filter(element => element.offsetParent !== null);
+    trapFocusWithin(event, this.card().nativeElement);
   }
 
 
   /**
    * Starts tracking a potential swipe: only in sheet mode, and only when
-   * the gesture begins on the grabber or on content scrolled to the top.
+   * the gesture begins on the grabber or on content that is neither
+   * scrolled away from the top nor a focused text field (there a vertical
+   * drag means text selection).
    * @param event Pointerdown event on the card.
    */
   protected onPointerDown(event: PointerEvent): void {
     if (!this.isSheetMode() || !event.isPrimary) return;
     const card = this.card().nativeElement;
-    this.grabberDrag = this.isOnGrabber(event);
-    this.dragEligible = this.grabberDrag || !this.hasScrolledContent(event.target, card);
+    this.grabberDrag = isOnGrabber(event);
+    this.dragEligible =
+      this.grabberDrag ||
+      (!hasScrolledContent(event.target, card) && !isActiveTextEntry(event.target));
     if (!this.dragEligible) return;
     this.dragStartY = event.clientY;
     this.lastMoveY = event.clientY;
@@ -239,44 +234,42 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Moves the sheet with a downward drag (clamped at its rest position).
-   * The drag only engages beyond a small slop, so a tiny downward contact
-   * roll at the start of an upward scroll never claims the gesture; an
-   * upward move on content hands the gesture back to native scrolling.
+   * Moves the sheet with the finger 1:1: downward unbounded, upward with
+   * rubber-band resistance. Movement is measured from the engagement
+   * anchor, so there is no jump when the drag engages.
    * @param event Pointermove event on the card.
    */
   protected onPointerMove(event: PointerEvent): void {
     if (!this.dragEligible || !event.isPrimary) return;
-    const delta = event.clientY - this.dragStartY;
-    if (!this.isDragging()) {
-      if (delta < 0) return this.abortUnlessGrabber(delta);
-      if (delta <= DRAG_START_SLOP_PX) return;
-      this.beginDrag(event);
-    }
+    if (!this.isDragging() && !this.tryBeginDrag(event)) return;
     this.trackVelocity(event);
-    this.dragOffset.set(Math.max(0, delta - DRAG_START_SLOP_PX));
+    this.dragOffset.set(dragOffsetFor(this.dragBaseOffset + event.clientY - this.dragStartY));
   }
 
 
   /**
    * Settles the released sheet: dismiss beyond the distance threshold or
-   * on a fast downward flick, otherwise spring back.
+   * on a fresh downward flick, otherwise spring back. A flick velocity
+   * older than the staleness cutoff is discarded — the user stopped and
+   * held before lifting, so only the distance threshold decides.
+   * @param event Pointerup event on the card.
    */
-  protected onPointerUp(): void {
+  protected onPointerUp(event: PointerEvent): void {
+    if (!event.isPrimary) return;
     if (!this.isDragging()) return this.resetDragTracking();
+    if (event.timeStamp - this.lastMoveTime > VELOCITY_STALE_MS) this.velocity = 0;
     const offset = this.dragOffset() ?? 0;
-    const height = this.card().nativeElement.offsetHeight;
-    const dismiss =
-      offset > height * SWIPE_DISMISS_FRACTION || this.velocity > SWIPE_FLICK_VELOCITY_PX_PER_MS;
-    this.settle(dismiss, height);
+    this.settle(shouldDismiss(offset, this.sheetHeight, this.velocity));
   }
 
 
   /**
    * Springs back when the browser takes over the pointer (e.g. scrolling).
+   * @param event Pointercancel event on the card.
    */
-  protected onPointerCancel(): void {
-    if (this.isDragging()) return this.settle(false, this.card().nativeElement.offsetHeight);
+  protected onPointerCancel(event: PointerEvent): void {
+    if (!event.isPrimary) return;
+    if (this.isDragging()) return this.settle(false);
     this.resetDragTracking();
   }
 
@@ -291,79 +284,87 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Whether the gesture started on the grabber element itself. A geometric
-   * zone is deliberately not used: it would claim touches on adjacent card
-   * content (especially once the card is scrolled) and deaden scrolling.
-   * @param event Pointerdown event.
+   * Engages the drag once the gesture moved past the slop: downward from
+   * anywhere eligible, upward only from the grabber (on content an upward
+   * move hands the gesture back to native scrolling).
+   * @param event Latest pointermove event of the gesture.
    */
-  private isOnGrabber(event: PointerEvent): boolean {
-    const target = event.target instanceof HTMLElement ? event.target : null;
-    return !!target?.closest(GRABBER_SELECTOR);
-  }
-
-
-  /**
-   * Whether any scroll container between the event target and the card is
-   * scrolled away from the top (then the gesture belongs to scrolling).
-   * @param target Element the gesture started on.
-   * @param card Sheet card element.
-   */
-  private hasScrolledContent(target: EventTarget | null, card: HTMLElement): boolean {
-    let node = target instanceof HTMLElement ? target : null;
-    while (node && node !== card.parentElement) {
-      if (node.scrollTop > 0) return true;
-      node = node.parentElement;
+  private tryBeginDrag(event: PointerEvent): boolean {
+    const delta = event.clientY - this.dragStartY;
+    if (delta < 0 && !this.grabberDrag) {
+      this.dragEligible = false;
+      return false;
     }
-    return false;
+    if (Math.abs(delta) <= DRAG_START_SLOP_PX) return false;
+    this.beginDrag(event);
+    return true;
   }
 
 
   /**
-   * Drops the drag eligibility when content moves upward without the
-   * grabber, so inner scrolling is never hijacked.
-   * @param delta Vertical distance from the start position.
-   */
-  private abortUnlessGrabber(delta: number): void {
-    if (!this.grabberDrag && delta < 0) this.dragEligible = false;
-  }
-
-
-  /**
-   * Activates the visual drag and captures the pointer on the card.
-   * @param event First downward pointermove of the gesture.
+   * Activates the visual drag: caches the sheet height (no layout reads
+   * per move), re-anchors the gesture at the engagement point, catches a
+   * mid-settle or mid-entrance sheet at its rendered position (computed
+   * style reflects both the transition and the entrance animation) and
+   * captures the pointer.
+   * @param event Pointermove event that crossed the slop.
    */
   private beginDrag(event: PointerEvent): void {
+    const card = this.card().nativeElement;
+    this.clearSettleTimer();
+    this.dragBaseOffset = readTranslateY(card);
+    this.sheetHeight = card.offsetHeight;
+    this.dragStartY = event.clientY;
     this.isDragging.set(true);
     this.isSettling.set(false);
-    this.card().nativeElement.setPointerCapture(event.pointerId);
+    this.hasDragged.set(true);
+    card.setPointerCapture(event.pointerId);
   }
 
 
   /**
-   * Tracks the current downward velocity in pixels per millisecond.
+   * Tracks the smoothed downward velocity in pixels per millisecond.
    * @param event Latest pointermove event.
    */
   private trackVelocity(event: PointerEvent): void {
     const elapsed = event.timeStamp - this.lastMoveTime;
-    if (elapsed > 0) this.velocity = (event.clientY - this.lastMoveY) / elapsed;
+    if (elapsed > 0) {
+      const instantaneous = (event.clientY - this.lastMoveY) / elapsed;
+      this.velocity = smoothedVelocity(this.velocity, instantaneous);
+    }
     this.lastMoveY = event.clientY;
     this.lastMoveTime = event.timeStamp;
   }
 
 
   /**
-   * Animates the sheet off-screen (dismiss) or back to rest; with reduced
-   * motion both states apply instantly without a transition.
+   * Animates the sheet off-screen (dismiss) or back to rest over a
+   * duration derived from the release velocity, so the animation continues
+   * the finger's motion; with reduced motion both states apply instantly.
    * @param dismiss Whether the sheet is dismissed.
-   * @param height Current sheet height in pixels.
    */
-  private settle(dismiss: boolean, height: number): void {
+  private settle(dismiss: boolean): void {
     this.isDragging.set(false);
     this.resetDragTracking();
     if (this.reducedMotion.prefersReducedMotion()) return this.finishSettle(dismiss);
+    const duration = this.releaseDuration(dismiss);
+    this.settleMs.set(duration);
     this.isSettling.set(true);
-    this.dragOffset.set(dismiss ? height : 0);
-    setTimeout(() => this.finishSettle(dismiss), SETTLE_DURATION_MS);
+    this.dragOffset.set(dismiss ? this.sheetHeight : 0);
+    this.settleTimer = setTimeout(() => this.finishSettle(dismiss), duration);
+  }
+
+
+  /**
+   * Duration of the settle animation from the release point: remaining
+   * distance over the release velocity (spring-backs use the fallback
+   * speed), clamped by the named min/max constants.
+   * @param dismiss Whether the sheet is dismissed.
+   */
+  private releaseDuration(dismiss: boolean): number {
+    const offset = this.dragOffset() ?? 0;
+    const remaining = dismiss ? this.sheetHeight - offset : offset;
+    return settleDurationMs(remaining, dismiss ? this.velocity : 0);
   }
 
 
@@ -372,9 +373,20 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
    * @param dismiss Whether the sheet was dismissed.
    */
   private finishSettle(dismiss: boolean): void {
+    this.clearSettleTimer();
     this.isSettling.set(false);
     this.dragOffset.set(null);
     if (dismiss) this.closed.emit();
+  }
+
+
+  /**
+   * Cancels a scheduled settle completion, e.g. when a new drag catches
+   * the sheet mid-settle.
+   */
+  private clearSettleTimer(): void {
+    if (this.settleTimer !== null) clearTimeout(this.settleTimer);
+    this.settleTimer = null;
   }
 
 

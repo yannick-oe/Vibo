@@ -1,6 +1,9 @@
 @use 'variables' as v;
 @use 'mixins' as m;
 
+$sheet-settle-fallback-duration: 250ms;
+$sheet-settle-ease: cubic-bezier(0.35, 0.35, 0.15, 1);
+
 .dialog-shell {
   position: fixed;
   inset: 0;
@@ -9,7 +12,15 @@
   align-items: center;
   justify-content: center;
   padding: v.space('md');
-  background-color: v.$overlay-scrim;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: v.$overlay-scrim;
+    opacity: var(--sheet-scrim-opacity, 1);
+  }
 }
 
 .dialog-shell__card {
@@ -103,16 +114,6 @@
   display: none;
 }
 
-.dialog-shell__card--dragging {
-  animation: none;
-  transition: none;
-}
-
-.dialog-shell__card--settling {
-  animation: none;
-  transition: transform v.$transition-base;
-}
-
 @include m.respond-md {
   .dialog-shell {
     align-items: flex-end;
@@ -175,12 +176,44 @@
   }
 }
 
+.dialog-shell__card.dialog-shell__card--dragging {
+  animation: none;
+  transition: none;
+  will-change: transform;
+}
+
+.dialog-shell__card.dialog-shell__card--settling {
+  animation: none;
+  transition: transform var(--sheet-settle-ms, #{$sheet-settle-fallback-duration}) $sheet-settle-ease;
+  will-change: transform;
+}
+
+.dialog-shell__card.dialog-shell__card--dragged {
+  animation: none;
+}
+
+.dialog-shell--dragging::before {
+  transition: none;
+}
+
+.dialog-shell--settling::before {
+  transition: opacity var(--sheet-settle-ms, #{$sheet-settle-fallback-duration}) $sheet-settle-ease;
+}
+
+.dialog-shell--dragging .dialog-shell__grabber {
+  cursor: grabbing;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dialog-shell__card {
     animation: none;
   }
 
-  .dialog-shell__card--settling {
+  .dialog-shell__card.dialog-shell__card--settling {
+    transition: none;
+  }
+
+  .dialog-shell--settling::before {
     transition: none;
   }
 }

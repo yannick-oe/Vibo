@@ -3,38 +3,6 @@
 
 $results-max-height: 240px;
 
-.create-channel {
-  position: fixed;
-  inset: 0;
-  z-index: v.$z-modal;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: v.space('md');
-  background-color: v.$overlay-scrim;
-}
-
-.create-channel__dialog {
-  display: flex;
-  flex-direction: column;
-  gap: v.space('lg');
-  width: min(v.dialog-width('default'), 100%);
-  max-height: calc(100dvh - #{v.space('xl')});
-  padding: v.space('xl-xxl');
-  border-radius: v.$radius-xl;
-  background-color: v.color('white');
-  box-shadow: v.$shadow-lg;
-  overflow-y: auto;
-  transform-origin: center;
-  animation: balloon-inflate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  @include m.scrollbar-thin;
-
-  @include m.respond-sm {
-    padding: v.space('lg');
-    border-radius: v.$radius-md;
-  }
-}
-
 .create-channel__head {
   @include m.flex-between;
 
@@ -171,43 +139,4 @@ $results-max-height: 240px;
 .create-channel__actions {
   display: flex;
   justify-content: flex-end;
-}
-
-@keyframes balloon-inflate {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .create-channel__dialog {
-    animation: none;
-  }
-}
-
-@include m.sheet-keyframes;
-
-@include m.respond-md {
-  .create-channel {
-    align-items: flex-end;
-    padding: 0;
-  }
-
-  .create-channel__dialog {
-    @include m.sheet-card;
-
-    padding: v.space('md') v.space('md') v.space('lg');
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .create-channel__dialog {
-    animation: none;
-  }
 }
