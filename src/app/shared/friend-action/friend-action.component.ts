@@ -11,6 +11,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  booleanAttribute,
   computed,
   inject,
   input,
@@ -25,11 +26,14 @@ import { ToastService } from '../../services/toast.service';
 
 const ACTION_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es später erneut.';
 const DM_ROUTE = '/app/dm';
+const MESSAGE_LABEL_FALLBACK = 'Nachricht senden';
 
 /**
  * Relationship-aware action buttons for one user; hidden for the own
  * account. Emits `navigated` after opening the direct-message view so
  * hosting overlays (profile dialog, search dropdown) can close themselves.
+ * In compact mode the message action renders as an icon-only quick action
+ * (row surfaces such as the friends view) instead of the full text button.
  */
 @Component({
   selector: 'app-friend-action',
@@ -44,7 +48,16 @@ const DM_ROUTE = '/app/dm';
 export class FriendActionComponent {
   readonly uid = input.required<string>();
 
+  readonly name = input('');
+
+  readonly compact = input(false, { transform: booleanAttribute });
+
   readonly navigated = output<void>();
+
+  protected readonly messageLabel = computed(() => {
+    const name = this.name().trim();
+    return name ? `Nachricht an ${name} senden` : MESSAGE_LABEL_FALLBACK;
+  });
 
   private readonly friendshipService = inject(FriendshipService);
 

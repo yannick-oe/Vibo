@@ -1,13 +1,14 @@
 /**
- * @file Shared open state for the own-profile dialog so it can be opened
- * from outside the topbar (e.g. the command palette).
+ * @file Shared open state for the app-shell-hosted profile dialog so any
+ * surface (command palette, friend rows) can open a user's profile without
+ * owning the dialog component.
  */
 import { Injectable, signal } from '@angular/core';
 
 /**
  * Holds the uid whose profile dialog the app shell should render, or null
- * when closed. Lets the command palette open the signed-in user's profile
- * without owning the dialog component itself.
+ * when closed. Lets surfaces outside the shell (command palette, friends
+ * view rows) open a profile dialog without rendering it themselves.
  */
 @Injectable({ providedIn: 'root' })
 export class ProfileOverlayService {

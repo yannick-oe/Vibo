@@ -3,20 +3,41 @@
 
 $row-min-height: 44px;
 $avatar-size: 40px;
+$profile-min-width: 172px;
 
 :host {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: v.space('sm-md');
+  gap: v.space('xs');
   width: 100%;
   min-height: $row-min-height;
-  padding: v.space('xs') v.space('sm');
+  padding-right: v.space('xs');
   border-radius: v.$radius-lg;
   transition: background-color v.$transition-fast;
 
   &:hover {
     background-color: v.color('bg');
+  }
+}
+
+.friend-row__profile {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: $profile-min-width;
+  gap: v.space('sm-md');
+  min-height: $row-min-height;
+  padding: v.space('xs') v.space('sm');
+  border: none;
+  border-radius: v.$radius-lg;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    @include m.focus-ring;
   }
 }
 

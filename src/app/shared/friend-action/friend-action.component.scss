@@ -21,9 +21,58 @@ $menu-min-width: 220px;
   min-height: $touch-target;
 }
 
-.friend-action__more {
+.friend-action__more,
+.friend-action__quick {
+  position: relative;
   min-width: $touch-target;
   min-height: $touch-target;
+}
+
+.friend-action__quick img {
+  width: v.$icon-md;
+  height: auto;
+}
+
+.friend-action__hint {
+  display: none;
+  position: absolute;
+  top: calc(100% + #{v.space('xs')});
+  right: 0;
+  z-index: v.$z-tooltip;
+  padding: v.space('xs') v.space('md');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-sm;
+  background-color: v.color('white');
+  box-shadow: v.$shadow-md;
+  font-size: v.font-size('min');
+  color: v.color('black');
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity v.$transition-fast;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .friend-action__hint {
+    display: block;
+  }
+}
+
+.friend-action__quick:hover .friend-action__hint,
+.friend-action__quick:focus-visible .friend-action__hint,
+.friend-action__more:hover .friend-action__hint,
+.friend-action__more:focus-visible .friend-action__hint {
+  opacity: 1;
+}
+
+.friend-action__more[aria-expanded='true'] .friend-action__hint {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .friend-action__hint {
+    transition: none;
+  }
 }
 
 .friend-action__menu {

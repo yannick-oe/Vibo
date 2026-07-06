@@ -27,7 +27,8 @@ import { BadgeListComponent } from '../../../shared/badge-list/badge-list.compon
 import { displayBadges } from '../../../shared/badge-options';
 import { BANNER_NONE, BANNER_OPTIONS } from '../../../shared/banner-options';
 import { ProfileBannerComponent } from '../../../shared/profile-banner/profile-banner.component';
-import { DialogAnchor, DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
+import { DialogAnchor } from '../../../shared/dialog-shell/dialog-anchor';
+import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
 import { FriendActionComponent } from '../../../shared/friend-action/friend-action.component';
 import {
   NAME_MAX_LENGTH,
