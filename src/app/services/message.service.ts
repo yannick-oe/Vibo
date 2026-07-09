@@ -23,7 +23,7 @@ import {
 import { Observable, catchError, of } from 'rxjs';
 
 import { GifResult } from '../models/gif.model';
-import { Message, MessageDoc, ReactionMap, Reply, ReplyDoc } from '../models/message.model';
+import { Message, MessageDoc, ReactionMap, Reply, ReplyDoc, ReplyRef } from '../models/message.model';
 import { applyReaction } from './message-reactions';
 import { buildGifMessage, buildGifReply, buildMessage, buildReply } from './message-build';
 import { AuthService } from './auth.service';
@@ -91,13 +91,15 @@ export class MessageService {
 
   /**
    * Persists a message authored by the signed-in user with empty reactions
-   * and thread counters, matching the data-model defaults.
+   * and thread counters, matching the data-model defaults; an inline-reply
+   * reference is stored when the message answers another one.
    * @param collectionPath Firestore path of the target messages collection.
    * @param text Trimmed message text.
+   * @param replyTo Inline-reply reference when answering another message.
    * @returns The created message's Firestore id.
    */
-  async sendMessage(collectionPath: string, text: string): Promise<string> {
-    return this.commitMessage(collectionPath, buildMessage(this.authService.requireUid(), text));
+  async sendMessage(collectionPath: string, text: string, replyTo?: ReplyRef): Promise<string> {
+    return this.commitMessage(collectionPath, buildMessage(this.authService.requireUid(), text, replyTo));
   }
 
 
@@ -105,10 +107,11 @@ export class MessageService {
    * Persists a Giphy GIF as a message (no text) authored by the signed-in user.
    * @param collectionPath Firestore path of the target messages collection.
    * @param gif Selected GIF result.
+   * @param replyTo Inline-reply reference when answering another message.
    * @returns The created message's Firestore id.
    */
-  async sendGif(collectionPath: string, gif: GifResult): Promise<string> {
-    return this.commitMessage(collectionPath, buildGifMessage(this.authService.requireUid(), gif));
+  async sendGif(collectionPath: string, gif: GifResult, replyTo?: ReplyRef): Promise<string> {
+    return this.commitMessage(collectionPath, buildGifMessage(this.authService.requireUid(), gif, replyTo));
   }
 
 

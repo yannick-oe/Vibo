@@ -73,6 +73,8 @@ export class MessageListComponent {
 
   readonly threadRequested = output<Message>();
 
+  readonly replyRequested = output<Message>();
+
   readonly authorSelected = output<string>();
 
   private readonly locale = inject(LOCALE_ID);
@@ -100,6 +102,10 @@ export class MessageListComponent {
     return this.messages().filter(message => !uid || !message.hiddenFor?.includes(uid));
   });
 
+  private readonly messageById = computed(
+    () => new Map(this.visibleMessages().map(message => [message.id, message])),
+  );
+
   protected readonly groups = computed(() => this.groupMessages());
 
   protected readonly entrance = new MessageEntranceTracker();
@@ -114,6 +120,18 @@ export class MessageListComponent {
   protected messagePathFor(message: Message): string | null {
     const collectionPath = this.collectionPath();
     return collectionPath ? `${collectionPath}/${message.id}` : null;
+  }
+
+
+  /**
+   * Resolves the original an inline reply answers so its quoted preview can
+   * link to it; only visible (not hidden-for-me) originals resolve, and a
+   * missing or deleted one leaves the preview to fall back.
+   * @param message Message of the rendered row.
+   */
+  protected originalOf(message: Message): Message | undefined {
+    const id = message.replyTo?.messageId;
+    return id ? this.messageById().get(id) : undefined;
   }
 
 

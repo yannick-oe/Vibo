@@ -27,7 +27,7 @@ import { Observable, catchError, of, switchMap } from 'rxjs';
 
 import { DirectMessageDoc, buildConversationId } from '../models/direct-message.model';
 import { GifResult } from '../models/gif.model';
-import { Message } from '../models/message.model';
+import { Message, ReplyRef } from '../models/message.model';
 import { AuthService } from './auth.service';
 import { FriendshipService } from './friendship.service';
 import { MessageService, directMessagesPath } from './message.service';
@@ -95,12 +95,13 @@ export class DirectMessageService {
    * toast and sends nothing.
    * @param partnerUid Uid of the conversation partner.
    * @param text Trimmed message text.
+   * @param replyTo Inline-reply reference when answering another message.
    * @returns The created message's id, or null when the send was blocked.
    */
-  async send(partnerUid: string, text: string): Promise<string | null> {
+  async send(partnerUid: string, text: string, replyTo?: ReplyRef): Promise<string | null> {
     const conversationId = this.conversationIdWith(partnerUid);
     if (!(await this.prepareConversation(conversationId, partnerUid))) return null;
-    return this.messageService.sendMessage(directMessagesPath(conversationId), text);
+    return this.messageService.sendMessage(directMessagesPath(conversationId), text, replyTo);
   }
 
 
@@ -110,12 +111,13 @@ export class DirectMessageService {
    * and sends nothing.
    * @param partnerUid Uid of the conversation partner.
    * @param gif Selected GIF result.
+   * @param replyTo Inline-reply reference when answering another message.
    * @returns The created message's id, or null when the send was blocked.
    */
-  async sendGif(partnerUid: string, gif: GifResult): Promise<string | null> {
+  async sendGif(partnerUid: string, gif: GifResult, replyTo?: ReplyRef): Promise<string | null> {
     const conversationId = this.conversationIdWith(partnerUid);
     if (!(await this.prepareConversation(conversationId, partnerUid))) return null;
-    return this.messageService.sendGif(directMessagesPath(conversationId), gif);
+    return this.messageService.sendGif(directMessagesPath(conversationId), gif, replyTo);
   }
 
 

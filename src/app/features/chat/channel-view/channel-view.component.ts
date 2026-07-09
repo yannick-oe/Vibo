@@ -17,7 +17,7 @@ import { switchMap } from 'rxjs';
 
 import { Channel } from '../../../models/channel.model';
 import { GifResult } from '../../../models/gif.model';
-import { Message } from '../../../models/message.model';
+import { Message, ReplyRef } from '../../../models/message.model';
 import { UserDoc } from '../../../models/user.model';
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
@@ -34,12 +34,14 @@ import { DialogAnchor, anchorBelow } from '../../../shared/dialog-shell/dialog-a
 import { ChannelAddMembersDialogComponent } from '../channel-add-members-dialog/channel-add-members-dialog.component';
 import { ChannelMembersDialogComponent } from '../channel-members-dialog/channel-members-dialog.component';
 import { ChannelSettingsDialogComponent } from '../channel-settings-dialog/channel-settings-dialog.component';
-import { MessageInputComponent } from '../message-input/message-input.component';
+import { MessageInputComponent, ReplyContext } from '../message-input/message-input.component';
 import { MessageListComponent } from '../message-list/message-list.component';
+import { buildReplyRef } from '../reply-ref';
 import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
 
 const SEND_ERROR = 'Die Nachricht konnte nicht gesendet werden.';
 const HEAD_AVATAR_LIMIT = 3;
+const UNKNOWN_AUTHOR = 'Unbekannt';
 
 type ChannelDialog = 'settings' | 'members' | 'add';
 
@@ -95,6 +97,10 @@ export class ChannelViewComponent {
   protected readonly dialogAnchor = signal<DialogAnchor | null>(null);
 
   protected readonly profileUid = signal<string | null>(null);
+
+  private readonly replyTarget = signal<ReplyRef | null>(null);
+
+  protected readonly replyContext = computed<ReplyContext | null>(() => this.buildReplyContext());
 
 
   /**
@@ -182,15 +188,18 @@ export class ChannelViewComponent {
 
 
   /**
-   * Sends a composer message and notifies any @mentioned members; failures
-   * surface as a toast.
+   * Sends a composer message, attaching the open inline-reply reference;
+   * notifies @mentioned members and the answered author (mention supersedes
+   * reply). Failures surface as a toast.
    * @param text Trimmed message text from the composer.
    */
   protected async sendMessage(text: string): Promise<void> {
     const collectionPath = channelMessagesPath(this.channelId());
+    const replyTo = this.takeReplyTarget();
     try {
-      const id = await this.messageService.sendMessage(collectionPath, text);
-      this.notificationFanout.mentionsSent(`${collectionPath}/${id}`, text);
+      const id = await this.messageService.sendMessage(collectionPath, text, replyTo);
+      const mentioned = this.notificationFanout.mentionsSent(`${collectionPath}/${id}`, text);
+      if (replyTo) this.notificationFanout.replySent(`${collectionPath}/${id}`, replyTo.authorUid, text, mentioned);
     } catch {
       this.toastService.show(SEND_ERROR);
     }
@@ -198,15 +207,60 @@ export class ChannelViewComponent {
 
 
   /**
-   * Sends a GIF picked in the composer; failures surface as a toast.
+   * Sends a GIF picked in the composer, attaching the open inline-reply
+   * reference and notifying the answered author; failures surface as a toast.
    * @param gif Selected GIF result.
    */
   protected async sendGif(gif: GifResult): Promise<void> {
+    const collectionPath = channelMessagesPath(this.channelId());
+    const replyTo = this.takeReplyTarget();
     try {
-      await this.messageService.sendGif(channelMessagesPath(this.channelId()), gif);
+      const id = await this.messageService.sendGif(collectionPath, gif, replyTo);
+      if (replyTo) this.notificationFanout.replySent(`${collectionPath}/${id}`, replyTo.authorUid, '', [], gif.url);
     } catch {
       this.toastService.show(SEND_ERROR);
     }
+  }
+
+
+  /**
+   * Opens an inline-reply context for a message: the composer shows the
+   * cancelable reply bar and regains focus.
+   * @param message Message being answered.
+   */
+  protected startReply(message: Message): void {
+    this.replyTarget.set(buildReplyRef(message));
+    requestAnimationFrame(() => this.composer()?.focusInput());
+  }
+
+
+  /**
+   * Clears the inline-reply context (composer X, Escape or after a send).
+   */
+  protected cancelReply(): void {
+    this.replyTarget.set(null);
+  }
+
+
+  /**
+   * Reads and clears the pending inline-reply reference for the next send.
+   */
+  private takeReplyTarget(): ReplyRef | undefined {
+    const ref = this.replyTarget();
+    this.replyTarget.set(null);
+    return ref ?? undefined;
+  }
+
+
+  /**
+   * Builds the composer reply bar's display data, resolving the answered
+   * author's live name; null when no reply is in progress.
+   */
+  private buildReplyContext(): ReplyContext | null {
+    const ref = this.replyTarget();
+    if (!ref) return null;
+    const author = this.userService.users().find(user => user.uid === ref.authorUid);
+    return { authorName: author?.name ?? UNKNOWN_AUTHOR, previewText: ref.previewText };
   }
 
 
@@ -272,6 +326,7 @@ export class ChannelViewComponent {
     if (channelId === this.focusedChannelId) return;
     if (this.focusedChannelId !== null) this.threadService.close();
     this.focusedChannelId = channelId;
+    this.replyTarget.set(null);
     requestAnimationFrame(() => this.composer()?.focusInput());
   }
 

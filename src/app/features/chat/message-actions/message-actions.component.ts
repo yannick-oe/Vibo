@@ -49,6 +49,8 @@ export class MessageActionsComponent {
 
   readonly isThreadOpen = input(false);
 
+  readonly isReplyable = input(false);
+
   readonly canEdit = input(false);
 
   readonly reacted = output<string>();
@@ -56,6 +58,8 @@ export class MessageActionsComponent {
   readonly pickerRequested = output<void>();
 
   readonly threadToggled = output<void>();
+
+  readonly replyRequested = output<void>();
 
   readonly editRequested = output<void>();
 

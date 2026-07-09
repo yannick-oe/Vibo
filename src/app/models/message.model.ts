@@ -13,6 +13,27 @@ import type { EffectKind } from './reactions';
 export type ReactionMap = Record<string, string[]>;
 
 /**
+ * Maximum characters of the snapshot preview stored on an inline reply
+ * ({@link ReplyRef.previewText}); mirrored by the size cap in firestore.rules.
+ */
+export const REPLY_PREVIEW_MAX = 150;
+
+/**
+ * Snapshot reference to the message an inline reply answers ("Antworten" —
+ * distinct from thread replies). Stored on the answering MAIN-stream message
+ * and rendered as a quoted preview above its bubble. The preview is frozen at
+ * send time: later edits of the original never update it.
+ */
+export interface ReplyRef {
+  /** Firestore id of the answered MAIN-stream message. */
+  messageId: string;
+  /** Uid of the answered message's author (notification recipient). */
+  authorUid: string;
+  /** Length-capped, single-line snapshot of the answered text ("GIF" for GIFs). */
+  previewText: string;
+}
+
+/**
  * A broadcast big-reaction event written onto a message so every viewer's
  * existing message listener replays it once. The id is deduped per client and
  * the timestamp gates the replay; the type selects the screen effect.
@@ -77,6 +98,9 @@ export interface MessageDoc extends ReplyDoc {
   /** Uids that posted a reply in this thread (self-appended at reply time);
    * drives the thread-reply notification fan-out. Absent on old threads. */
   participantUids?: string[];
+  /** Inline-reply reference when this message answers another one ("Antworten");
+   * absent on ordinary messages. MAIN-stream only — thread replies never set it. */
+  replyTo?: ReplyRef;
 }
 
 /**

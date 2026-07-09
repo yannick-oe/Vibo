@@ -60,6 +60,7 @@
         [otherUids]="otherUids()"
         [isSelfConversation]="isSelf()"
         (threadRequested)="toggleThread($event)"
+        (replyRequested)="startReply($event)"
         (authorSelected)="profileUid.set($event)"
       />
     </div>
@@ -71,8 +72,10 @@
     <app-message-input
       [placeholder]="composerPlaceholder()"
       [conversationPath]="conversationPath()"
+      [replyContext]="replyContext()"
       (send)="sendMessage($event)"
       (sendGif)="sendGif($event)"
+      (cancelReply)="cancelReply()"
     />
   </div>
 </section>

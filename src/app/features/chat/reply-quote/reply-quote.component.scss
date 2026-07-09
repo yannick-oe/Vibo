@@ -1,0 +1,62 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$reply-quote-accent-width: 3px;
+$reply-quote-icon-size: 14px;
+
+.reply-quote {
+  display: flex;
+  align-items: center;
+  gap: v.space('xs');
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: v.space('xs') v.space('sm');
+  border: none;
+  border-left: $reply-quote-accent-width solid v.color('text-gray');
+  border-radius: v.$radius-sm;
+  background: none;
+  font-size: v.font-size('min');
+  line-height: v.$line-height-base;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.reply-quote--link {
+  border-left-color: v.color('primary');
+  cursor: pointer;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &:hover .reply-quote__author {
+    text-decoration: underline;
+  }
+}
+
+.reply-quote__icon {
+  flex-shrink: 0;
+  width: $reply-quote-icon-size;
+  height: $reply-quote-icon-size;
+  opacity: 0.6;
+}
+
+.reply-quote__author {
+  flex-shrink: 0;
+  font-weight: v.$font-weight-semibold;
+  color: v.color('black');
+}
+
+.reply-quote__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: v.color('text-gray');
+}

@@ -41,6 +41,7 @@ import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
 import { MessageActionsComponent } from '../message-actions/message-actions.component';
 import { MessageContentComponent } from '../message-content/message-content.component';
 import { ReactionChipsComponent } from '../reaction-chips/reaction-chips.component';
+import { ReplyQuoteComponent } from '../reply-quote/reply-quote.component';
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { ReadReceiptComponent } from '../../../shared/read-receipt/read-receipt.component';
 
@@ -65,6 +66,7 @@ const DELETE_POP_MS = 220;
     MessageContentComponent,
     ReactionChipsComponent,
     ReadReceiptComponent,
+    ReplyQuoteComponent,
   ],
   templateUrl: './message-item.component.html',
   styleUrl: './message-item.component.scss',
@@ -92,7 +94,11 @@ export class MessageItemComponent {
 
   readonly isThreadOpen = input(false);
 
+  readonly isReplyable = input(false);
+
   readonly messagePath = input<string | null>(null);
+
+  readonly replyOriginal = input<Message | undefined>(undefined);
 
   readonly reactionLimit = input(DESKTOP_REACTION_LIMIT);
 
@@ -105,6 +111,7 @@ export class MessageItemComponent {
 
   readonly openThread = output<void>();
   readonly openAuthor = output<string>();
+  readonly replyRequested = output<void>();
 
   private readonly userService = inject(UserService);
 
@@ -154,7 +161,7 @@ export class MessageItemComponent {
     () => this.entry().authorId === this.authService.currentUser()?.uid,
   );
 
-  protected readonly receiptEntry = computed(() => this.entry() as Message);
+  protected readonly messageEntry = computed(() => this.entry() as Message);
 
   protected readonly focusHighlight = computed(
     () => this.messageFocusService.target() === this.entry().id,

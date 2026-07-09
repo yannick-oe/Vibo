@@ -20,13 +20,17 @@
     }
     @if (isOwn() && showReceipt()) {
       <app-read-receipt
-        [entry]="receiptEntry()"
+        [entry]="messageEntry()"
         [reads]="reads()"
         [otherUids]="otherUids()"
         [isSelfConversation]="isSelfConversation()"
       />
     }
   </div>
+
+  @if (!isDeleted() && messageEntry().replyTo) {
+    <app-reply-quote [entry]="entry()" [original]="replyOriginal()" />
+  }
 
   @if (isDeleted()) {
     <p class="message__tombstone" [class.message__tombstone--pop]="justDeleted()">Nachricht gelöscht</p>
@@ -137,10 +141,12 @@
       [isOwn]="isOwn()"
       [isThreadable]="isThreadable()"
       [isThreadOpen]="isThreadOpen()"
+      [isReplyable]="isReplyable()"
       [canEdit]="canEditNow()"
       (reacted)="react($event)"
       (pickerRequested)="reactionPickerOpen.set(true)"
       (threadToggled)="requestThread()"
+      (replyRequested)="barOpen.set(false); replyRequested.emit()"
       (editRequested)="startEdit()"
       (deleteForMe)="onDeleteForMe()"
       (deleteForAll)="onDeleteForAll()"

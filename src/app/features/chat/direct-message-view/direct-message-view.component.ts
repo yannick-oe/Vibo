@@ -16,7 +16,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { of, switchMap } from 'rxjs';
 
 import { GifResult } from '../../../models/gif.model';
-import { Message } from '../../../models/message.model';
+import { Message, ReplyRef } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
 import { DirectMessageService } from '../../../services/direct-message.service';
 import { conversationDocPath } from '../../../services/message.service';
@@ -34,8 +34,9 @@ import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.
 import { BadgeListComponent } from '../../../shared/badge-list/badge-list.component';
 import { displayBadges } from '../../../shared/badge-options';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
-import { MessageInputComponent } from '../message-input/message-input.component';
+import { MessageInputComponent, ReplyContext } from '../message-input/message-input.component';
 import { MessageListComponent } from '../message-list/message-list.component';
+import { buildReplyRef } from '../reply-ref';
 import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
 
 const SEND_ERROR = 'Die Nachricht konnte nicht gesendet werden.';
@@ -89,6 +90,10 @@ export class DirectMessageViewComponent {
   private focusedUid: string | null = null;
 
   protected readonly profileUid = signal<string | null>(null);
+
+  private readonly replyTarget = signal<ReplyRef | null>(null);
+
+  protected readonly replyContext = computed<ReplyContext | null>(() => this.buildReplyContext());
 
   protected readonly messages = toSignal(
     toObservable(this.uid).pipe(
@@ -182,15 +187,19 @@ export class DirectMessageViewComponent {
 
 
   /**
-   * Sends a composer message and notifies the partner when @mentioned; the
-   * conversation document is created lazily by the service. Failures surface
-   * as a toast.
+   * Sends a composer message, attaching the open inline-reply reference;
+   * notifies the partner on @mention and the answered author (mention
+   * supersedes reply). The conversation is created lazily; failures toast.
    * @param text Trimmed message text from the composer.
    */
   protected async sendMessage(text: string): Promise<void> {
+    const replyTo = this.takeReplyTarget();
     try {
-      const id = await this.directMessageService.send(this.uid(), text);
-      if (id) this.notificationFanout.mentionsSent(this.directMessageService.messagePathFor(this.uid(), id), text);
+      const id = await this.directMessageService.send(this.uid(), text, replyTo);
+      if (!id) return;
+      const path = this.directMessageService.messagePathFor(this.uid(), id);
+      const mentioned = this.notificationFanout.mentionsSent(path, text);
+      if (replyTo) this.notificationFanout.replySent(path, replyTo.authorUid, text, mentioned);
     } catch {
       this.toastService.show(SEND_ERROR);
     }
@@ -198,16 +207,63 @@ export class DirectMessageViewComponent {
 
 
   /**
-   * Sends a GIF picked in the composer; the conversation is created lazily.
-   * Failures surface as a toast.
+   * Sends a GIF picked in the composer, attaching the open inline-reply
+   * reference and notifying the answered author; the conversation is created
+   * lazily. Failures surface as a toast.
    * @param gif Selected GIF result.
    */
   protected async sendGif(gif: GifResult): Promise<void> {
+    const replyTo = this.takeReplyTarget();
     try {
-      await this.directMessageService.sendGif(this.uid(), gif);
+      const id = await this.directMessageService.sendGif(this.uid(), gif, replyTo);
+      if (id && replyTo) {
+        const path = this.directMessageService.messagePathFor(this.uid(), id);
+        this.notificationFanout.replySent(path, replyTo.authorUid, '', [], gif.url);
+      }
     } catch {
       this.toastService.show(SEND_ERROR);
     }
+  }
+
+
+  /**
+   * Opens an inline-reply context for a message: the composer shows the
+   * cancelable reply bar and regains focus.
+   * @param message Message being answered.
+   */
+  protected startReply(message: Message): void {
+    this.replyTarget.set(buildReplyRef(message));
+    requestAnimationFrame(() => this.composer()?.focusInput());
+  }
+
+
+  /**
+   * Clears the inline-reply context (composer X, Escape or after a send).
+   */
+  protected cancelReply(): void {
+    this.replyTarget.set(null);
+  }
+
+
+  /**
+   * Reads and clears the pending inline-reply reference for the next send.
+   */
+  private takeReplyTarget(): ReplyRef | undefined {
+    const ref = this.replyTarget();
+    this.replyTarget.set(null);
+    return ref ?? undefined;
+  }
+
+
+  /**
+   * Builds the composer reply bar's display data, resolving the answered
+   * author's live name; null when no reply is in progress.
+   */
+  private buildReplyContext(): ReplyContext | null {
+    const ref = this.replyTarget();
+    if (!ref) return null;
+    const author = this.userService.users().find(user => user.uid === ref.authorUid);
+    return { authorName: author?.name ?? UNKNOWN_PARTNER, previewText: ref.previewText };
   }
 
 
@@ -246,6 +302,7 @@ export class DirectMessageViewComponent {
     if (uid === this.focusedUid) return;
     if (this.focusedUid !== null) this.threadService.close();
     this.focusedUid = uid;
+    this.replyTarget.set(null);
     requestAnimationFrame(() => this.composer()?.focusInput());
   }
 }

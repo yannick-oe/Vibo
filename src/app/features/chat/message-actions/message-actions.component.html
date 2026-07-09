@@ -27,6 +27,17 @@
     <img src="app-icons/add-reaction.svg" alt="" aria-hidden="true" />
   </button>
 
+  @if (isReplyable()) {
+    <button
+      class="actions__btn"
+      type="button"
+      aria-label="Antworten"
+      (click)="replyRequested.emit()"
+    >
+      <img src="app-icons/back-arrow.svg" alt="" aria-hidden="true" />
+    </button>
+  }
+
   @if (isThreadable()) {
     <button
       class="actions__btn"

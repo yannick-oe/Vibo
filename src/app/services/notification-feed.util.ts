@@ -21,6 +21,7 @@ import { channelMessagesPath, directMessagesPath } from './message.service';
 const CHANNEL_MESSAGE_PATTERN = /^channels\/([^/]+)\/messages\/([^/]+?)(\/replies\/[^/]+)?$/;
 const DM_MESSAGE_PATTERN = /^directMessages\/([^/]+)\/messages\/([^/]+?)(\/replies\/[^/]+)?$/;
 const REPLY_VERB = 'geantwortet';
+const INLINE_REPLY_VERB = 'auf deine Nachricht geantwortet';
 const REACTION_VERB = 'reagiert';
 const MENTION_VERB = 'dich erwähnt';
 const REPLY_NOUN_PLURAL = 'neue Antworten';
@@ -198,12 +199,14 @@ function groupKeyOf(entry: NotificationEntry): string {
 
 /**
  * The German past participle of a notification kind, used in both the toast
- * action line and the grouped bell title.
+ * action line and the grouped bell title. Inline replies ("Antworten") read
+ * "auf deine Nachricht geantwortet"; thread replies read "geantwortet".
  * @param kind Notification kind.
  */
 function kindVerb(kind: NotificationKind): string {
   if (kind === 'reaction') return REACTION_VERB;
   if (kind === 'mention') return MENTION_VERB;
+  if (kind === 'reply') return INLINE_REPLY_VERB;
   return REPLY_VERB;
 }
 
@@ -234,8 +237,9 @@ export function groupTitle(group: NotificationGroup, actorName: string): string 
 
 /**
  * The count-led title for multiple replies/mentions from a group ("3 neue
- * Antworten von Gast", "2 Erwähnungen von Gast").
- * @param kind Notification kind (thread-reply or mention).
+ * Antworten von Gast", "2 Erwähnungen von Gast"). Thread and inline replies
+ * share the "neue Antworten" noun; only mentions differ.
+ * @param kind Notification kind (thread-reply, reply or mention).
  * @param count Number of unread events in the group.
  * @param actorName Display name of the newest actor.
  */

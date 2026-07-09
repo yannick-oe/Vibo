@@ -37,6 +37,12 @@ interface MentionState {
   readonly start: number;
 }
 
+/** Display data for the composer's inline-reply context bar. */
+export interface ReplyContext {
+  readonly authorName: string;
+  readonly previewText: string;
+}
+
 /**
  * Presentational composer per the Figma frames: outlined card with a
  * growing textarea, the emoji picker (inserts at the caret), mention
@@ -63,9 +69,13 @@ export class MessageInputComponent {
 
   readonly conversationPath = input<string | null>(null);
 
+  readonly replyContext = input<ReplyContext | null>(null);
+
   readonly send = output<string>();
 
   readonly sendGif = output<GifResult>();
+
+  readonly cancelReply = output<void>();
 
   private readonly userService = inject(UserService);
 
@@ -140,13 +150,15 @@ export class MessageInputComponent {
 
 
   /**
-   * Handles composer keys: suggestion navigation while a mention dropdown
-   * is open, otherwise Enter sends (Shift+Enter falls through).
+   * Handles composer keys: suggestion navigation while a mention dropdown is
+   * open, Escape cancels an open reply context, otherwise Enter sends
+   * (Shift+Enter falls through).
    * @param event Keydown event of the textarea.
    */
   protected onKeydown(event: Event): void {
     if (!(event instanceof KeyboardEvent)) return;
     if (this.mention() !== null && this.handleMentionKey(event)) return;
+    if (event.key === 'Escape' && this.replyContext()) return this.cancelReply.emit();
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       this.submit();

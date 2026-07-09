@@ -1,4 +1,21 @@
 <div class="composer">
+  @if (replyContext(); as reply) {
+    <div class="composer__reply">
+      <span class="composer__reply-info" role="status">
+        <span class="composer__reply-label">Antwort an {{ reply.authorName }}:</span>
+        <span class="composer__reply-preview">{{ reply.previewText }}</span>
+      </span>
+      <button
+        class="composer__reply-cancel"
+        type="button"
+        aria-label="Antwort verwerfen"
+        (click)="cancelReply.emit()"
+      >
+        <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+      </button>
+    </div>
+  }
+
   @if (mention() !== null && suggestions().length > 0) {
     <app-suggestion-dropdown
       class="composer__suggestions"

@@ -1,6 +1,11 @@
 @use 'variables' as v;
 @use 'mixins' as m;
 
+$reply-accent-width: 3px;
+$reply-enter-shift: 4px;
+$reply-enter-duration: 150ms;
+$reply-cancel-size: 28px;
+
 .composer {
   position: relative;
   display: flex;
@@ -20,6 +25,79 @@
   bottom: calc(100% + #{v.space('xs')});
   left: 0;
   z-index: v.$z-dropdown;
+}
+
+.composer__reply {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  padding: v.space('xs') v.space('sm');
+  border-radius: v.$radius-sm;
+  border-left: $reply-accent-width solid v.color('primary');
+  background-color: v.color('bg');
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: composer-reply-in $reply-enter-duration ease-out both;
+  }
+}
+
+@keyframes composer-reply-in {
+  from {
+    opacity: 0;
+    transform: translateY($reply-enter-shift);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.composer__reply-info {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: v.space('xs');
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.composer__reply-label {
+  flex-shrink: 0;
+  font-weight: v.$font-weight-bold;
+}
+
+.composer__reply-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.composer__reply-cancel {
+  @include m.flex-center;
+
+  flex-shrink: 0;
+  width: $reply-cancel-size;
+  height: $reply-cancel-size;
+  border: none;
+  border-radius: v.$radius-round;
+  background: none;
+  cursor: pointer;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('white');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  img {
+    width: v.$icon-sm;
+    height: v.$icon-sm;
+  }
 }
 
 .composer__input-wrapper {

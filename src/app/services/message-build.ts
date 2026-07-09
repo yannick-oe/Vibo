@@ -7,7 +7,7 @@
 import { serverTimestamp } from '@angular/fire/firestore';
 
 import { GifResult } from '../models/gif.model';
-import { MessageDoc, ReplyDoc } from '../models/message.model';
+import { MessageDoc, ReplyDoc, ReplyRef } from '../models/message.model';
 
 /** The stored Giphy fields shared by GIF messages and GIF replies. */
 function gifFields(gif: GifResult): Pick<ReplyDoc, 'gifUrl' | 'gifStill' | 'gifWidth' | 'gifHeight' | 'gifAlt'> {
@@ -37,12 +37,14 @@ export function buildGifReply(uid: string, gif: GifResult): ReplyDoc {
 
 /**
  * Builds a chat message document with the denormalized thread counters
- * initialized to their data-model defaults.
+ * initialized to their data-model defaults; an inline-reply reference is
+ * attached only when present (Firestore rejects undefined fields).
  * @param uid Author uid.
  * @param text Trimmed message text.
+ * @param replyTo Inline-reply reference when answering another message.
  */
-export function buildMessage(uid: string, text: string): MessageDoc {
-  return { ...buildReply(uid, text), replyCount: 0, lastReplyAt: null };
+export function buildMessage(uid: string, text: string, replyTo?: ReplyRef): MessageDoc {
+  return { ...buildReply(uid, text), replyCount: 0, lastReplyAt: null, ...(replyTo ? { replyTo } : {}) };
 }
 
 
@@ -50,7 +52,8 @@ export function buildMessage(uid: string, text: string): MessageDoc {
  * Builds a GIF message: an empty-text message plus the stored Giphy fields.
  * @param uid Author uid.
  * @param gif Selected GIF result.
+ * @param replyTo Inline-reply reference when answering another message.
  */
-export function buildGifMessage(uid: string, gif: GifResult): MessageDoc {
-  return { ...buildMessage(uid, ''), ...gifFields(gif) };
+export function buildGifMessage(uid: string, gif: GifResult, replyTo?: ReplyRef): MessageDoc {
+  return { ...buildMessage(uid, '', replyTo), ...gifFields(gif) };
 }

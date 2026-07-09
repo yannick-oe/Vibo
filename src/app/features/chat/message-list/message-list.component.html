@@ -10,7 +10,9 @@
           [entry]="message"
           [isThreadable]="true"
           [isThreadOpen]="message.id === openThreadId()"
+          [isReplyable]="true"
           [messagePath]="messagePathFor(message)"
+          [replyOriginal]="originalOf(message)"
           [reactionLimit]="reactionLimit()"
           [showReceipt]="true"
           [reads]="reads()"
@@ -18,6 +20,7 @@
           [isSelfConversation]="isSelfConversation()"
           [enterAnimate]="entrance.shouldEnter(message)"
           (openThread)="threadRequested.emit(message)"
+          (replyRequested)="replyRequested.emit(message)"
           (openAuthor)="authorSelected.emit($event)"
         ></li>
       }

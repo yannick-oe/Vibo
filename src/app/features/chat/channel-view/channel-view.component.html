@@ -52,6 +52,7 @@
       [reads]="reads()"
       [otherUids]="otherUids()"
       (threadRequested)="toggleThread($event)"
+      (replyRequested)="startReply($event)"
       (authorSelected)="openProfile($event)"
     />
     @if (showIntro()) {
@@ -74,8 +75,10 @@
     <app-message-input
       [placeholder]="composerPlaceholder()"
       [conversationPath]="conversationPath()"
+      [replyContext]="replyContext()"
       (send)="sendMessage($event)"
       (sendGif)="sendGif($event)"
+      (cancelReply)="cancelReply()"
     />
   </div>
 </section>
