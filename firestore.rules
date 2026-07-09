@@ -84,10 +84,24 @@ service cloud.firestore {
         && !(request.auth.uid in resource.data.get('hiddenFor', []));
     }
 
+    // Posting a reply also registers the author as a thread participant
+    // (arrayUnion in the same batch): only their own uid may be appended,
+    // so the thread-reply notification fan-out list cannot be forged.
+    function appendsSelfToParticipantUids() {
+      return request.resource.data.participantUids.hasAll(resource.data.get('participantUids', []))
+        && request.resource.data.participantUids.size() == resource.data.get('participantUids', []).size() + 1
+        && request.auth.uid in request.resource.data.participantUids
+        && !(request.auth.uid in resource.data.get('participantUids', []));
+    }
+
     // Reply authors denormalize the thread preview onto the parent
-    // message in the same batch as the reply create.
+    // message in the same batch as the reply create; a first-time
+    // participant additionally self-appends to participantUids (an
+    // arrayUnion no-op for repeat repliers keeps the key unaffected).
     function bumpsReplyCounters() {
-      return affectedKeys().hasOnly(['replyCount', 'lastReplyAt'])
+      return (affectedKeys().hasOnly(['replyCount', 'lastReplyAt'])
+          || (affectedKeys().hasOnly(['replyCount', 'lastReplyAt', 'participantUids'])
+            && appendsSelfToParticipantUids()))
         && request.resource.data.replyCount == resource.data.replyCount + 1
         && request.resource.data.lastReplyAt == request.time;
     }
@@ -141,6 +155,69 @@ service cloud.firestore {
       allow create: if signedIn() && request.auth.uid == uid && validNewUsername();
       allow update: if signedIn() && request.auth.uid == uid && usernameUnchanged();
       allow delete: if signedIn() && request.auth.uid == uid;
+
+      // Activity notifications (thread replies, reactions on own messages):
+      // the ACTING client fans one document out into each recipient's
+      // collection — create-only for foreign users with a strict shape; only
+      // the owner reads and clears their feed. No updates by design: rapid
+      // reactions stay separate docs and coalesce in the bell UI. The
+      // preview is sender-authored (length-capped; same trust level as
+      // sending a message).
+      function notificationKeysValid() {
+        return request.resource.data.keys().hasOnly(['kind', 'actorUid', 'channelId',
+            'conversationId', 'messageId', 'inThread', 'emoji', 'preview', 'createdAt'])
+          && request.resource.data.keys().hasAll(['kind', 'actorUid', 'messageId',
+            'inThread', 'preview', 'createdAt']);
+      }
+
+      // The emoji is present exactly for reaction notifications.
+      function notificationFieldsValid() {
+        return request.resource.data.kind in ['thread-reply', 'reaction']
+          && request.resource.data.actorUid == request.auth.uid
+          && request.resource.data.messageId is string
+          && request.resource.data.messageId.size() >= 1
+          && request.resource.data.messageId.size() <= 128
+          && request.resource.data.inThread is bool
+          && request.resource.data.preview is string
+          && request.resource.data.preview.size() >= 1
+          && request.resource.data.preview.size() <= 120
+          && ((request.resource.data.kind == 'reaction') == ('emoji' in request.resource.data))
+          && (!('emoji' in request.resource.data)
+            || (request.resource.data.emoji is string
+              && request.resource.data.emoji.size() >= 1
+              && request.resource.data.emoji.size() <= 16))
+          && request.resource.data.createdAt == request.time;
+      }
+
+      // Exactly one conversation reference. Channel events require the actor
+      // AND the recipient to be current members (one cached get); DM events
+      // prove both from the deterministic conversation id — no notifications
+      // from outside a shared conversation.
+      function notificationTargetValid() {
+        return (('channelId' in request.resource.data) != ('conversationId' in request.resource.data))
+          && (!('channelId' in request.resource.data)
+            || (request.resource.data.channelId is string
+              && request.resource.data.channelId.size() >= 1
+              && request.resource.data.channelId.size() <= 128
+              && request.auth.uid in channelMembers(request.resource.data.channelId)
+              && uid in channelMembers(request.resource.data.channelId)))
+          && (!('conversationId' in request.resource.data)
+            || (request.resource.data.conversationId is string
+              && request.resource.data.conversationId.size() >= 1
+              && request.resource.data.conversationId.size() <= 128
+              && request.auth.uid in request.resource.data.conversationId.split('_')
+              && uid in request.resource.data.conversationId.split('_')));
+      }
+
+      match /notifications/{notificationId} {
+        allow read, delete: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn()
+          && request.auth.uid != uid
+          && notificationKeysValid()
+          && notificationFieldsValid()
+          && notificationTargetValid();
+        allow update: if false;
+      }
     }
 
     // Global registry backing @username uniqueness; doc id = normalized

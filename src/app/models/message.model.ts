@@ -74,6 +74,9 @@ export interface MessageDoc extends ReplyDoc {
   replyCount: number;
   /** Denormalized time of the latest reply; null while no replies exist. */
   lastReplyAt: Timestamp | FieldValue | null;
+  /** Uids that posted a reply in this thread (self-appended at reply time);
+   * drives the thread-reply notification fan-out. Absent on old threads. */
+  participantUids?: string[];
 }
 
 /**
