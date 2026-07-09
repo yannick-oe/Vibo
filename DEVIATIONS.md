@@ -3,6 +3,51 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Inline reply ("Antworten"): quoted snapshot + 'reply' notifications (2026-07-09)
+Discord-style inline reply, **distinct from threads** — both coexist in the message action
+bar (a back-arrow "Antworten" button beside the `comment.svg` "Thread" button). No dedicated
+reply glyph exists in the Material Symbols set we self-host, so `back-arrow.svg` doubles as
+the reply arrow (action button and the quote's leading icon); the global
+`[data-theme='dark'] img[src^='app-icons/']` invert keeps it visible in both themes.
+- **Scope:** channel/DM **main streams only** — no inline reply inside thread panels (the
+  thread composer/rows never receive `isReplyable`, and `ReplyRef` lives on `MessageDoc`,
+  never on thread `ReplyDoc`). Not offered on tombstones (the action bar is already hidden
+  for deleted rows). Threads (`Thread`) and inline replies (`Antworten`) are independent.
+- **Composer reply bar** („Antwort an {Name}: {preview}", X or Escape cancels; applies to the
+  next **text or GIF** send). No Figma design for the bar. It enters with a **transform/opacity
+  animation only** (no height/layout animation → the message list is not reflowed mid-anim;
+  CLS 0), and `prefers-reduced-motion` renders it instantly.
+- **Snapshot semantics (documented deviation):** the sent message stores
+  `replyTo {messageId, authorUid, previewText}`. `previewText` is derived from the existing
+  `previewOf` with a wider `REPLY_PREVIEW_MAX = 150` cap, newlines collapsed, `"GIF"` for GIF
+  originals. It is a **frozen snapshot** — later **edits of the original do not update the
+  quote** (deliberate; matches Slack/Discord and avoids reading the original on every render).
+  The answered **author name** is resolved live (only the text is a snapshot).
+- **`previewOf` contract tightened:** truncation now reserves room for the ellipsis so the
+  result is **≤ `max`** (was `max + 1`). Required so `previewText` fits the rules'
+  `size() <= 150`; the toast/bell previews (cap 80) are one char shorter and still well
+  within their own 120 cap.
+- **Rendering:** a compact quoted preview above the bubble (live author + snapshot text, muted
+  token styling, single-line ellipsis, both themes, down to 320px). Clicking scrolls to and
+  briefly highlights the original via the existing `MessageFocusService`. Fallback
+  „Nachricht nicht mehr verfügbar" (non-interactive) when the original is **missing, a
+  tombstone (`deletedAt`), or hidden-for-me** — resolved against the list's visible messages.
+- **Notifications:** new kind **`reply`** rides the existing sender-side fan-out (§14, no new
+  listener). An inline reply to *my* message notifies me („hat auf deine Nachricht
+  geantwortet"), **never self**, suppressed while I'm viewing that conversation's main stream
+  (`inThread = false`, standard per-context rule). Dedupe hierarchy per send is **mention >
+  reply**: a reply that also @mentions the same recipient produces only the mention entry
+  (the fan-out passes the mentioned uids as the reply's `exclude`). Grouping, panel counts,
+  the bell `eventCount` and the 9+ cap **apply automatically** — the only kind-specific code
+  is the German verb string; `reply` reuses the "neue Antworten" count noun.
+- **Rules:** `reply` added to the notification `kind` enum; a new `validReplyTo()` validates
+  the optional `replyTo` map on message create (exact key set, string fields, id caps 128,
+  `previewText` 1..150). Shared by messages and replies — thread replies simply never carry
+  it. The edit/tombstone `affectedKeys` matrices already exclude `replyTo`, so it is
+  immutable after create. See the deploy-ordering note in the change summary: `replyTo`
+  writes pass under the old permissive create rules (unvalidated) and `reply` notifications
+  are silently rejected (fire-and-forget) until the rules deploy — sends never break either way.
+
 ## Bottom sheets: interactive finger-tracking physics (2026-07-06)
 The mobile bottom sheets previously *decided* dismissal from pointer tracking but never
 *rendered* the drag: the `sheet-slide-up` entrance animation (`animation-fill-mode: both`)
