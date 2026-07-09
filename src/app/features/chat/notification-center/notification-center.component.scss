@@ -4,6 +4,11 @@
 $touch-target: 44px;
 $panel-width: 340px;
 $avatar-size: 32px;
+$activity-visible-rows: 5;
+$activity-row-height: calc(
+  #{v.space('xs')} * 2 + #{v.font-size('body')} * #{v.$line-height-base} +
+    #{v.font-size('min')} * #{v.$line-height-base}
+);
 
 :host {
   display: inline-flex;
@@ -39,7 +44,7 @@ $avatar-size: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: v.space('md-lg');
+  min-width: calc(#{v.space('md-lg')} + #{v.space('sm')});
   height: v.space('md-lg');
   padding: 0 v.space('xs');
   border-radius: v.$radius-pill;
@@ -99,6 +104,16 @@ $avatar-size: 32px;
   display: flex;
   flex-direction: column;
   gap: v.space('xs');
+}
+
+.notification-center__list--activity {
+  max-height: calc(
+    #{$activity-row-height} * #{$activity-visible-rows} +
+    #{v.space('xs')} * (#{$activity-visible-rows} - 1)
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  @include m.scrollbar-thin;
 }
 
 .notification-center__request {

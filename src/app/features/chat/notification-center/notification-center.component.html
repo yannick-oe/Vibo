@@ -48,7 +48,10 @@
             Alle löschen
           </button>
         </div>
-        <ul class="notification-center__list" aria-labelledby="notification-center-activity">
+        <ul
+          class="notification-center__list notification-center__list--activity"
+          aria-labelledby="notification-center-activity"
+        >
           @for (row of activityRows(); track row.key) {
             <li class="notification-center__item">
               <button class="notification-center__row" type="button" (click)="openActivity(row)">

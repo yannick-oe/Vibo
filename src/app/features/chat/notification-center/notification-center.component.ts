@@ -37,8 +37,8 @@ import {
 import { FriendActionComponent } from '../../../shared/friend-action/friend-action.component';
 import { UnreadBadgeComponent } from '../../../shared/unread-badge/unread-badge.component';
 
-const BADGE_CAP = 99;
-const BADGE_CAP_LABEL = '99+';
+const BADGE_MAX = 9;
+const BADGE_OVERFLOW_LABEL = '9+';
 const BELL_LABEL_IDLE = 'Benachrichtigungen';
 const UNKNOWN_NAME = 'Unbekannt';
 const SORT_LOCALE = 'de';
@@ -115,12 +115,12 @@ export class NotificationCenterComponent {
   protected readonly badgeText = computed(() => {
     const value = this.badgeValue();
     if (value === 0) return '';
-    return value > BADGE_CAP ? BADGE_CAP_LABEL : String(value);
+    return value > BADGE_MAX ? BADGE_OVERFLOW_LABEL : String(value);
   });
 
   protected readonly bellLabel = computed(() => {
     const value = this.badgeValue();
-    return value === 0 ? BELL_LABEL_IDLE : `${BELL_LABEL_IDLE}: ${this.badgeText()} neue`;
+    return value === 0 ? BELL_LABEL_IDLE : `${BELL_LABEL_IDLE}, ${value} ungelesen`;
   });
 
   protected readonly isEmpty = computed(() => this.badgeValue() === 0);
