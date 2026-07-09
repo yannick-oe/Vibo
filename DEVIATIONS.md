@@ -3,6 +3,36 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Overlay polish: z-order root cause + background scroll lock (2026-07-09)
+Continuation of the z-order work in the entry below.
+- **Z-order root cause & final fix.** The previous pass raised the *active* message row's
+  `z-index` so its overlays escaped adjacent rows, but that left a residual: a row owning an
+  open reaction/edit picker (`.message--raised`) and a merely *hovered* neighbor both sat at the
+  same `$z-raised` tier, so a later-DOM hovered row painted over the open picker. Root cause
+  (proven in headless Chrome): the message **entrance animation** used `animation-fill-mode: both`;
+  a *finished* animation with `forwards`/`both` keeps `transform` **in effect** (computed
+  `matrix(1,0,0,1,0,0)`, not `none`), so every post-open row stayed a persistent **stacking
+  context** that trapped its absolutely-positioned action bar and reaction picker. The entrance
+  `to` state (`opacity:1; transform:none`) already equals the row's base style, so `forwards` was
+  doing nothing but leaving the transform applied. **Fix:** change the entrance fill from `both`
+  to **`backwards`** (keeps the anti-flash first frame, drops the pointless `forwards` that created
+  the persistent context) and **remove the per-row `z-index` workaround entirely** (`message--raised`
+  binding + the `:hover`/`:focus-within`/`.message--raised` elevation). With no persistent context
+  and no per-row `z-index`, the toolbar (`$z-raised`) and picker (`$z-dropdown`) escape to the list
+  stacking context and always paint above sibling rows, and same-tier ties are **structurally
+  impossible** (there is no per-row `z-index` to tie on). This reconciles with the planned menu-layer
+  work: the picker no longer depends on row stacking, so relocating it to a shared overlay layer
+  becomes a placement/UX improvement rather than a z-order necessity — the fix is not built twice.
+- **Background scroll lock (no Figma spec).** Opening any dialog-shell overlay (dialog, anchored
+  menu, mobile sheet) now locks background page scrolling via a reference-counted
+  `ScrollLockService` in the dialog-shell folder, released and scroll-position-restored on close.
+  It uses the **fixed-body technique** (pin `position: fixed; top: -scrollY`, restore `scrollTo`),
+  not `overflow: hidden` — the latter is ignored by iOS Safari, which keeps scrolling/rubber-banding
+  behind the overlay. A layout scrollbar's width is **measured** (`innerWidth − clientWidth`) and
+  compensated only when it is non-zero, so overlay scrollbars (width 0) add no padding and locking
+  never shifts the page horizontally (verified in headless Chrome: pin, 0px shift, exact restore).
+  Nested overlays reference-count so the page restores exactly once.
+
 ## Inline reply polish: z-order fix, quote alignment/clamp, reply supersede (2026-07-09)
 Follow-up fix/polish pass on the committed inline-reply feature below.
 - **Action bar / reaction picker z-order (root-caused, not reply-specific).** The hover action
