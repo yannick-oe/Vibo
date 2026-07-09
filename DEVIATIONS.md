@@ -574,3 +574,37 @@ but nothing is statically pinned. Discoverability instead lives in the picker:
   `isKnownAvatar()` now substitutes the guest placeholder for any unknown stem **before**
   render, so the bad URL is never requested (the 404 is the underlying Firestore data,
   which should be corrected at the source).
+
+## Activity notifications: thread replies + reactions (2026-07-09)
+No Figma design exists for notifications; the design extends the established
+bell/toast pattern and is strictly token-based.
+- **Sender-side fan-out instead of listeners.** Thread replies and reactions are not
+  observable through the existing per-conversation small-doc streams (they never touch
+  `lastMessageAt`/`lastMessageAuthorId`), and broad message listeners are off-budget
+  (§14). The **acting** client therefore writes one shape-validated notification doc
+  per recipient into `users/{uid}/notifications` (create-only for foreign users,
+  strict key/type/length validation in the rules); each user observes **only their own**
+  collection through one narrow listener (`orderBy createdAt desc, limit 50`).
+- **Recipients**: reactions notify the message/reply author; thread replies notify the
+  root author plus everyone recorded in the root's `participantUids` (self-appended
+  arrayUnion at reply time, enforced append-self-only in the rules). Own actions never
+  notify. **Not backfilled**: threads without new replies since this feature only
+  notify their root author.
+- **Play-once guards reused**: wall-clock baseline anchored at sign-in + per-doc-id
+  dedup (same pattern as the message-toast baseline and the big-reaction tracker), so
+  the persisted backlog renders in the bell but never re-toasts.
+- **Coalescing**: rapid reactions on the same message stay separate create-only docs
+  and collapse client-side into ONE bell entry (newest actor named, distinct actors
+  counted: "Anna und 2 weitere Personen haben reagiert") — preferred over granting
+  foreign users update rights on notification docs.
+- **Viewing counts as reading**: docs whose target is currently in view (the open
+  thread for thread events, the open conversation for main-stream reactions) are
+  suppressed and auto-deleted, mirroring the conversation read markers; clicking a
+  toast/bell entry navigates (thread opens, message scroll+highlight via the existing
+  focus service) and the auto-clear then removes the group.
+- **Trade-offs, accepted**: preview text is sender-authored (length-capped in rules;
+  same trust level as sending a message); docs beyond the 50-doc listener window are
+  never read and linger in storage until their group is opened (project scale);
+  the shared guest account has a shared feed. Channel-targeted creates require actor
+  AND recipient to be current members (one `get` per create); DM targets are proven
+  from the deterministic conversation id at no read cost.
