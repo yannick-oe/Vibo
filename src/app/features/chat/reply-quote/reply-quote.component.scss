@@ -3,10 +3,18 @@
 
 $reply-quote-accent-width: 3px;
 $reply-quote-icon-size: 14px;
+$quote-preview-max-lines: 3;
+
+:host {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+}
 
 .reply-quote {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: v.space('xs');
   max-width: 100%;
   min-width: 0;
@@ -19,8 +27,6 @@ $reply-quote-icon-size: 14px;
   font-size: v.font-size('min');
   line-height: v.$line-height-base;
   text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
 }
 
 .reply-quote--link {
@@ -48,15 +54,37 @@ $reply-quote-icon-size: 14px;
   opacity: 0.6;
 }
 
+.reply-quote__body {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: $quote-preview-max-lines;
+  line-clamp: $quote-preview-max-lines;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .reply-quote__author {
-  flex-shrink: 0;
   font-weight: v.$font-weight-semibold;
   color: v.color('black');
+
+  &::after {
+    content: ' ';
+  }
 }
 
 .reply-quote__text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   color: v.color('text-gray');
+}
+
+:host-context(.message--own) .reply-quote {
+  flex-direction: row-reverse;
+  border-left: none;
+  border-right: $reply-quote-accent-width solid v.color('text-gray');
+  text-align: right;
+}
+
+:host-context(.message--own) .reply-quote--link {
+  border-right-color: v.color('primary');
 }

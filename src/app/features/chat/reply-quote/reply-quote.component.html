@@ -7,13 +7,17 @@
       (click)="focusOriginal()"
     >
       <img class="reply-quote__icon" src="app-icons/back-arrow.svg" alt="" aria-hidden="true" />
-      <span class="reply-quote__author">{{ authorName() }}</span>
-      <span class="reply-quote__text">{{ ref.previewText }}</span>
+      <span class="reply-quote__body">
+        <span class="reply-quote__author">{{ authorName() }}</span>
+        <span class="reply-quote__text">{{ ref.previewText }}</span>
+      </span>
     </button>
   } @else {
     <p class="reply-quote reply-quote--missing">
       <img class="reply-quote__icon" src="app-icons/back-arrow.svg" alt="" aria-hidden="true" />
-      <span class="reply-quote__text">Nachricht nicht mehr verfügbar</span>
+      <span class="reply-quote__body">
+        <span class="reply-quote__text">Nachricht nicht mehr verfügbar</span>
+      </span>
     </p>
   }
 }
