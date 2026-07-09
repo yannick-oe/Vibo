@@ -27,7 +27,8 @@ import {
 
 import { LayoutService } from '../../services/layout.service';
 import { ReducedMotionService } from '../../services/reduced-motion.service';
-import { DialogAnchor, DialogSize } from './dialog-anchor';
+import { ScrollLockService } from './scroll-lock.service';
+import { DialogAnchor, DialogSize, anchoredMaxHeightStyle } from './dialog-anchor';
 import { focusableElementsIn, trapFocusWithin } from './dialog-focus';
 import {
   DRAG_START_SLOP_PX,
@@ -43,7 +44,6 @@ import {
   smoothedVelocity,
 } from './sheet-physics';
 
-const ANCHORED_BOTTOM_INSET_PX = 24;
 const FOCUS_FALLBACK_SELECTOR = 'h1[tabindex="-1"]';
 
 export { anchorBelow } from './dialog-anchor';
@@ -78,6 +78,8 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
   readonly hasRightAnchor = computed(() => this.anchor()?.right !== undefined);
 
+  protected readonly anchoredMaxHeight = computed(() => anchoredMaxHeightStyle(this.anchor()));
+
   readonly closed = output<void>();
 
   private readonly previouslyFocused = document.activeElement as HTMLElement | null;
@@ -87,6 +89,8 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
   private readonly layoutService = inject(LayoutService);
 
   private readonly reducedMotion = inject(ReducedMotionService);
+
+  private readonly scrollLock = inject(ScrollLockService);
 
   protected readonly isDragging = signal(false);
 
@@ -132,12 +136,13 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Focuses the first focusable element once the dialog is rendered and
-   * registers the non-passive touchmove guard that keeps eligible sheet
-   * drags alive on real touch devices (Angular listeners are passive, so
-   * they cannot prevent the browser from claiming the pan for scrolling).
+   * Locks background scrolling, focuses the first focusable element once the
+   * dialog is rendered and registers the non-passive touchmove guard that
+   * keeps eligible sheet drags alive on real touch devices (Angular listeners
+   * are passive, so they cannot prevent the browser from claiming the pan).
    */
   ngAfterViewInit(): void {
+    this.scrollLock.lock();
     focusableElementsIn(this.card().nativeElement)[0]?.focus();
     this.card().nativeElement.addEventListener('touchmove', this.onNativeTouchMove, {
       passive: false,
@@ -146,10 +151,11 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Removes the native touchmove guard, drops a still-pending settle
-   * timer and restores focus.
+   * Releases the scroll lock, removes the native touchmove guard, drops a
+   * still-pending settle timer and restores focus.
    */
   ngOnDestroy(): void {
+    this.scrollLock.unlock();
     this.clearSettleTimer();
     this.card().nativeElement.removeEventListener('touchmove', this.onNativeTouchMove);
     this.restoreFocus();
@@ -188,17 +194,6 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
    */
   protected onOverlayClick(event: Event): void {
     if (event.target === event.currentTarget) this.closed.emit();
-  }
-
-
-  /**
-   * Limits an anchored card to the space between its top edge and the
-   * bottom of the viewport; null while centered (styled via SCSS).
-   */
-  protected anchoredMaxHeight(): string | null {
-    const anchor = this.anchor();
-    if (!anchor) return null;
-    return `calc(100dvh - ${anchor.top + ANCHORED_BOTTOM_INSET_PX}px)`;
   }
 
 

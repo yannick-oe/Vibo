@@ -8,6 +8,8 @@ const ANCHOR_GAP_PX = 8;
 
 const ANCHOR_MIN_VIEWPORT_PX = 768;
 
+const ANCHORED_BOTTOM_INSET_PX = 24;
+
 /** Width preset of the dialog card, mapped to the Figma measurements. */
 export type DialogSize = 'default' | 'members' | 'add-members' | 'profile' | 'menu' | 'search';
 
@@ -41,4 +43,15 @@ export function anchorBelow(
   if (align === 'left') return { top, left: rect.left };
   const edge = (edgeElement ?? trigger).getBoundingClientRect().right;
   return { top, right: window.innerWidth - edge };
+}
+
+
+/**
+ * The max-height style that limits an anchored card to the space between its
+ * top edge and the bottom of the viewport; null while centered (SCSS-styled).
+ * @param anchor Active anchor, or null when the dialog is centered.
+ */
+export function anchoredMaxHeightStyle(anchor: DialogAnchor | null): string | null {
+  if (!anchor) return null;
+  return `calc(100dvh - ${anchor.top + ANCHORED_BOTTOM_INSET_PX}px)`;
 }
