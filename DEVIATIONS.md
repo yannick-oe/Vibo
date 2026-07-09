@@ -3,6 +3,44 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Inline reply polish: z-order fix, quote alignment/clamp, reply supersede (2026-07-09)
+Follow-up fix/polish pass on the committed inline-reply feature below.
+- **Action bar / reaction picker z-order (root-caused, not reply-specific).** The hover action
+  bar (`$z-raised`) and the "Große Reaktionen" picker (`$z-dropdown`) rendered *beneath* the next
+  message rows. Diagnosis (empirically confirmed in headless Chrome): the culprit is the **message
+  entrance animation**, not the ReplyQuote / message-item restructure / an overflow rule. A row's
+  entrance uses `animation: message-enter … both`, and `MessageEntranceTracker.shouldEnter()` is
+  **time-based** (stays true for every message created after the context opened), so `.message--enter`
+  is applied permanently. A *finished* `animation-fill-mode: both` keeps `transform` **in effect**
+  (computed `matrix(1,0,0,1,0,0)`, not `none`), which makes **every post-open row a persistent
+  stacking context** that traps its absolutely-positioned overlays — a later sibling row then paints
+  over them. It predates inline reply; the reply feature merely surfaced it (users now hover recent
+  messages to click "Antworten" and post replies, clustering adjacent post-open rows). **Fix:** raise
+  the *active* row to `$z-raised` (`:host(:hover)`, `:host(:focus-within)`, and a new `message--raised`
+  class = action-bar-open ∪ reaction-picker-open ∪ edit-picker-open) so its stacking context — and the
+  overlays inside it — sit above adjacent list content. Existing token scale, no magic numbers; applies
+  in channel, DM and thread panel (message-item is shared).
+- **Quote aligns with its bubble side.** The ReplyQuote now mirrors for own messages: the host is
+  `width: fit-content` so it follows the bubble column's `align-items` (own → right, others → left),
+  and `:host-context(.message--own)` flips the connector to the right (`flex-direction: row-reverse`,
+  accent border left→right, `text-align: right`). No layout shift; max-width stays within the bubble
+  column.
+- **Quote clamps cleanly.** Presentation-only clamp (the stored 150-char snapshot is unchanged):
+  author + preview flow in a `-webkit-box` body clamped to a named `$quote-preview-max-lines: 3` with
+  ellipsis on the last line; `overflow-wrap: anywhere` + `word-break: break-word` wrap unbroken strings;
+  the author truncates inside the clamped body instead of pushing width; **zero horizontal overflow to
+  320px** (verified in headless Chrome). Same treatment on the „Nachricht nicht mehr verfügbar" fallback.
+- **Reply supersedes generic unread** (extends the mention-supersede documented below to `reply`;
+  hierarchy **mention > reply > generic unread**). `unreadConversations` now excludes conversations
+  represented by a pending mention **or reply** group, so a single inline reply produces **one** bell
+  entry (the activity row) and **badge +1**, never the previous "activity + Ungelesen" **+2**. The
+  generic new-message toast is skipped when the newest main-stream message replies to me
+  (`replyTo.authorUid === myUid`) — a synchronous check on the same fetched message (no async race),
+  the mirror of the mention check — so the reply toast wins with a single chime. Reply **and** mention
+  on the same message still resolves to the mention only (the fan-out already excludes the reply).
+  Thread replies are unaffected: they bump the parent message, not the conversation's `lastMessageAt`,
+  so they never raise the generic unread indicator in the first place.
+
 ## Inline reply ("Antworten"): quoted snapshot + 'reply' notifications (2026-07-09)
 Discord-style inline reply, **distinct from threads** — both coexist in the message action
 bar (a back-arrow "Antworten" button beside the `comment.svg` "Thread" button). No dedicated
