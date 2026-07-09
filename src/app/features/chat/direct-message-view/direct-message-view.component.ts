@@ -20,6 +20,7 @@ import { Message } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
 import { DirectMessageService } from '../../../services/direct-message.service';
 import { conversationDocPath } from '../../../services/message.service';
+import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { PresenceService } from '../../../services/presence.service';
 import { ReadEntry, ReadStateService } from '../../../services/read-state.service';
 import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
@@ -68,6 +69,8 @@ export class DirectMessageViewComponent {
   readonly uid = input.required<string>();
 
   private readonly directMessageService = inject(DirectMessageService);
+
+  private readonly notificationFanout = inject(NotificationFanoutService);
 
   private readonly readState = inject(ReadStateService);
 
@@ -179,13 +182,15 @@ export class DirectMessageViewComponent {
 
 
   /**
-   * Sends a composer message; the conversation document is created lazily
-   * by the service. Failures surface as a toast.
+   * Sends a composer message and notifies the partner when @mentioned; the
+   * conversation document is created lazily by the service. Failures surface
+   * as a toast.
    * @param text Trimmed message text from the composer.
    */
   protected async sendMessage(text: string): Promise<void> {
     try {
-      await this.directMessageService.send(this.uid(), text);
+      const id = await this.directMessageService.send(this.uid(), text);
+      if (id) this.notificationFanout.mentionsSent(this.directMessageService.messagePathFor(this.uid(), id), text);
     } catch {
       this.toastService.show(SEND_ERROR);
     }

@@ -14,14 +14,20 @@ import { ChatEntry, Message } from '../models/message.model';
 import { NotificationDoc, NotificationKind } from '../models/notification.model';
 import { AuthService } from './auth.service';
 import { ChannelService } from './channel.service';
+import { UserService } from './user.service';
 import { previewOf } from './notification.util';
-import { NotificationTarget, targetFieldsOf, targetOfMessagePath } from './notification-feed.util';
+import {
+  NotificationTarget,
+  resolveMentionedUids,
+  targetFieldsOf,
+  targetOfMessagePath,
+} from './notification-feed.util';
 
 const NOTIFICATIONS_SEGMENT = 'notifications';
 
 /**
  * Writes activity notifications to the affected users when the signed-in
- * user reacts to a message or replies in a thread.
+ * user reacts to a message, replies in a thread or @mentions someone.
  */
 @Injectable({ providedIn: 'root' })
 export class NotificationFanoutService {
@@ -30,6 +36,8 @@ export class NotificationFanoutService {
   private readonly authService = inject(AuthService);
 
   private readonly channelService = inject(ChannelService);
+
+  private readonly userService = inject(UserService);
 
   private readonly injector = inject(EnvironmentInjector);
 
@@ -55,32 +63,55 @@ export class NotificationFanoutService {
 
 
   /**
-   * Notifies the thread's followers (root author plus everyone who posted a
-   * reply) that the signed-in user just replied; the actor never notifies
-   * themselves.
-   * @param rootPath Firestore path of the thread's root message.
-   * @param root Root message before the reply (author and participants).
-   * @param text Trimmed reply text.
+   * Notifies everyone @mentioned in a sent message or reply and returns the
+   * notified uids so the caller can suppress a duplicate thread-reply entry
+   * for them (one action = one bell entry, mention wins).
+   * @param messagePath Firestore path of the sent message or reply.
+   * @param text Sent text carrying the @mentions.
    */
-  threadReplySent(rootPath: string, root: Message, text: string): void {
-    const target = targetOfMessagePath(rootPath);
+  mentionsSent(messagePath: string, text: string): string[] {
+    const target = targetOfMessagePath(messagePath);
     const me = this.authService.currentUser()?.uid;
-    if (!target || !me) return;
-    const payload = { kind: 'thread-reply' as NotificationKind, actorUid: me, preview: previewOf({ text }) };
-    for (const uid of threadRecipients(root, me)) this.write(uid, target, payload);
+    if (!target || !me) return [];
+    const payload = { kind: 'mention' as NotificationKind, actorUid: me, preview: previewOf({ text }) };
+    const uids = resolveMentionedUids(text, this.userService.users()).filter(uid => uid !== me);
+    return uids.filter(uid => this.write(uid, target, payload));
   }
 
 
   /**
-   * Writes one notification document into a recipient's collection;
-   * recipients no longer in the target channel are skipped (the rules
-   * enforce the same membership requirement).
+   * Notifies the thread's followers (root author plus everyone who posted a
+   * reply) that the signed-in user just replied; the actor and any excluded
+   * (already-mentioned) recipients are skipped. A thread reply is always a
+   * thread event, so its notifications are stored with inThread=true even
+   * though they address the root message id.
+   * @param rootPath Firestore path of the thread's root message.
+   * @param root Root message before the reply (author and participants).
+   * @param text Trimmed reply text ('' for a GIF reply).
+   * @param exclude Recipients already notified with a higher-priority entry.
+   * @param gifUrl Animated GIF URL when the reply is a GIF (previews as "GIF").
+   */
+  threadReplySent(rootPath: string, root: Message, text: string, exclude: string[] = [], gifUrl?: string): void {
+    const base = targetOfMessagePath(rootPath);
+    const me = this.authService.currentUser()?.uid;
+    if (!base || !me) return;
+    const target: NotificationTarget = { ...base, inThread: true };
+    const payload = { kind: 'thread-reply' as NotificationKind, actorUid: me, preview: previewOf({ text, gifUrl }) };
+    const recipients = threadRecipients(root, me).filter(uid => !exclude.includes(uid));
+    for (const uid of recipients) this.write(uid, target, payload);
+  }
+
+
+  /**
+   * Writes one notification document into a recipient's collection, skipping
+   * unreachable recipients (the rules enforce the same membership).
    * @param recipientUid Uid of the notified user.
    * @param target Parsed conversation target of the activity.
    * @param payload Kind-specific notification fields.
+   * @returns Whether the recipient was reachable and a write was issued.
    */
-  private write(recipientUid: string, target: NotificationTarget, payload: Partial<NotificationDoc>): void {
-    if (!this.isReachable(recipientUid, target)) return;
+  private write(recipientUid: string, target: NotificationTarget, payload: Partial<NotificationDoc>): boolean {
+    if (!this.isReachable(recipientUid, target)) return false;
     const data: Partial<NotificationDoc> = {
       ...payload,
       ...targetFieldsOf(target),
@@ -91,17 +122,22 @@ export class NotificationFanoutService {
     void runInInjectionContext(this.injector, () =>
       setDoc(doc(collection(this.firestore, `users/${recipientUid}/${NOTIFICATIONS_SEGMENT}`)), data),
     ).catch(() => undefined);
+    return true;
   }
 
 
   /**
    * Whether a recipient may receive the notification: channel events require
-   * current membership, direct-message events are participant-scoped by id.
+   * current membership, direct-message events require the recipient to be a
+   * participant of the conversation (proven from its deterministic id) — so a
+   * mention of a non-participant in a DM is never written.
    * @param recipientUid Uid of the notified user.
    * @param target Parsed conversation target of the activity.
    */
   private isReachable(recipientUid: string, target: NotificationTarget): boolean {
-    if (target.channelId === null) return true;
+    if (target.channelId === null) {
+      return target.conversationId?.split('_').includes(recipientUid) ?? false;
+    }
     const channel = this.channelService.channels().find(item => item.id === target.channelId);
     return channel === undefined || channel.memberIds.includes(recipientUid);
   }

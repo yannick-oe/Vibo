@@ -25,6 +25,7 @@ import { Observable, catchError, of } from 'rxjs';
 import { GifResult } from '../models/gif.model';
 import { Message, MessageDoc, ReactionMap, Reply, ReplyDoc } from '../models/message.model';
 import { applyReaction } from './message-reactions';
+import { buildGifMessage, buildGifReply, buildMessage, buildReply } from './message-build';
 import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
 
@@ -93,9 +94,10 @@ export class MessageService {
    * and thread counters, matching the data-model defaults.
    * @param collectionPath Firestore path of the target messages collection.
    * @param text Trimmed message text.
+   * @returns The created message's Firestore id.
    */
-  async sendMessage(collectionPath: string, text: string): Promise<void> {
-    await this.commitMessage(collectionPath, this.buildMessage(text));
+  async sendMessage(collectionPath: string, text: string): Promise<string> {
+    return this.commitMessage(collectionPath, buildMessage(this.authService.requireUid(), text));
   }
 
 
@@ -103,9 +105,10 @@ export class MessageService {
    * Persists a Giphy GIF as a message (no text) authored by the signed-in user.
    * @param collectionPath Firestore path of the target messages collection.
    * @param gif Selected GIF result.
+   * @returns The created message's Firestore id.
    */
-  async sendGif(collectionPath: string, gif: GifResult): Promise<void> {
-    await this.commitMessage(collectionPath, this.buildGifMessage(gif));
+  async sendGif(collectionPath: string, gif: GifResult): Promise<string> {
+    return this.commitMessage(collectionPath, buildGifMessage(this.authService.requireUid(), gif));
   }
 
 
@@ -114,15 +117,18 @@ export class MessageService {
    * in one batch, then plays the notification sound.
    * @param collectionPath Firestore path of the target messages collection.
    * @param message Fully built message document.
+   * @returns The created message's Firestore id.
    */
-  private async commitMessage(collectionPath: string, message: MessageDoc): Promise<void> {
-    await runInInjectionContext(this.injector, () => {
+  private async commitMessage(collectionPath: string, message: MessageDoc): Promise<string> {
+    const ref = await runInInjectionContext(this.injector, () => {
+      const messageRef = doc(collection(this.firestore, collectionPath));
       const batch = writeBatch(this.firestore);
-      batch.set(doc(collection(this.firestore, collectionPath)), message);
+      batch.set(messageRef, message);
       batch.update(doc(this.firestore, conversationDocPath(collectionPath)), this.lastMessagePatch());
-      return batch.commit();
+      return batch.commit().then(() => messageRef);
     });
     this.playNotificationSound();
+    return ref.id;
   }
 
 
@@ -146,7 +152,7 @@ export class MessageService {
    */
   async sendChannelMessageAsJoiner(channelId: string, text: string): Promise<void> {
     const uid = this.authService.requireUid();
-    const message = this.buildMessage(text);
+    const message = buildMessage(uid, text);
     await runInInjectionContext(this.injector, () => {
       const batch = writeBatch(this.firestore);
       batch.set(doc(collection(this.firestore, channelMessagesPath(channelId))), message);
@@ -157,40 +163,6 @@ export class MessageService {
       return batch.commit();
     });
     this.playNotificationSound();
-  }
-
-
-  /**
-   * Builds a message document authored by the signed-in user with the
-   * data-model defaults.
-   * @param text Trimmed message text.
-   */
-  private buildMessage(text: string): MessageDoc {
-    return {
-      authorId: this.authService.requireUid(),
-      text,
-      createdAt: serverTimestamp(),
-      reactions: {},
-      replyCount: 0,
-      lastReplyAt: null,
-    };
-  }
-
-
-  /**
-   * Builds a GIF message: the data-model defaults with empty text plus the
-   * stored Giphy fields (animated + still URLs and intrinsic size).
-   * @param gif Selected GIF result.
-   */
-  private buildGifMessage(gif: GifResult): MessageDoc {
-    return {
-      ...this.buildMessage(''),
-      gifUrl: gif.url,
-      gifStill: gif.still,
-      gifWidth: gif.width,
-      gifHeight: gif.height,
-      gifAlt: gif.alt,
-    };
   }
 
 
@@ -216,26 +188,59 @@ export class MessageService {
 
 
   /**
-   * Persists a thread reply and atomically updates the parent message's
-   * denormalized replyCount and lastReplyAt in the same batched write; the
-   * author self-appends to the thread's participantUids so later replies
-   * can fan notifications out to them.
+   * Persists a thread reply authored by the signed-in user.
    * @param messagePath Firestore path of the parent message document.
    * @param text Trimmed reply text.
+   * @returns The created reply's Firestore id.
    */
-  async sendReply(messagePath: string, text: string): Promise<void> {
-    const reply = this.buildReply(text);
-    await runInInjectionContext(this.injector, () => {
+  async sendReply(messagePath: string, text: string): Promise<string> {
+    return this.commitReply(messagePath, buildReply(this.authService.requireUid(), text));
+  }
+
+
+  /**
+   * Persists a Giphy GIF as a thread reply (no text) authored by the
+   * signed-in user.
+   * @param messagePath Firestore path of the parent message document.
+   * @param gif Selected GIF result.
+   * @returns The created reply's Firestore id.
+   */
+  async sendGifReply(messagePath: string, gif: GifResult): Promise<string> {
+    return this.commitReply(messagePath, buildGifReply(this.authService.requireUid(), gif));
+  }
+
+
+  /**
+   * Writes a built reply and atomically bumps the parent's denormalized
+   * thread fields in one batch, then plays the notification sound.
+   * @param messagePath Firestore path of the parent message document.
+   * @param reply Fully built reply document.
+   * @returns The created reply's Firestore id.
+   */
+  private async commitReply(messagePath: string, reply: ReplyDoc): Promise<string> {
+    const ref = await runInInjectionContext(this.injector, () => {
+      const replyRef = doc(collection(this.firestore, `${messagePath}/replies`));
       const batch = writeBatch(this.firestore);
-      batch.set(doc(collection(this.firestore, `${messagePath}/replies`)), reply);
-      batch.update(doc(this.firestore, messagePath), {
-        replyCount: increment(1),
-        lastReplyAt: serverTimestamp(),
-        participantUids: arrayUnion(this.authService.requireUid()),
-      });
-      return batch.commit();
+      batch.set(replyRef, reply);
+      batch.update(doc(this.firestore, messagePath), this.replyBumpPatch());
+      return batch.commit().then(() => replyRef);
     });
     this.playNotificationSound();
+    return ref.id;
+  }
+
+
+  /**
+   * The parent-message patch stamped in the same batch as a reply create:
+   * bumps replyCount/lastReplyAt and self-appends to participantUids so
+   * later replies can fan thread notifications out to this author.
+   */
+  private replyBumpPatch(): { replyCount: FieldValue; lastReplyAt: FieldValue; participantUids: FieldValue } {
+    return {
+      replyCount: increment(1),
+      lastReplyAt: serverTimestamp(),
+      participantUids: arrayUnion(this.authService.requireUid()),
+    };
   }
 
 
@@ -295,20 +300,6 @@ export class MessageService {
         reactions: {},
       }),
     );
-  }
-
-
-  /**
-   * Builds a reply document authored by the signed-in user.
-   * @param text Trimmed reply text.
-   */
-  private buildReply(text: string): ReplyDoc {
-    return {
-      authorId: this.authService.requireUid(),
-      text,
-      createdAt: serverTimestamp(),
-      reactions: {},
-    };
   }
 
 

@@ -170,9 +170,10 @@ service cloud.firestore {
             'inThread', 'preview', 'createdAt']);
       }
 
-      // The emoji is present exactly for reaction notifications.
+      // The emoji is present exactly for reaction notifications; thread
+      // replies and mentions carry no emoji.
       function notificationFieldsValid() {
-        return request.resource.data.kind in ['thread-reply', 'reaction']
+        return request.resource.data.kind in ['thread-reply', 'reaction', 'mention']
           && request.resource.data.actorUid == request.auth.uid
           && request.resource.data.messageId is string
           && request.resource.data.messageId.size() >= 1

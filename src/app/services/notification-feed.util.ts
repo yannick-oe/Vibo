@@ -12,7 +12,9 @@ import {
   NotificationEntry,
   NotificationKind,
 } from '../models/notification.model';
+import { UserDoc } from '../models/user.model';
 import { emojiAsset, emojiName } from '../features/chat/emoji-catalog';
+import { parseMentions } from '../features/chat/mention-parser';
 import { NotificationToastEmoji } from './notification-toast.service';
 import { channelMessagesPath, directMessagesPath } from './message.service';
 
@@ -20,6 +22,7 @@ const CHANNEL_MESSAGE_PATTERN = /^channels\/([^/]+)\/messages\/([^/]+?)(\/replie
 const DM_MESSAGE_PATTERN = /^directMessages\/([^/]+)\/messages\/([^/]+?)(\/replies\/[^/]+)?$/;
 const REPLY_VERB = 'geantwortet';
 const REACTION_VERB = 'reagiert';
+const MENTION_VERB = 'dich erwähnt';
 
 /** Conversation reference and main-stream message a notification points at. */
 export interface NotificationTarget {
@@ -144,6 +147,34 @@ export function groupNotifications(entries: NotificationEntry[]): NotificationGr
 
 
 /**
+ * The feed entries belonging to a coalesced group, so dismissing a bell row
+ * deletes exactly the documents it represents.
+ * @param entries Current feed entries.
+ * @param group Group to expand back into its member entries.
+ */
+export function entriesOfGroup(entries: NotificationEntry[], group: NotificationGroup): NotificationEntry[] {
+  return entries.filter(entry => groupKeyOf(entry) === group.key);
+}
+
+
+/**
+ * The distinct uids @mentioned in a message text, resolved against the known
+ * users by display name (the composer inserts names, not handles). Ambiguous
+ * names resolve to every matching user so no mention is silently dropped.
+ * @param text Sent message or reply text.
+ * @param users All known users.
+ */
+export function resolveMentionedUids(text: string, users: UserDoc[]): string[] {
+  const mentioned = new Set(
+    parseMentions(text, users.map(user => user.name))
+      .filter(part => part.isMention)
+      .map(part => part.text.slice(1)),
+  );
+  return [...new Set(users.filter(user => mentioned.has(user.name)).map(user => user.uid))];
+}
+
+
+/**
  * Counts an additional entry into an existing group.
  * @param group Mutable group accumulator.
  * @param entry Older entry belonging to the same group.
@@ -164,12 +195,24 @@ function groupKeyOf(entry: NotificationEntry): string {
 
 
 /**
+ * The German past participle of a notification kind, used in both the toast
+ * action line and the grouped bell title.
+ * @param kind Notification kind.
+ */
+function kindVerb(kind: NotificationKind): string {
+  if (kind === 'reaction') return REACTION_VERB;
+  if (kind === 'mention') return MENTION_VERB;
+  return REPLY_VERB;
+}
+
+
+/**
  * The toast action line of a notification kind ("hat geantwortet" /
- * "hat reagiert"; the reaction emoji is rendered separately).
+ * "hat reagiert" / "hat dich erwähnt"; a reaction emoji renders separately).
  * @param kind Notification kind.
  */
 export function actionLabel(kind: NotificationKind): string {
-  return kind === 'reaction' ? `hat ${REACTION_VERB}` : `hat ${REPLY_VERB}`;
+  return `hat ${kindVerb(kind)}`;
 }
 
 
@@ -180,7 +223,7 @@ export function actionLabel(kind: NotificationKind): string {
  * @param actorName Display name of the newest actor.
  */
 export function groupTitle(group: NotificationGroup, actorName: string): string {
-  const verb = group.latest.kind === 'reaction' ? REACTION_VERB : REPLY_VERB;
+  const verb = kindVerb(group.latest.kind);
   const others = group.actorUids.length - 1;
   if (others === 0) return `${actorName} hat ${verb}`;
   if (others === 1) return `${actorName} und 1 weitere Person haben ${verb}`;

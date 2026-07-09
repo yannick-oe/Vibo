@@ -13,6 +13,7 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { of, switchMap } from 'rxjs';
 
+import { GifResult } from '../../../models/gif.model';
 import { Message, Reply } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
 import { MessageService } from '../../../services/message.service';
@@ -130,8 +131,9 @@ export class ThreadPanelComponent {
 
 
   /**
-   * Sends a reply to the origin message and fans the thread-reply
-   * notification out to the thread's followers; failures surface as a toast.
+   * Sends a reply to the origin message, notifies any @mentioned users and
+   * fans the thread-reply notification out to the remaining followers (a
+   * mentioned follower gets only the mention); failures surface as a toast.
    * @param text Trimmed reply text from the composer.
    */
   protected async sendReply(text: string): Promise<void> {
@@ -139,8 +141,27 @@ export class ThreadPanelComponent {
     const origin = this.origin();
     if (!context) return;
     try {
-      await this.messageService.sendReply(context.messagePath, text);
-      if (origin) this.notificationFanout.threadReplySent(context.messagePath, origin, text);
+      const replyId = await this.messageService.sendReply(context.messagePath, text);
+      const mentioned = this.notificationFanout.mentionsSent(`${context.messagePath}/replies/${replyId}`, text);
+      if (origin) this.notificationFanout.threadReplySent(context.messagePath, origin, text, mentioned);
+    } catch {
+      this.toastService.show(SEND_ERROR);
+    }
+  }
+
+
+  /**
+   * Sends a GIF reply to the origin message and fans the thread-reply
+   * notification out (previewing as "GIF"); failures surface as a toast.
+   * @param gif Selected GIF result from the composer.
+   */
+  protected async sendGifReply(gif: GifResult): Promise<void> {
+    const context = this.threadService.thread();
+    const origin = this.origin();
+    if (!context) return;
+    try {
+      await this.messageService.sendGifReply(context.messagePath, gif);
+      if (origin) this.notificationFanout.threadReplySent(context.messagePath, origin, '', [], gif.url);
     } catch {
       this.toastService.show(SEND_ERROR);
     }

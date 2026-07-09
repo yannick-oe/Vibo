@@ -608,3 +608,61 @@ bell/toast pattern and is strictly token-based.
   the shared guest account has a shared feed. Channel-targeted creates require actor
   AND recipient to be current members (one `get` per create); DM targets are proven
   from the deterministic conversation id at no read cost.
+
+## Notification refinement + mentions + GIF replies (2026-07-09)
+Follow-up to the activity-notification feature above; same bell/toast pattern,
+strictly token-based, no Figma frames for any of it.
+- **Per-context thread suppression (bug fix).** Thread-reply notifications were stored
+  with `inThread=false` because the fan-out parsed the thread *root* path (no `/replies/`
+  segment), so being in the conversation's MAIN view wrongly suppressed AND auto-deleted
+  replies arriving in a thread. Fix: thread replies and thread mentions are stored with
+  `inThread=true`; a thread is now its own context — its events toast + persist unless
+  THAT thread panel is open, while main-stream events are suppressed only while the
+  conversation main view is open. The fix also repaired click-through (thread-reply
+  entries now open the thread instead of focusing the root in the main stream).
+- **@mention notifications (`kind: 'mention'`).** On send (main stream or thread reply)
+  the sender resolves @mentions from the composed text by **display name** (the composer
+  inserts names, not handles) and fans out one `mention` doc per mentioned, reachable,
+  non-self user. Ambiguous display names resolve to **every** matching uid (names are not
+  unique; only `username` is) so no mention is silently dropped. Label „hat dich erwähnt";
+  a main-stream mention focuses the message (its id is now returned by the send path), a
+  thread mention opens the thread. **One action = one entry**: a recipient who is both
+  @mentioned and a thread follower gets ONLY the mention (the reply fan-out excludes the
+  set the mention fan-out already notified). DM mentions of a non-participant are dropped
+  client-side (and would be rejected by the rules). The composer's live mention pill and a
+  channel-list mention badge remain out of scope. The **new-message compose flow** does not
+  fan out mentions (it navigates to the target instead) — a deliberate boundary.
+- **rules**: the only change is adding `'mention'` to the notification `kind` enum; the
+  existing `(kind=='reaction') == ('emoji' in data)` invariant already forces mentions to
+  carry no emoji, and the actor+recipient membership/participation checks are unchanged.
+- **⚠ Main-stream mention overlaps the incoming-message notifier (open question).** A
+  mention that rides on a *main-stream* message also bumps the conversation's
+  `lastMessageAt`, so the pre-existing small-doc notifier (`NotificationService`) counts
+  that conversation as **unread** at the same time the mention fan-out adds a **mention**
+  activity group. The two are not cross-deduped, so one such message currently: adds **+2**
+  to the bell badge (one unread + one mention), and — because both toasts share one slot
+  and the generic one resolves after an async preview read — may show the generic „Neue
+  Nachricht" toast instead of „… hat dich erwähnt" (the mention is still shown distinctly
+  in the bell) and may replay the chime. Thread-reply mentions and reactions are unaffected
+  (they never touch conversation meta). The dedupe required by the spec („one action = one
+  entry") is implemented **within the activity feed** (mention-over-reply); unifying the
+  mention channel with the unread-conversation notifier was **not** in scope and changes
+  pre-existing behavior, so it is left for a product decision (recommended fix: have a
+  pending mention *supersede* the unread indicator for that conversation).
+- **Bell dismissal (Discord/Slack/Teams blend).** Each „Aktivität" entry has a dismiss X —
+  hover/focus-revealed on pointer devices (`@media (hover: hover)`), always visible on
+  touch, ≥32px target, keyboard-operable, aria-label „Benachrichtigung entfernen" — a
+  **sibling** of the row button (never nested) absolutely positioned in a permanently
+  reserved right-padding lane (**CLS 0** whether shown or hidden). Dismissing a grouped
+  entry deletes all its coalesced docs; a „Alle löschen" header action clears the feed
+  (no confirm dialog, like Discord). Focus is moved to the panel title on dismiss so a
+  keyboard user is never dropped onto `<body>` as rows unmount after the async delete.
+- **Single attention indicator.** The profile-avatar notification dot was removed; the
+  **bell badge is the only attention indicator**. Presence/online dots and unread logic
+  are untouched; `attentionCount` now feeds only the bell badge.
+- **GIF replies in threads.** The thread composer gained the GIF button (was disabled),
+  reusing the shared Giphy picker + `pg-13` rating and the existing reserved-aspect-ratio
+  render path (lazy, reduced-motion still-frame, CLS 0). **No rules change**: the reply
+  create rule uses `validMessageCreate` (no field allow-list), which already accepts the
+  GIF fields exactly as top-level GIF messages do. GIF-reply notifications preview as
+  „GIF" (the fan-out passes the reply's gifUrl to `previewOf`).

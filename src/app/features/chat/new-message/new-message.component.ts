@@ -183,15 +183,17 @@ export class NewMessageComponent implements AfterViewInit {
 
 
   /**
-   * Routes the message to the channel or direct conversation.
+   * Routes the message to the channel or direct conversation; the created
+   * id is discarded (this compose flow navigates instead of notifying).
    * @param recipient Locked recipient.
    * @param text Trimmed message text.
    */
-  private deliver(recipient: Recipient, text: string): Promise<void> {
+  private async deliver(recipient: Recipient, text: string): Promise<void> {
     if (recipient.kind === 'channel') {
-      return this.messageService.sendChannelMessageAsJoiner(recipient.id, text);
+      await this.messageService.sendChannelMessageAsJoiner(recipient.id, text);
+      return;
     }
-    return this.directMessageService.send(recipient.id, text);
+    await this.directMessageService.send(recipient.id, text);
   }
 
 

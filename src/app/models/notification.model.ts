@@ -9,7 +9,7 @@
 import { FieldValue, Timestamp } from '@angular/fire/firestore';
 
 /** Kinds of activity a notification document describes. */
-export type NotificationKind = 'thread-reply' | 'reaction';
+export type NotificationKind = 'thread-reply' | 'reaction' | 'mention';
 
 /** Maximum notification documents the per-user feed listener reads. */
 export const NOTIFICATION_FEED_LIMIT = 50;
@@ -21,7 +21,7 @@ export const NOTIFICATION_FEED_LIMIT = 50;
  * message (the thread root for thread events, the reacted message otherwise).
  */
 export interface NotificationDoc {
-  /** Activity kind: a reply in a followed thread or a reaction. */
+  /** Activity kind: a followed-thread reply, a reaction, or an @mention. */
   kind: NotificationKind;
   /** Uid of the user who acted; enforced to the writer by the rules. */
   actorUid: string;

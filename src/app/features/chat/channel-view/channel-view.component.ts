@@ -23,6 +23,7 @@ import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
 import { LayoutService } from '../../../services/layout.service';
 import { MessageService, channelMessagesPath, conversationDocPath } from '../../../services/message.service';
+import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { ReadEntry, ReadStateService } from '../../../services/read-state.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { ThreadService } from '../../../services/thread.service';
@@ -68,6 +69,8 @@ export class ChannelViewComponent {
   private readonly channelService = inject(ChannelService);
 
   private readonly messageService = inject(MessageService);
+
+  private readonly notificationFanout = inject(NotificationFanoutService);
 
   private readonly readState = inject(ReadStateService);
 
@@ -179,12 +182,15 @@ export class ChannelViewComponent {
 
 
   /**
-   * Sends a composer message; failures surface as a toast.
+   * Sends a composer message and notifies any @mentioned members; failures
+   * surface as a toast.
    * @param text Trimmed message text from the composer.
    */
   protected async sendMessage(text: string): Promise<void> {
+    const collectionPath = channelMessagesPath(this.channelId());
     try {
-      await this.messageService.sendMessage(channelMessagesPath(this.channelId()), text);
+      const id = await this.messageService.sendMessage(collectionPath, text);
+      this.notificationFanout.mentionsSent(`${collectionPath}/${id}`, text);
     } catch {
       this.toastService.show(SEND_ERROR);
     }

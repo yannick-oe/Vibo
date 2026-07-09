@@ -95,11 +95,12 @@ export class DirectMessageService {
    * toast and sends nothing.
    * @param partnerUid Uid of the conversation partner.
    * @param text Trimmed message text.
+   * @returns The created message's id, or null when the send was blocked.
    */
-  async send(partnerUid: string, text: string): Promise<void> {
+  async send(partnerUid: string, text: string): Promise<string | null> {
     const conversationId = this.conversationIdWith(partnerUid);
-    if (!(await this.prepareConversation(conversationId, partnerUid))) return;
-    await this.messageService.sendMessage(directMessagesPath(conversationId), text);
+    if (!(await this.prepareConversation(conversationId, partnerUid))) return null;
+    return this.messageService.sendMessage(directMessagesPath(conversationId), text);
   }
 
 
@@ -109,11 +110,12 @@ export class DirectMessageService {
    * and sends nothing.
    * @param partnerUid Uid of the conversation partner.
    * @param gif Selected GIF result.
+   * @returns The created message's id, or null when the send was blocked.
    */
-  async sendGif(partnerUid: string, gif: GifResult): Promise<void> {
+  async sendGif(partnerUid: string, gif: GifResult): Promise<string | null> {
     const conversationId = this.conversationIdWith(partnerUid);
-    if (!(await this.prepareConversation(conversationId, partnerUid))) return;
-    await this.messageService.sendGif(directMessagesPath(conversationId), gif);
+    if (!(await this.prepareConversation(conversationId, partnerUid))) return null;
+    return this.messageService.sendGif(directMessagesPath(conversationId), gif);
   }
 
 
