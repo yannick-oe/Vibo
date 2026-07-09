@@ -36,11 +36,31 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys();
     }
 
+    // Optional inline-reply reference ("Antworten"): an exact-shaped snapshot
+    // map with string fields, the same id length cap as the notification
+    // fields and the previewText cap mirroring REPLY_PREVIEW_MAX. Absent on
+    // ordinary messages and on thread replies.
+    function validReplyTo() {
+      return request.resource.data.replyTo is map
+        && request.resource.data.replyTo.keys().hasOnly(['messageId', 'authorUid', 'previewText'])
+        && request.resource.data.replyTo.keys().hasAll(['messageId', 'authorUid', 'previewText'])
+        && request.resource.data.replyTo.messageId is string
+        && request.resource.data.replyTo.messageId.size() >= 1
+        && request.resource.data.replyTo.messageId.size() <= 128
+        && request.resource.data.replyTo.authorUid is string
+        && request.resource.data.replyTo.authorUid.size() >= 1
+        && request.resource.data.replyTo.authorUid.size() <= 128
+        && request.resource.data.replyTo.previewText is string
+        && request.resource.data.replyTo.previewText.size() >= 1
+        && request.resource.data.replyTo.previewText.size() <= 150;
+    }
+
     // createdAt is pinned to the server clock (or earlier) so the
     // 15-minute edit window below cannot be extended by future-dating.
     function validMessageCreate() {
       return request.resource.data.authorId == request.auth.uid
-        && request.resource.data.createdAt <= request.time;
+        && request.resource.data.createdAt <= request.time
+        && (!('replyTo' in request.resource.data) || validReplyTo());
     }
 
     function editsOwnTextInWindow() {
@@ -173,7 +193,7 @@ service cloud.firestore {
       // The emoji is present exactly for reaction notifications; thread
       // replies and mentions carry no emoji.
       function notificationFieldsValid() {
-        return request.resource.data.kind in ['thread-reply', 'reaction', 'mention']
+        return request.resource.data.kind in ['thread-reply', 'reaction', 'mention', 'reply']
           && request.resource.data.actorUid == request.auth.uid
           && request.resource.data.messageId is string
           && request.resource.data.messageId.size() >= 1
