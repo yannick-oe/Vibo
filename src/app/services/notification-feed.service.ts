@@ -95,6 +95,12 @@ export class NotificationFeedService {
     groupNotifications(this.entriesState()),
   );
 
+  /**
+   * Total unread activity events (feed documents, before coalescing), so the
+   * bell badge counts every event rather than every group.
+   */
+  readonly eventCount: Signal<number> = computed(() => this.entriesState().length);
+
 
   /**
    * Re-anchors the baseline on every sign-in/out, subscribes to the own

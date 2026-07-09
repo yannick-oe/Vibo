@@ -42,6 +42,7 @@ import {
   previewOf,
   sameWatchKeys,
 } from './notification.util';
+import { conversationKeyOf, resolveMentionedUids } from './notification-feed.util';
 
 const UNKNOWN_SENDER = 'Neue Nachricht';
 
@@ -88,25 +89,28 @@ export class NotificationService {
 
   /**
    * Conversations with unread messages (last message newer than the own
-   * read marker, sent by someone else), derived from the same small-doc
-   * streams that drive the toast — consumed by the notification center.
+   * read marker, sent by someone else), excluding any that a pending mention
+   * already represents — the mention supersedes the generic unread indicator
+   * so one mention never counts twice. Consumed by the notification center.
    */
-  readonly unreadConversations = computed(() =>
-    this.entriesState()
-      .filter(entry => this.isUnread(entry))
-      .map(entry => entry.watch),
-  );
+  readonly unreadConversations = computed(() => {
+    const mentioned = this.mentionedConversationKeys();
+    return this.entriesState()
+      .filter(entry => this.isUnread(entry) && !mentioned.has(entry.watch.key))
+      .map(entry => entry.watch);
+  });
 
   /**
    * Total of items awaiting attention (pending incoming friend requests +
-   * unread conversations + coalesced activity notifications) — the single
-   * source for the bell badge (the sole attention indicator).
+   * unread conversations + every unread activity event) — the single source
+   * for the bell badge (the sole attention indicator). Each feed document
+   * counts once; a superseded conversation is not double-counted.
    */
   readonly attentionCount = computed(
     () =>
       this.pendingRequestCount() +
       this.unreadConversations().length +
-      this.feedService.groups().length,
+      this.feedService.eventCount(),
   );
 
   private readonly watchList = computed(() => this.buildList(), { equal: sameWatchKeys });
@@ -194,6 +198,22 @@ export class NotificationService {
 
 
   /**
+   * The keys of conversations that currently carry a pending mention for the
+   * signed-in user, so the generic unread indicator can defer to the mention.
+   */
+  private mentionedConversationKeys(): Set<string> {
+    const me = this.authService.currentUser()?.uid;
+    if (!me) return new Set();
+    return new Set(
+      this.feedService
+        .groups()
+        .filter(group => group.latest.kind === 'mention')
+        .map(group => conversationKeyOf(group.latest, me)),
+    );
+  }
+
+
+  /**
    * True when a conversation's last message is newer than the own read
    * marker and was sent by someone else; a missing marker means unread.
    * @param entry Watched conversation with its latest metadata.
@@ -223,13 +243,16 @@ export class NotificationService {
 
 
   /**
-   * Builds and shows the toast for a new message via the shared toast
-   * service (which plays the sound); clicking opens the conversation.
+   * Builds and shows the generic new-message toast via the shared toast
+   * service (which plays the sound); clicking opens the conversation. A
+   * message that @mentions the signed-in user is left to the mention toast,
+   * so the two never fire for the same message (deterministic, no race).
    * @param watch Conversation the message arrived in.
    * @param authorId Uid of the message author.
    */
   private async notify(watch: ConversationWatch, authorId: string): Promise<void> {
-    const preview = await this.latestPreview(watch.messagesPath);
+    const message = await this.latestMessageDoc(watch.messagesPath);
+    if (this.mentionsMe(message)) return;
     const sender = this.senderDoc(authorId);
     this.toastService.show({
       senderName: sender?.name ?? UNKNOWN_SENDER,
@@ -237,9 +260,22 @@ export class NotificationService {
       context: this.contextLabel(watch),
       action: null,
       emoji: null,
-      preview,
+      preview: previewOf(message),
       open: () => void this.router.navigate(watch.route),
     });
+  }
+
+
+  /**
+   * Whether a message @mentions the signed-in user, resolved from its text
+   * exactly as the sender's fan-out does — so the toast supersede matches the
+   * mention that was written.
+   * @param message Latest message document, or undefined.
+   */
+  private mentionsMe(message: MessageDoc | undefined): boolean {
+    const me = this.authService.currentUser()?.uid;
+    if (!me || !message) return false;
+    return resolveMentionedUids(message.text, this.userService.users()).includes(me);
   }
 
 
@@ -250,10 +286,20 @@ export class NotificationService {
    * @param messagesPath Path of the conversation's messages collection.
    */
   async latestPreview(messagesPath: string): Promise<string> {
+    return previewOf(await this.latestMessageDoc(messagesPath));
+  }
+
+
+  /**
+   * One bounded read of the conversation's newest message document, shared by
+   * the preview and the mention-supersede check.
+   * @param messagesPath Path of the conversation's messages collection.
+   */
+  private async latestMessageDoc(messagesPath: string): Promise<MessageDoc | undefined> {
     const snapshot = await runInInjectionContext(this.injector, () =>
       getDocs(query(collection(this.firestore, messagesPath), orderBy('createdAt', 'desc'), limit(1))),
     );
-    return previewOf(snapshot.docs[0]?.data() as MessageDoc | undefined);
+    return snapshot.docs[0]?.data() as MessageDoc | undefined;
   }
 
 

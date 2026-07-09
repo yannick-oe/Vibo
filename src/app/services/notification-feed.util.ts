@@ -23,6 +23,8 @@ const DM_MESSAGE_PATTERN = /^directMessages\/([^/]+)\/messages\/([^/]+?)(\/repli
 const REPLY_VERB = 'geantwortet';
 const REACTION_VERB = 'reagiert';
 const MENTION_VERB = 'dich erwähnt';
+const REPLY_NOUN_PLURAL = 'neue Antworten';
+const MENTION_NOUN_PLURAL = 'Erwähnungen';
 
 /** Conversation reference and main-stream message a notification points at. */
 export interface NotificationTarget {
@@ -217,12 +219,39 @@ export function actionLabel(kind: NotificationKind): string {
 
 
 /**
- * The German title of a grouped bell entry, naming the newest actor and
- * counting the other distinct actors ("Anna und 2 weitere Personen haben…").
+ * The German title of a grouped bell entry. Replies and mentions with more
+ * than one unread event lead with the event count ("3 neue Antworten von
+ * Gast"); reactions and single events keep the actor summary.
  * @param group Coalesced feed group.
  * @param actorName Display name of the newest actor.
  */
 export function groupTitle(group: NotificationGroup, actorName: string): string {
+  const kind = group.latest.kind;
+  if (kind !== 'reaction' && group.count > 1) return countTitle(kind, group.count, actorName);
+  return actorTitle(group, actorName);
+}
+
+
+/**
+ * The count-led title for multiple replies/mentions from a group ("3 neue
+ * Antworten von Gast", "2 Erwähnungen von Gast").
+ * @param kind Notification kind (thread-reply or mention).
+ * @param count Number of unread events in the group.
+ * @param actorName Display name of the newest actor.
+ */
+function countTitle(kind: NotificationKind, count: number, actorName: string): string {
+  const noun = kind === 'mention' ? MENTION_NOUN_PLURAL : REPLY_NOUN_PLURAL;
+  return `${count} ${noun} von ${actorName}`;
+}
+
+
+/**
+ * The actor-summary title, naming the newest actor and counting the other
+ * distinct actors ("Anna und 2 weitere Personen haben reagiert").
+ * @param group Coalesced feed group.
+ * @param actorName Display name of the newest actor.
+ */
+function actorTitle(group: NotificationGroup, actorName: string): string {
   const verb = kindVerb(group.latest.kind);
   const others = group.actorUids.length - 1;
   if (others === 0) return `${actorName} hat ${verb}`;
