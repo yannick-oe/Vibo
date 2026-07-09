@@ -90,13 +90,14 @@ export class NotificationService {
   /**
    * Conversations with unread messages (last message newer than the own
    * read marker, sent by someone else), excluding any that a pending mention
-   * already represents — the mention supersedes the generic unread indicator
-   * so one mention never counts twice. Consumed by the notification center.
+   * or inline reply already represents — an activity entry supersedes the
+   * generic unread indicator so one event never counts twice (hierarchy
+   * mention > reply > generic unread). Consumed by the notification center.
    */
   readonly unreadConversations = computed(() => {
-    const mentioned = this.mentionedConversationKeys();
+    const superseded = this.supersedingConversationKeys();
     return this.entriesState()
-      .filter(entry => this.isUnread(entry) && !mentioned.has(entry.watch.key))
+      .filter(entry => this.isUnread(entry) && !superseded.has(entry.watch.key))
       .map(entry => entry.watch);
   });
 
@@ -198,16 +199,19 @@ export class NotificationService {
 
 
   /**
-   * The keys of conversations that currently carry a pending mention for the
-   * signed-in user, so the generic unread indicator can defer to the mention.
+   * The keys of conversations that currently carry a pending mention or inline
+   * reply for the signed-in user, so the generic unread indicator can defer to
+   * that activity entry (both are main-stream events; thread replies do not
+   * supersede as they carry their own bell entry without a "read the
+   * conversation" expectation).
    */
-  private mentionedConversationKeys(): Set<string> {
+  private supersedingConversationKeys(): Set<string> {
     const me = this.authService.currentUser()?.uid;
     if (!me) return new Set();
     return new Set(
       this.feedService
         .groups()
-        .filter(group => group.latest.kind === 'mention')
+        .filter(group => group.latest.kind === 'mention' || group.latest.kind === 'reply')
         .map(group => conversationKeyOf(group.latest, me)),
     );
   }
@@ -245,14 +249,15 @@ export class NotificationService {
   /**
    * Builds and shows the generic new-message toast via the shared toast
    * service (which plays the sound); clicking opens the conversation. A
-   * message that @mentions the signed-in user is left to the mention toast,
-   * so the two never fire for the same message (deterministic, no race).
+   * message that @mentions the signed-in user or replies to their own message
+   * is left to that activity toast, so only one fires for the same message
+   * (deterministic, no race — both checks read the same fetched message).
    * @param watch Conversation the message arrived in.
    * @param authorId Uid of the message author.
    */
   private async notify(watch: ConversationWatch, authorId: string): Promise<void> {
     const message = await this.latestMessageDoc(watch.messagesPath);
-    if (this.mentionsMe(message)) return;
+    if (this.mentionsMe(message) || this.repliesToMe(message)) return;
     const sender = this.senderDoc(authorId);
     this.toastService.show({
       senderName: sender?.name ?? UNKNOWN_SENDER,
@@ -276,6 +281,18 @@ export class NotificationService {
     const me = this.authService.currentUser()?.uid;
     if (!me || !message) return false;
     return resolveMentionedUids(message.text, this.userService.users()).includes(me);
+  }
+
+
+  /**
+   * Whether a message is an inline reply to the signed-in user's own message,
+   * read straight from the stored replyTo snapshot — so the reply toast (from
+   * the activity feed) wins and the generic new-message toast stays silent.
+   * @param message Latest message document, or undefined.
+   */
+  private repliesToMe(message: MessageDoc | undefined): boolean {
+    const me = this.authService.currentUser()?.uid;
+    return Boolean(me && message?.replyTo?.authorUid === me);
   }
 
 
