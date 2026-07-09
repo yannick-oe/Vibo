@@ -169,6 +169,38 @@ export class NotificationCenterComponent {
 
 
   /**
+   * Removes a single activity group from the bell without navigating,
+   * keeping focus inside the panel as the dismissed row unmounts.
+   * @param row Activity row to dismiss.
+   */
+  protected dismissActivity(row: ActivityRow): void {
+    this.feedService.dismissGroup(row.group);
+    this.keepFocusInPanel();
+  }
+
+
+  /**
+   * Clears every activity notification ("Alle löschen"); the panel stays
+   * open and focus returns to a stable element.
+   */
+  protected clearActivity(): void {
+    this.feedService.clearAllActivity();
+    this.keepFocusInPanel();
+  }
+
+
+  /**
+   * Moves focus to the panel title so a keyboard user is never dropped onto
+   * the document body when the dismissed row (and possibly the whole
+   * section) unmounts after the asynchronous delete resolves; preventScroll
+   * keeps a scrolled panel from jumping back to the top.
+   */
+  private keepFocusInPanel(): void {
+    document.getElementById('notification-center-title')?.focus({ preventScroll: true });
+  }
+
+
+  /**
    * The loaded preview line for an unread row; empty until loaded so the
    * reserved line never shifts the layout.
    * @param key Watch key of the row.

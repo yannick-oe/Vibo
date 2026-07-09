@@ -45,6 +45,7 @@ import {
   NotificationGroup,
   actionLabel,
   conversationKeyOf,
+  entriesOfGroup,
   groupNotifications,
   notificationMillis,
   rootMessagePath,
@@ -120,6 +121,25 @@ export class NotificationFeedService {
    */
   openGroup(group: NotificationGroup): void {
     void this.openTarget(group.latest);
+  }
+
+
+  /**
+   * Dismisses a bell group by deleting every notification document it
+   * coalesces (owner-delete); the panel stays open.
+   * @param group Group to dismiss.
+   */
+  dismissGroup(group: NotificationGroup): void {
+    void this.deleteEntries(entriesOfGroup(this.entriesState(), group));
+  }
+
+
+  /**
+   * Clears the whole activity feed by deleting all of the user's own
+   * notification documents ("Alle löschen").
+   */
+  clearAllActivity(): void {
+    void this.deleteEntries(this.entriesState());
   }
 
 

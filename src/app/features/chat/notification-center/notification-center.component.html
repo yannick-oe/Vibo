@@ -20,7 +20,7 @@
     (closed)="close()"
   >
     <div class="notification-center__panel" aria-live="polite">
-      <h2 class="notification-center__title" id="notification-center-title">Benachrichtigungen</h2>
+      <h2 class="notification-center__title" id="notification-center-title" tabindex="-1">Benachrichtigungen</h2>
 
       @if (requests().length > 0) {
         <h3 class="notification-center__group">Freundschaftsanfragen</h3>
@@ -42,10 +42,15 @@
       }
 
       @if (activityRows().length > 0) {
-        <h3 class="notification-center__group">Aktivität</h3>
-        <ul class="notification-center__list">
+        <div class="notification-center__group-header">
+          <h3 class="notification-center__group" id="notification-center-activity">Aktivität</h3>
+          <button class="notification-center__clear-all" type="button" (click)="clearActivity()">
+            Alle löschen
+          </button>
+        </div>
+        <ul class="notification-center__list" aria-labelledby="notification-center-activity">
           @for (row of activityRows(); track row.key) {
-            <li>
+            <li class="notification-center__item">
               <button class="notification-center__row" type="button" (click)="openActivity(row)">
                 <img
                   class="notification-center__avatar"
@@ -71,6 +76,14 @@
                   </span>
                   <span class="notification-center__preview">{{ row.preview }}</span>
                 </span>
+              </button>
+              <button
+                class="notification-center__dismiss"
+                type="button"
+                aria-label="Benachrichtigung entfernen"
+                (click)="dismissActivity(row)"
+              >
+                <img src="app-icons/close.svg" alt="" aria-hidden="true" />
               </button>
             </li>
           }

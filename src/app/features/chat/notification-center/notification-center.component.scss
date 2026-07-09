@@ -70,6 +70,31 @@ $avatar-size: 32px;
   color: v.color('text-gray');
 }
 
+.notification-center__group-header {
+  @include m.flex-between;
+  gap: v.space('sm');
+}
+
+.notification-center__clear-all {
+  padding: v.space('xs');
+  border: none;
+  border-radius: v.$radius-sm;
+  background: none;
+  color: v.color('text-gray');
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-bold;
+  cursor: pointer;
+  transition: color v.$transition-fast;
+
+  &:hover {
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
 .notification-center__list {
   display: flex;
   flex-direction: column;
@@ -161,4 +186,56 @@ $avatar-size: 32px;
   align-items: center;
   font-size: v.font-size('body');
   color: v.color('text-gray');
+}
+
+.notification-center__item {
+  position: relative;
+}
+
+.notification-center__item .notification-center__row {
+  padding-right: calc(#{v.$icon-lg} + #{v.space('sm')});
+}
+
+.notification-center__dismiss {
+  @include m.flex-center;
+
+  position: absolute;
+  top: 50%;
+  right: v.space('xs');
+  transform: translateY(-50%);
+  min-width: v.$icon-lg;
+  min-height: v.$icon-lg;
+  padding: 0;
+  border: none;
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+  transition: opacity v.$transition-fast, background-color v.$transition-fast;
+
+  img {
+    width: v.$icon-sm;
+    height: v.$icon-sm;
+  }
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .notification-center__dismiss {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .notification-center__item:hover .notification-center__dismiss,
+  .notification-center__item:focus-within .notification-center__dismiss,
+  .notification-center__dismiss:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
