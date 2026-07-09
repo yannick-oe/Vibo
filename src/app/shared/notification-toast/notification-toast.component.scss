@@ -79,6 +79,24 @@ $notif-avatar: 40px;
   font-size: v.font-size('min');
 }
 
+.notif__action {
+  display: inline-flex;
+  align-items: center;
+  gap: v.space('xs');
+  color: v.color('black');
+  font-size: v.font-size('min');
+}
+
+.notif__emoji {
+  width: v.$emoji-inline-size;
+  height: v.$emoji-inline-size;
+}
+
+.notif__emoji-char {
+  font-size: v.font-size('min');
+  line-height: 1;
+}
+
 .notif__preview {
   overflow: hidden;
   color: v.color('black');

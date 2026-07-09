@@ -1,15 +1,36 @@
 /**
  * @file Small pure helpers for the message row: timestamp resolution and
- * formatting, the reduced-motion query, and edit-textarea helpers.
+ * formatting, the reduced-motion query, edit-textarea helpers and the
+ * shared toast-reporting action runner.
  */
 import { formatDate } from '@angular/common';
 import { Timestamp } from '@angular/fire/firestore';
 
 import { ChatEntry } from '../../../models/message.model';
+import { ToastService } from '../../../services/toast.service';
 
 const TIME_FORMAT = 'HH:mm';
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
+
+const ACTION_ERROR = 'Die Aktion konnte nicht ausgeführt werden.';
+
+
+/**
+ * Runs a Firestore message action; failures surface as the shared error
+ * toast. Returns whether it succeeded so callers can roll back optimistic UI.
+ * @param toastService Toast service reporting the failure.
+ * @param action Asynchronous message operation.
+ */
+export async function runMessageAction(toastService: ToastService, action: () => Promise<void>): Promise<boolean> {
+  try {
+    await action();
+    return true;
+  } catch {
+    toastService.show(ACTION_ERROR);
+    return false;
+  }
+}
 
 /**
  * Converts a Firestore timestamp to a Date; pending serverTimestamp()

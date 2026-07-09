@@ -22,6 +22,7 @@ import { BigReactionService } from '../../../services/big-reaction.service';
 import { ReadEntry } from '../../../services/read-state.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
 import { MessageService } from '../../../services/message.service';
+import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { RecentEmojiService } from '../../../services/recent-emoji.service';
 import { DEFAULT_AVATAR_PATH } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
@@ -33,6 +34,7 @@ import {
   messageTime,
   prefersReducedMotion,
   replyPreviewTime,
+  runMessageAction,
   withinEditWindow,
 } from './message-item.util';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
@@ -43,7 +45,6 @@ import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { ReadReceiptComponent } from '../../../shared/read-receipt/read-receipt.component';
 
 const UNKNOWN_AUTHOR = 'Unbekannt';
-const ACTION_ERROR = 'Die Aktion konnte nicht ausgeführt werden.';
 const LONG_PRESS_MS = 500;
 const DESKTOP_REACTION_LIMIT = 20;
 const DELETE_POP_MS = 220;
@@ -114,6 +115,8 @@ export class MessageItemComponent {
   private readonly recentEmojiService = inject(RecentEmojiService);
 
   private readonly bigReactionService = inject(BigReactionService);
+
+  private readonly notificationFanout = inject(NotificationFanoutService);
 
   private readonly messageFocusService = inject(MessageFocusService);
 
@@ -251,8 +254,9 @@ export class MessageItemComponent {
 
   /**
    * Sets the signed-in user's single reaction to `emoji` (replacing any
-   * existing one, or toggling it off); adding records the quick emoji and
-   * broadcasts its big-reaction effect (🎉/💖/🚀/😂) to all viewers.
+   * existing one, or toggling it off); adding records the quick emoji,
+   * broadcasts its big-reaction effect (🎉/💖/🚀/😂) to all viewers and
+   * notifies the message's author.
    * @param emoji Emoji character to set.
    */
   protected async react(emoji: string): Promise<void> {
@@ -264,9 +268,10 @@ export class MessageItemComponent {
     if (isAdding) {
       this.recentEmojiService.record(emoji);
       this.bigReactionService.onReactionAdded(emoji, messagePath);
+      this.notificationFanout.reactionAdded(messagePath, this.entry(), emoji);
     }
     this.barOpen.set(false);
-    await this.runAction(() => this.messageService.setReaction(messagePath, emoji, reactions));
+    await runMessageAction(this.toastService, () => this.messageService.setReaction(messagePath, emoji, reactions));
   }
 
 
@@ -324,7 +329,9 @@ export class MessageItemComponent {
   protected async saveEdit(): Promise<void> {
     const messagePath = this.messagePath();
     if (!messagePath || !this.canSaveEdit()) return;
-    const saved = await this.runAction(() => this.messageService.editMessage(messagePath, this.editText().trim()));
+    const saved = await runMessageAction(this.toastService, () =>
+      this.messageService.editMessage(messagePath, this.editText().trim()),
+    );
     if (saved) this.cancelEdit();
   }
 
@@ -367,7 +374,7 @@ export class MessageItemComponent {
     const animates = !prefersReducedMotion();
     this.isHiding.set(animates);
     if (animates) await delay(DELETE_POP_MS);
-    const hidden = await this.runAction(() => this.messageService.hideForMe(messagePath));
+    const hidden = await runMessageAction(this.toastService, () => this.messageService.hideForMe(messagePath));
     if (!hidden) this.isHiding.set(false);
   }
 
@@ -379,22 +386,6 @@ export class MessageItemComponent {
     this.barOpen.set(false);
     const messagePath = this.messagePath();
     if (!messagePath) return;
-    await this.runAction(() => this.messageService.deleteForAll(messagePath));
-  }
-
-
-  /**
-   * Runs a Firestore action; failures surface as a toast. Returns whether it
-   * succeeded so callers can roll back optimistic UI.
-   * @param action Asynchronous message operation.
-   */
-  private async runAction(action: () => Promise<void>): Promise<boolean> {
-    try {
-      await action();
-      return true;
-    } catch {
-      this.toastService.show(ACTION_ERROR);
-      return false;
-    }
+    await runMessageAction(this.toastService, () => this.messageService.deleteForAll(messagePath));
   }
 }

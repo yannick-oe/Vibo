@@ -1,7 +1,8 @@
 /**
  * @file Incoming-message notifications. When a message from another user lands
  * in a conversation the user is not currently viewing, a top toast slides in
- * with the sender and a short preview, and the chat notification sound plays.
+ * with the sender and a short preview (toast state and sound live in
+ * {@link NotificationToastService}).
  *
  * It reuses the sidebar's existing per-conversation small-doc detection
  * ({@link ReadStateService.conversationMeta}) — never a message-collection
@@ -12,7 +13,6 @@
 import {
   EnvironmentInjector,
   Injectable,
-  Signal,
   computed,
   effect,
   inject,
@@ -29,6 +29,8 @@ import { UserDoc } from '../models/user.model';
 import { AuthService } from './auth.service';
 import { ChannelService } from './channel.service';
 import { FriendshipService } from './friendship.service';
+import { NotificationFeedService } from './notification-feed.service';
+import { NotificationToastService } from './notification-toast.service';
 import { ConversationMeta, ReadMarker, ReadStateService } from './read-state.service';
 import { UserService } from './user.service';
 import { resolveAvatarPath } from './registration.service';
@@ -41,18 +43,7 @@ import {
   sameWatchKeys,
 } from './notification.util';
 
-const NOTIFICATION_SOUND_PATH = 'sounds/chat-notification.mp3';
-const AUTO_DISMISS_MS = 5000;
 const UNKNOWN_SENDER = 'Neue Nachricht';
-
-/** Rendered incoming-message toast: sender, context, preview and target route. */
-export interface NotificationToast {
-  readonly senderName: string;
-  readonly senderAvatar: string;
-  readonly context: string;
-  readonly preview: string;
-  readonly route: string[];
-}
 
 /** A watched conversation paired with its latest streamed metadata. */
 interface WatchMeta {
@@ -79,6 +70,10 @@ export class NotificationService {
 
   private readonly friendshipService = inject(FriendshipService);
 
+  private readonly toastService = inject(NotificationToastService);
+
+  private readonly feedService = inject(NotificationFeedService);
+
   private readonly injector = inject(EnvironmentInjector);
 
   private readonly firestore = inject(Firestore);
@@ -88,15 +83,6 @@ export class NotificationService {
   private baseline = Date.now();
 
   private readonly seen = new Map<string, number>();
-
-  private dismissTimer: ReturnType<typeof setTimeout> | null = null;
-
-  private readonly sound = new Audio(NOTIFICATION_SOUND_PATH);
-
-  private readonly toastState = signal<NotificationToast | null>(null);
-
-  /** The active incoming-message toast, consumed by the toast component. */
-  readonly toast: Signal<NotificationToast | null> = this.toastState.asReadonly();
 
   private readonly entriesState = signal<WatchMeta[]>([]);
 
@@ -113,11 +99,14 @@ export class NotificationService {
 
   /**
    * Total of items awaiting attention (pending incoming friend requests +
-   * unread conversations) — the single source for the bell badge and the
-   * avatar attention dot.
+   * unread conversations + coalesced activity notifications) — the single
+   * source for the bell badge and the avatar attention dot.
    */
   readonly attentionCount = computed(
-    () => this.pendingRequestCount() + this.unreadConversations().length,
+    () =>
+      this.pendingRequestCount() +
+      this.unreadConversations().length +
+      this.feedService.groups().length,
   );
 
   private readonly watchList = computed(() => this.buildList(), { equal: sameWatchKeys });
@@ -141,26 +130,6 @@ export class NotificationService {
 
 
   /**
-   * Navigates to a notified conversation and dismisses the toast.
-   * @param route Router commands of the target conversation.
-   */
-  open(route: string[]): void {
-    void this.router.navigate(route);
-    this.dismiss();
-  }
-
-
-  /**
-   * Hides the active toast and clears its auto-dismiss timer.
-   */
-  dismiss(): void {
-    if (this.dismissTimer) clearTimeout(this.dismissTimer);
-    this.dismissTimer = null;
-    this.toastState.set(null);
-  }
-
-
-  /**
    * Resets the load baseline and seen state for the active user, so the
    * unread backlog at sign-in never pops and a logout clears any toast.
    * @param uid Signed-in user's uid, or null when signed out.
@@ -170,7 +139,7 @@ export class NotificationService {
     this.baseline = Date.now();
     this.seen.clear();
     this.entriesState.set([]);
-    this.dismiss();
+    this.toastService.dismiss();
   }
 
 
@@ -254,22 +223,23 @@ export class NotificationService {
 
 
   /**
-   * Builds and shows the toast for a new message, then plays the sound.
+   * Builds and shows the toast for a new message via the shared toast
+   * service (which plays the sound); clicking opens the conversation.
    * @param watch Conversation the message arrived in.
    * @param authorId Uid of the message author.
    */
   private async notify(watch: ConversationWatch, authorId: string): Promise<void> {
     const preview = await this.latestPreview(watch.messagesPath);
     const sender = this.senderDoc(authorId);
-    this.toastState.set({
+    this.toastService.show({
       senderName: sender?.name ?? UNKNOWN_SENDER,
       senderAvatar: resolveAvatarPath(sender?.avatarPath),
       context: this.contextLabel(watch),
+      action: null,
+      emoji: null,
       preview,
-      route: watch.route,
+      open: () => void this.router.navigate(watch.route),
     });
-    this.restartTimer();
-    this.playSound();
   }
 
 
@@ -305,24 +275,5 @@ export class NotificationService {
     if (!watch.channelId) return '';
     const channel = this.channelService.channels().find(item => item.id === watch.channelId);
     return channel ? `#${channel.name}` : '';
-  }
-
-
-  /**
-   * Restarts the auto-dismiss timer for the freshly shown toast.
-   */
-  private restartTimer(): void {
-    if (this.dismissTimer) clearTimeout(this.dismissTimer);
-    this.dismissTimer = setTimeout(() => this.toastState.set(null), AUTO_DISMISS_MS);
-  }
-
-
-  /**
-   * Plays the chat notification sound, restarting it if already playing;
-   * browser autoplay rejections are swallowed.
-   */
-  private playSound(): void {
-    this.sound.currentTime = 0;
-    this.sound.play().catch(() => undefined);
   }
 }

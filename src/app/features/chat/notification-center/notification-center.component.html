@@ -41,6 +41,42 @@
         </ul>
       }
 
+      @if (activityRows().length > 0) {
+        <h3 class="notification-center__group">Aktivität</h3>
+        <ul class="notification-center__list">
+          @for (row of activityRows(); track row.key) {
+            <li>
+              <button class="notification-center__row" type="button" (click)="openActivity(row)">
+                <img
+                  class="notification-center__avatar"
+                  appAvatarFallback
+                  [src]="row.avatarPath"
+                  alt=""
+                  aria-hidden="true"
+                />
+                <span class="notification-center__row-text">
+                  <span class="notification-center__name">
+                    {{ row.title }}
+                    @if (row.emoji; as emoji) {
+                      @if (emoji.asset) {
+                        <img
+                          class="notification-center__emoji"
+                          [src]="emoji.asset"
+                          [alt]="emoji.name ?? emoji.char"
+                        />
+                      } @else {
+                        <span class="notification-center__emoji-char">{{ emoji.char }}</span>
+                      }
+                    }
+                  </span>
+                  <span class="notification-center__preview">{{ row.preview }}</span>
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
       @if (unreadRows().length > 0) {
         <h3 class="notification-center__group">Ungelesen</h3>
         <ul class="notification-center__list">

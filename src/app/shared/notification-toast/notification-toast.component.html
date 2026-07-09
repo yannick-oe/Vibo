@@ -1,7 +1,7 @@
 <div class="notif-region" role="status" aria-live="polite">
   @if (toast(); as n) {
     <div class="notif">
-      <button class="notif__open" type="button" (click)="open(n.route)">
+      <button class="notif__open" type="button" (click)="activate()">
         <img class="notif__avatar" appAvatarFallback [src]="n.senderAvatar" alt="" aria-hidden="true" />
         <span class="notif__body">
           <span class="notif__head">
@@ -10,6 +10,18 @@
               <span class="notif__context">{{ n.context }}</span>
             }
           </span>
+          @if (n.action) {
+            <span class="notif__action">
+              {{ n.action }}
+              @if (n.emoji; as emoji) {
+                @if (emoji.asset) {
+                  <img class="notif__emoji" [src]="emoji.asset" [alt]="emoji.name ?? emoji.char" />
+                } @else {
+                  <span class="notif__emoji-char">{{ emoji.char }}</span>
+                }
+              }
+            </span>
+          }
           <span class="notif__preview">{{ n.preview }}</span>
         </span>
       </button>

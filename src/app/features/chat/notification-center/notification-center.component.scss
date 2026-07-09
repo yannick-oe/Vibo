@@ -145,6 +145,16 @@ $avatar-size: 32px;
   @include m.text-ellipsis;
 }
 
+.notification-center__emoji {
+  width: v.$emoji-inline-size;
+  height: v.$emoji-inline-size;
+  vertical-align: v.$emoji-inline-align;
+}
+
+.notification-center__emoji-char {
+  line-height: 1;
+}
+
 .notification-center__empty {
   min-height: $touch-target;
   display: flex;

@@ -16,6 +16,7 @@ import { of, switchMap } from 'rxjs';
 import { Message, Reply } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
 import { MessageService } from '../../../services/message.service';
+import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
 import { MessageEntranceTracker } from '../message-entrance';
@@ -43,6 +44,8 @@ export class ThreadPanelComponent {
   private readonly threadService = inject(ThreadService);
 
   private readonly messageService = inject(MessageService);
+
+  private readonly notificationFanout = inject(NotificationFanoutService);
 
   private readonly authService = inject(AuthService);
 
@@ -127,14 +130,17 @@ export class ThreadPanelComponent {
 
 
   /**
-   * Sends a reply to the origin message; failures surface as a toast.
+   * Sends a reply to the origin message and fans the thread-reply
+   * notification out to the thread's followers; failures surface as a toast.
    * @param text Trimmed reply text from the composer.
    */
   protected async sendReply(text: string): Promise<void> {
     const context = this.threadService.thread();
+    const origin = this.origin();
     if (!context) return;
     try {
       await this.messageService.sendReply(context.messagePath, text);
+      if (origin) this.notificationFanout.threadReplySent(context.messagePath, origin, text);
     } catch {
       this.toastService.show(SEND_ERROR);
     }

@@ -17,8 +17,15 @@ import { Router } from '@angular/router';
 import { UserDoc } from '../../../models/user.model';
 import { ChannelService } from '../../../services/channel.service';
 import { FriendshipService } from '../../../services/friendship.service';
+import { NotificationFeedService } from '../../../services/notification-feed.service';
 import { NotificationService } from '../../../services/notification.service';
+import { NotificationToastEmoji } from '../../../services/notification-toast.service';
 import { ConversationWatch } from '../../../services/notification.util';
+import {
+  NotificationGroup,
+  groupTitle,
+  toastEmojiOf,
+} from '../../../services/notification-feed.util';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
@@ -46,6 +53,16 @@ interface UnreadRow {
   readonly messagesPath: string;
 }
 
+/** One coalesced activity notification rendered in the panel. */
+interface ActivityRow {
+  readonly key: string;
+  readonly title: string;
+  readonly preview: string;
+  readonly avatarPath: string;
+  readonly emoji: NotificationToastEmoji | null;
+  readonly group: NotificationGroup;
+}
+
 /**
  * Persistent aggregate of pending friend requests and unread conversations,
  * complementing the transient incoming-message toasts.
@@ -64,6 +81,8 @@ interface UnreadRow {
 })
 export class NotificationCenterComponent {
   private readonly notificationService = inject(NotificationService);
+
+  private readonly feedService = inject(NotificationFeedService);
 
   private readonly friendshipService = inject(FriendshipService);
 
@@ -85,6 +104,10 @@ export class NotificationCenterComponent {
 
   protected readonly unreadRows = computed(() =>
     this.notificationService.unreadConversations().map(watch => this.rowFor(watch)),
+  );
+
+  protected readonly activityRows = computed(() =>
+    this.feedService.groups().map(group => this.activityRowFor(group)),
   );
 
   protected readonly badgeValue = computed(() => this.notificationService.attentionCount());
@@ -135,6 +158,17 @@ export class NotificationCenterComponent {
 
 
   /**
+   * Opens an activity notification's message or thread and closes the
+   * panel; the feed auto-clears the group once the target view is open.
+   * @param row Picked activity row.
+   */
+  protected openActivity(row: ActivityRow): void {
+    this.feedService.openGroup(row.group);
+    this.close();
+  }
+
+
+  /**
    * The loaded preview line for an unread row; empty until loaded so the
    * reserved line never shifts the layout.
    * @param key Watch key of the row.
@@ -170,6 +204,37 @@ export class NotificationCenterComponent {
       name: partner?.name ?? UNKNOWN_NAME,
       avatarPath: this.avatarSrc(partner?.avatarPath ?? ''),
     };
+  }
+
+
+  /**
+   * Builds the panel row for a coalesced activity group: the newest actor's
+   * identity, the German action title, the reaction emoji and the preview.
+   * @param group Coalesced activity group.
+   */
+  private activityRowFor(group: NotificationGroup): ActivityRow {
+    const actor = this.userService.users().find(user => user.uid === group.latest.actorUid);
+    return {
+      key: group.key,
+      title: groupTitle(group, actor?.name ?? UNKNOWN_NAME),
+      preview: this.activityPreviewFor(group),
+      avatarPath: resolveAvatarPath(actor?.avatarPath),
+      emoji: group.latest.emoji ? toastEmojiOf(group.latest.emoji) : null,
+      group,
+    };
+  }
+
+
+  /**
+   * The preview line of an activity row: "#channel · text" in channels, the
+   * bare text in direct messages (the actor already names the conversation).
+   * @param group Coalesced activity group.
+   */
+  private activityPreviewFor(group: NotificationGroup): string {
+    const channelId = group.latest.channelId;
+    if (!channelId) return group.latest.preview;
+    const channel = this.channelService.channels().find(item => item.id === channelId);
+    return channel ? `#${channel.name} · ${group.latest.preview}` : group.latest.preview;
   }
 
 
