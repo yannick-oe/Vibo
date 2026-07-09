@@ -80,6 +80,28 @@ export class NotificationFanoutService {
 
 
   /**
+   * Notifies the author of an answered MAIN-stream message that the signed-in
+   * user just replied to it inline ("Antworten"); own messages never notify and
+   * an already-mentioned recipient is skipped (mention supersedes reply).
+   * @param messagePath Firestore path of the answering message.
+   * @param recipientUid Author of the answered message.
+   * @param text Sent reply text ('' for a GIF reply).
+   * @param exclude Recipients already notified with a higher-priority entry.
+   * @param gifUrl Animated GIF URL when the reply is a GIF (previews as "GIF").
+   */
+  replySent(messagePath: string, recipientUid: string, text: string, exclude: string[] = [], gifUrl?: string): void {
+    const target = targetOfMessagePath(messagePath);
+    const me = this.authService.currentUser()?.uid;
+    if (!target || !me || recipientUid === me || exclude.includes(recipientUid)) return;
+    this.write(recipientUid, target, {
+      kind: 'reply',
+      actorUid: me,
+      preview: previewOf({ text, gifUrl }),
+    });
+  }
+
+
+  /**
    * Notifies the thread's followers (root author plus everyone who posted a
    * reply) that the signed-in user just replied; the actor and any excluded
    * (already-mentioned) recipients are skipped. A thread reply is always a

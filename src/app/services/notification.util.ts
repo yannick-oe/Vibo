@@ -114,15 +114,21 @@ export function millisOf(value: Timestamp | undefined): number {
 
 /**
  * A short, single-line preview of a message: "GIF" for a GIF, otherwise the
- * trimmed, whitespace-collapsed and length-capped text. Interpolation escapes
- * HTML, so this only needs to normalize whitespace and length. Accepts any
- * message-shaped value (message, reply or a bare draft) structurally.
+ * trimmed, whitespace-collapsed text capped to at most `max` characters
+ * (the appended ellipsis is counted, so the result never exceeds `max` — the
+ * inline-reply snapshot relies on this to stay within its Firestore size cap).
+ * Interpolation escapes HTML, so this only needs to normalize whitespace and
+ * length. Accepts any message-shaped value (message, reply or bare draft).
  * @param message Message-shaped value to preview, or undefined.
+ * @param max Maximum length of the returned preview (defaults to the toast cap).
  */
-export function previewOf(message: { text: string; gifUrl?: string } | undefined): string {
+export function previewOf(
+  message: { text: string; gifUrl?: string } | undefined,
+  max = PREVIEW_MAX,
+): string {
   if (!message) return NEW_MESSAGE_FALLBACK;
   if (message.gifUrl) return GIF_PREVIEW;
   const text = message.text.replace(/\s+/g, ' ').trim();
   if (!text) return NEW_MESSAGE_FALLBACK;
-  return text.length > PREVIEW_MAX ? `${text.slice(0, PREVIEW_MAX)}${ELLIPSIS}` : text;
+  return text.length > max ? `${text.slice(0, max - ELLIPSIS.length)}${ELLIPSIS}` : text;
 }
