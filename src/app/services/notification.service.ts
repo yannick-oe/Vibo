@@ -100,7 +100,7 @@ export class NotificationService {
   /**
    * Total of items awaiting attention (pending incoming friend requests +
    * unread conversations + coalesced activity notifications) — the single
-   * source for the bell badge and the avatar attention dot.
+   * source for the bell badge (the sole attention indicator).
    */
   readonly attentionCount = computed(
     () =>
@@ -182,8 +182,8 @@ export class NotificationService {
 
   /**
    * Pending incoming requests whose requester profile is already loaded —
-   * mirrors exactly what the notification panel can render, so the badge,
-   * the avatar dot and the panel rows can never disagree.
+   * mirrors exactly what the notification panel can render, so the bell
+   * badge and the panel rows can never disagree.
    */
   private pendingRequestCount(): number {
     const users = this.userService.users();

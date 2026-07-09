@@ -32,9 +32,6 @@
             [alt]="avatarAlt()"
             [isActive]="userAct.isActive()"
           />
-          @if (hasAttention()) {
-            <span class="topbar__attention-dot" aria-hidden="true"></span>
-          }
         </span>
       </button>
     </div>
@@ -68,9 +65,6 @@
             [isActive]="userAct.isActive()"
           />
           <span class="topbar__status" aria-hidden="true"></span>
-          @if (hasAttention()) {
-            <span class="topbar__attention-dot" aria-hidden="true"></span>
-          }
         </span>
         <img class="topbar__chevron" src="app-icons/arrow-down.svg" alt="" aria-hidden="true" />
       </button>

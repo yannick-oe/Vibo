@@ -9,7 +9,6 @@ import { filter, map } from 'rxjs';
 
 import { AuthService } from '../../../services/auth.service';
 import { LayoutService } from '../../../services/layout.service';
-import { NotificationService } from '../../../services/notification.service';
 import { PresenceService } from '../../../services/presence.service';
 import { ThreadService } from '../../../services/thread.service';
 import { DEFAULT_AVATAR_PATH } from '../../../services/registration.service';
@@ -72,8 +71,6 @@ export class TopbarComponent {
 
   private readonly themeService = inject(ThemeService);
 
-  private readonly notificationService = inject(NotificationService);
-
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
@@ -129,8 +126,6 @@ export class TopbarComponent {
   protected readonly avatarAlt = computed(() => `Avatar von ${this.userName()}`);
 
   protected readonly userAnimatedName = computed(() => this.userDoc()?.animatedName ?? false);
-
-  protected readonly hasAttention = computed(() => this.notificationService.attentionCount() > 0);
 
 
   /**

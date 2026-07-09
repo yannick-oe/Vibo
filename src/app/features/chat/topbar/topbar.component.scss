@@ -219,14 +219,6 @@
   bottom: 0;
 }
 
-.topbar__attention-dot {
-  @include m.status-dot(v.color('error'), v.$status-dot-md);
-
-  position: absolute;
-  top: 0;
-  right: 0;
-}
-
 .topbar__chevron {
   width: 14px;
   height: 14px;
