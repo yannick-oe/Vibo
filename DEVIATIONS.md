@@ -635,20 +635,19 @@ strictly token-based, no Figma frames for any of it.
 - **rules**: the only change is adding `'mention'` to the notification `kind` enum; the
   existing `(kind=='reaction') == ('emoji' in data)` invariant already forces mentions to
   carry no emoji, and the actor+recipient membership/participation checks are unchanged.
-- **⚠ Main-stream mention overlaps the incoming-message notifier (open question).** A
-  mention that rides on a *main-stream* message also bumps the conversation's
-  `lastMessageAt`, so the pre-existing small-doc notifier (`NotificationService`) counts
-  that conversation as **unread** at the same time the mention fan-out adds a **mention**
-  activity group. The two are not cross-deduped, so one such message currently: adds **+2**
-  to the bell badge (one unread + one mention), and — because both toasts share one slot
-  and the generic one resolves after an async preview read — may show the generic „Neue
-  Nachricht" toast instead of „… hat dich erwähnt" (the mention is still shown distinctly
-  in the bell) and may replay the chime. Thread-reply mentions and reactions are unaffected
-  (they never touch conversation meta). The dedupe required by the spec („one action = one
-  entry") is implemented **within the activity feed** (mention-over-reply); unifying the
-  mention channel with the unread-conversation notifier was **not** in scope and changes
-  pre-existing behavior, so it is left for a product decision (recommended fix: have a
-  pending mention *supersede* the unread indicator for that conversation).
+- **Main-stream mention supersedes the generic unread indicator (resolved 2026-07-09).**
+  The earlier open question — a main-stream mention counting twice (unread conversation +
+  mention) — is resolved: a pending mention now **supersedes** the generic unread indicator
+  of its conversation in both the badge and the toast. Badge: `unreadConversations` excludes
+  any conversation that has a pending `mention` group, so the message counts **once** (as
+  the mention event, not unread + mention). Toast: the generic new-message notifier reads
+  the triggering message and, if it @mentions the signed-in user (resolved from the text the
+  same way the sender's fan-out does — deterministic, no async race), **skips** its toast so
+  only the „… hat dich erwähnt" toast fires with a single chime. Thread-reply mentions and
+  reactions are unaffected (they never bump conversation meta). Trade-off: if the mention
+  fan-out write itself fails (e.g. sender offline), the generic toast is still suppressed for
+  that message, but the persistent unread indicator remains, so the message is never lost —
+  only its transient toast.
 - **Bell dismissal (Discord/Slack/Teams blend).** Each „Aktivität" entry has a dismiss X —
   hover/focus-revealed on pointer devices (`@media (hover: hover)`), always visible on
   touch, ≥32px target, keyboard-operable, aria-label „Benachrichtigung entfernen" — a
@@ -666,3 +665,27 @@ strictly token-based, no Figma frames for any of it.
   create rule uses `validMessageCreate` (no field allow-list), which already accepts the
   GIF fields exactly as top-level GIF messages do. GIF-reply notifications preview as
   „GIF" (the fan-out passes the reply's gifUrl to `previewOf`).
+
+## Notification badge count + feed panel list/scroll (2026-07-09)
+Refinement of the activity-notification bell; no Figma frames, strictly token-based.
+- **Bell badge shows real unread count.** The badge previously summed the pre-existing
+  unread-conversation count with the number of *coalesced* activity **groups**, so several
+  events on one message (e.g. 3 replies) showed „1". It now counts **events**: each unread
+  activity feed document counts 1 (`feedService.eventCount`), plus each (non-superseded)
+  unread conversation as before. One user action still increments the badge by at most 1
+  (mentions supersede the unread indicator, above). The visible badge caps at a named
+  „9+" (`BADGE_MAX` = 9); the bell's `aria-label` announces the real number
+  („Benachrichtigungen, 5 ungelesen"). The badge reserves a fixed 2-character box
+  (`min-width` = `space('md-lg') + space('sm')`) so it never reflows between „1" and „9+"
+  (CLS 0).
+- **Feed panel lists every group, counted, scrollable.** The panel already rendered all
+  groups; the „only one entry" observation was the (kind, message) coalescing working as
+  designed (repeated events on one message collapse into one row). Rows with more than one
+  unread event now lead with the count in natural German („3 neue Antworten von Gast",
+  „2 Erwähnungen von Gast"); reactions keep the actor summary + newest emoji, and the
+  preview stays the newest event's. The Aktivität list caps its visible height at a
+  token-derived 5 rows (`$activity-row-height` × `$activity-visible-rows`), then scrolls
+  with the shared `scrollbar-thin` treatment and `overscroll-behavior: contain`. Inside the
+  mobile bottom sheet the existing sheet physics already defer to inner scroll
+  (`hasScrolledContent`) while the grabber still drags to dismiss, so the list scrolls
+  without fighting the sheet. Per-row dismiss X and „Alle löschen" are unchanged.
