@@ -26,16 +26,6 @@ $message-hide-scale-to: 0.92;
   background-color: v.color('bg');
 }
 
-// Post-open message rows are stacking contexts (their finished entrance
-// animation keeps `transform` in effect), which would trap the absolutely
-// positioned action bar and reaction picker under later sibling rows. Raising
-// the active row lifts its overlays back above adjacent list content.
-:host(:hover),
-:host(:focus-within),
-:host(.message--raised) {
-  z-index: v.$z-raised;
-}
-
 :host(.message--own) {
   flex-direction: row-reverse;
 }
@@ -352,7 +342,7 @@ $message-hide-scale-to: 0.92;
 
 :host(.message--enter) {
   @media (prefers-reduced-motion: no-preference) {
-    animation: message-enter $message-enter-duration $message-enter-easing both;
+    animation: message-enter $message-enter-duration $message-enter-easing backwards;
   }
 }
 

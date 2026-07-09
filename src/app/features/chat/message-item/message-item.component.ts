@@ -76,7 +76,6 @@ const DELETE_POP_MS = 220;
     '[class.message--own]': 'isOwn()',
     '[class.message--focus]': 'focusHighlight()',
     '[class.message--bar-open]': 'barOpen()',
-    '[class.message--raised]': 'barOpen() || reactionPickerOpen() || editPickerOpen()',
     '[class.message--enter]': 'enterAnimate()',
     '[class.message--hiding]': 'isHiding()',
     '[id]': '"message-" + entry().id',
