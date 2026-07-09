@@ -7,7 +7,6 @@
 import { Timestamp } from '@angular/fire/firestore';
 
 import { Channel } from '../models/channel.model';
-import { MessageDoc } from '../models/message.model';
 import { UserDoc } from '../models/user.model';
 import { buildConversationId } from '../models/direct-message.model';
 import { channelMessagesPath, conversationDocPath, directMessagesPath } from './message.service';
@@ -116,10 +115,11 @@ export function millisOf(value: Timestamp | undefined): number {
 /**
  * A short, single-line preview of a message: "GIF" for a GIF, otherwise the
  * trimmed, whitespace-collapsed and length-capped text. Interpolation escapes
- * HTML, so this only needs to normalize whitespace and length.
- * @param message Latest message document, or undefined.
+ * HTML, so this only needs to normalize whitespace and length. Accepts any
+ * message-shaped value (message, reply or a bare draft) structurally.
+ * @param message Message-shaped value to preview, or undefined.
  */
-export function previewOf(message: MessageDoc | undefined): string {
+export function previewOf(message: { text: string; gifUrl?: string } | undefined): string {
   if (!message) return NEW_MESSAGE_FALLBACK;
   if (message.gifUrl) return GIF_PREVIEW;
   const text = message.text.replace(/\s+/g, ' ').trim();

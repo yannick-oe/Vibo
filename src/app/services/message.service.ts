@@ -217,7 +217,9 @@ export class MessageService {
 
   /**
    * Persists a thread reply and atomically updates the parent message's
-   * denormalized replyCount and lastReplyAt in the same batched write.
+   * denormalized replyCount and lastReplyAt in the same batched write; the
+   * author self-appends to the thread's participantUids so later replies
+   * can fan notifications out to them.
    * @param messagePath Firestore path of the parent message document.
    * @param text Trimmed reply text.
    */
@@ -229,6 +231,7 @@ export class MessageService {
       batch.update(doc(this.firestore, messagePath), {
         replyCount: increment(1),
         lastReplyAt: serverTimestamp(),
+        participantUids: arrayUnion(this.authService.requireUid()),
       });
       return batch.commit();
     });
