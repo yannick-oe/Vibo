@@ -5,17 +5,17 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   computed,
   inject,
   input,
   output,
   signal,
-  viewChild,
 } from '@angular/core';
 
 import { bigReactionEffect } from '../../../models/reactions';
 import { RecentEmojiService } from '../../../services/recent-emoji.service';
+import { DialogAnchor, anchorAbove } from '../../../shared/dialog-shell/dialog-anchor';
+import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
 import { emojiAsset, emojiName, reactionTriggerLabel } from '../emoji-catalog';
 
 type MenuState = 'closed' | 'menu' | 'confirm';
@@ -32,14 +32,13 @@ const GHOST_TAP_GUARD_MS = 500;
  */
 @Component({
   selector: 'app-message-actions',
+  imports: [DialogShellComponent],
   templateUrl: './message-actions.component.html',
   styleUrl: './message-actions.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.actions--open]': "menuState() !== 'closed'",
     '[class.actions--own]': 'isOwn()',
-    '(document:click)': 'onDocumentClick($event)',
-    '(document:keydown.escape)': 'closeMenu()',
   },
 })
 export class MessageActionsComponent {
@@ -52,6 +51,8 @@ export class MessageActionsComponent {
   readonly isReplyable = input(false);
 
   readonly canEdit = input(false);
+
+  readonly bubbleElement = input<HTMLElement | null>(null);
 
   readonly reacted = output<string>();
 
@@ -69,11 +70,9 @@ export class MessageActionsComponent {
 
   private readonly recentEmojiService = inject(RecentEmojiService);
 
-  private readonly host = inject(ElementRef<HTMLElement>);
-
-  private readonly menuTrigger = viewChild<ElementRef<HTMLButtonElement>>('menuTrigger');
-
   protected readonly menuState = signal<MenuState>('closed');
+
+  protected readonly menuAnchor = signal<DialogAnchor | null>(null);
 
   private confirmOpenedAt = 0;
 
@@ -105,33 +104,36 @@ export class MessageActionsComponent {
 
 
   /**
-   * Opens or closes the options menu.
+   * Opens the options menu above the message bubble (bubble-side aligned; a
+   * null anchor sheets it on mobile). The dialog-shell owns outside-click,
+   * Escape, focus trap and focus restore.
+   * @param event Click or touch that opened the menu.
    */
-  protected toggleMenu(): void {
-    this.menuState.update(state => (state === 'closed' ? 'menu' : 'closed'));
+  protected openMenu(event: Event): void {
+    event.stopPropagation();
+    const bubble = this.bubbleElement();
+    this.menuAnchor.set(bubble ? anchorAbove(bubble, this.isOwn() ? 'right' : 'left') : null);
+    this.menuState.set('menu');
   }
 
 
   /**
-   * Toggles the menu from a touch tap and cancels the compatibility mouse
-   * events the browser synthesizes at the trigger position shortly after;
-   * that residual click would otherwise re-enter toggleMenu and collapse an
-   * open confirmation back to closed, dismissing it before the user chooses.
+   * Opens the menu from a touch tap and cancels the synthesized mouse click,
+   * which would otherwise land on the freshly opened overlay's scrim and
+   * immediately close it.
    * @param event Touch end of the trigger tap.
    */
-  protected toggleMenuTouch(event: TouchEvent): void {
+  protected openMenuTouch(event: TouchEvent): void {
     event.preventDefault();
-    this.toggleMenu();
+    this.openMenu(event);
   }
 
 
   /**
-   * Closes the menu and returns focus to its trigger.
+   * Closes the options menu; the dialog-shell restores focus to the trigger.
    */
   protected closeMenu(): void {
-    if (this.menuState() === 'closed') return;
     this.menuState.set('closed');
-    this.menuTrigger()?.nativeElement.focus();
   }
 
 
@@ -178,15 +180,5 @@ export class MessageActionsComponent {
     if (action === 'forMe') this.deleteForMe.emit();
     if (action === 'forAll') this.deleteForAll.emit();
     this.menuState.set('closed');
-  }
-
-
-  /**
-   * Closes the menu when a click lands outside the action bar.
-   * @param event Document-level click event.
-   */
-  protected onDocumentClick(event: Event): void {
-    if (this.menuState() === 'closed') return;
-    if (!this.host.nativeElement.contains(event.target as Node)) this.menuState.set('closed');
   }
 }

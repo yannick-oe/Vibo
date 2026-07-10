@@ -234,3 +234,7 @@ $transition-fast: 150ms ease;
 $transition-base: 200ms ease;
 $transition-slow: 350ms ease;
 $aurora-drift-duration: 90s;
+
+// Shared "bubble inflate" for trigger-opened menus/popovers (see menu-inflate mixin).
+$menu-inflate-duration: 500ms;
+$menu-inflate-ease: cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -304,9 +304,11 @@ $message-hide-scale-to: 0.92;
 .message__actions-anchor {
   position: absolute;
   top: 0;
-  transform: translateY(-50%);
   right: v.space('lg');
   z-index: v.$z-raised;
+  display: flex;
+  align-items: center;
+  height: 0;
   opacity: 0;
   transition: opacity v.$transition-fast;
 
@@ -319,18 +321,6 @@ $message-hide-scale-to: 0.92;
   :host(.message--own) & {
     right: auto;
     left: v.space('lg');
-  }
-}
-
-.message__picker {
-  position: absolute;
-  top: v.space('xl');
-  left: calc(#{v.$avatar-message} + #{v.space('lg')});
-  z-index: v.$z-dropdown;
-
-  :host(.message--own) & {
-    left: auto;
-    right: calc(#{v.$avatar-message} + #{v.space('lg')});
   }
 }
 
@@ -408,15 +398,5 @@ $message-hide-scale-to: 0.92;
   .message__bubble,
   .message__edit {
     padding: v.space('sm') v.space('md');
-  }
-
-  .message__picker {
-    left: 0;
-    right: auto;
-
-    :host(.message--own) & {
-      left: auto;
-      right: 0;
-    }
   }
 }

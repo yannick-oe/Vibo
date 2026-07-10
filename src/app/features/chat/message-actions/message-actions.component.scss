@@ -77,50 +77,11 @@
   }
 }
 
-.actions__menu-wrap {
-  position: relative;
-}
-
 .actions__menu {
-  position: absolute;
-  top: calc(100% + #{v.space('xs')} + 0.5px);
-  right: 0;
-  z-index: v.$z-dropdown;
   display: flex;
   flex-direction: column;
   gap: v.space('xs');
-  padding: v.space('sm');
-  border-radius: v.$radius-lg 0 v.$radius-lg v.$radius-lg;
-  background-color: v.color('white');
-  box-shadow: v.$shadow-lg;
   white-space: nowrap;
-  transform-origin: top right;
-  animation: actions-menu-inflate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-
-  :host(.actions--own) & {
-    right: auto;
-    left: -120px;
-    border-radius: 0 v.$radius-lg v.$radius-lg v.$radius-lg;
-    transform-origin: top left;
-  }
-}
-
-@keyframes actions-menu-inflate {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .actions__menu {
-    animation: none;
-  }
 }
 
 .actions__menu-item {

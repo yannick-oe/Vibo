@@ -28,7 +28,7 @@ import {
 import { LayoutService } from '../../services/layout.service';
 import { ReducedMotionService } from '../../services/reduced-motion.service';
 import { ScrollLockService } from './scroll-lock.service';
-import { DialogAnchor, DialogSize, anchoredMaxHeightStyle } from './dialog-anchor';
+import { DialogAnchor, DialogSize, anchoredMaxHeightStyle, placeVertically } from './dialog-anchor';
 import { focusableElementsIn, trapFocusWithin } from './dialog-focus';
 import {
   DRAG_START_SLOP_PX,
@@ -74,11 +74,13 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
   readonly anchor = input<DialogAnchor | null>(null);
 
-  readonly hasLeftAnchor = computed(() => this.anchor()?.left !== undefined);
+  readonly scrim = input<'visible' | 'transparent'>('visible');
 
-  readonly hasRightAnchor = computed(() => this.anchor()?.right !== undefined);
+  private readonly placedAnchor = signal<DialogAnchor | null>(null);
 
-  protected readonly anchoredMaxHeight = computed(() => anchoredMaxHeightStyle(this.anchor()));
+  protected readonly activeAnchor = computed(() => this.placedAnchor() ?? this.anchor());
+
+  protected readonly anchoredMaxHeight = computed(() => anchoredMaxHeightStyle(this.activeAnchor()));
 
   readonly closed = output<void>();
 
@@ -143,6 +145,8 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
    */
   ngAfterViewInit(): void {
     this.scrollLock.lock();
+    const anchor = this.anchor();
+    if (anchor) this.placedAnchor.set(placeVertically(anchor, this.card().nativeElement.offsetHeight));
     focusableElementsIn(this.card().nativeElement)[0]?.focus();
     this.card().nativeElement.addEventListener('touchmove', this.onNativeTouchMove, {
       passive: false,

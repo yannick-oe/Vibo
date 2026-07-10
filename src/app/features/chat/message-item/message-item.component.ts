@@ -43,6 +43,8 @@ import { MessageContentComponent } from '../message-content/message-content.comp
 import { ReactionChipsComponent } from '../reaction-chips/reaction-chips.component';
 import { ReplyQuoteComponent } from '../reply-quote/reply-quote.component';
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
+import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
+import { anchorAbove } from '../../../shared/dialog-shell/dialog-anchor';
 import { ReadReceiptComponent } from '../../../shared/read-receipt/read-receipt.component';
 
 const UNKNOWN_AUTHOR = 'Unbekannt';
@@ -67,6 +69,7 @@ const DELETE_POP_MS = 220;
     ReactionChipsComponent,
     ReadReceiptComponent,
     ReplyQuoteComponent,
+    DialogShellComponent,
   ],
   templateUrl: './message-item.component.html',
   styleUrl: './message-item.component.scss',
@@ -133,6 +136,8 @@ export class MessageItemComponent {
 
   private readonly editTextarea = viewChild<ElementRef<HTMLTextAreaElement>>('editTextarea');
 
+  private readonly bubbleAnchor = viewChild.required<ElementRef<HTMLElement>>('bubbleAnchor');
+
   private readonly host = inject(ElementRef<HTMLElement>);
 
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -154,6 +159,12 @@ export class MessageItemComponent {
   protected readonly editText = signal('');
 
   protected readonly reactionPickerOpen = signal(false);
+
+  protected readonly pickerAnchor = computed(() =>
+    this.reactionPickerOpen()
+      ? anchorAbove(this.bubbleAnchor().nativeElement, this.isOwn() ? 'right' : 'left')
+      : null,
+  );
 
   protected readonly editPickerOpen = signal(false);
 
@@ -279,16 +290,6 @@ export class MessageItemComponent {
     }
     this.barOpen.set(false);
     await runMessageAction(this.toastService, () => this.messageService.setReaction(messagePath, emoji, reactions));
-  }
-
-
-  /**
-   * Handles an emoji picked in the reaction picker.
-   * @param emoji Picked emoji character.
-   */
-  protected onReactionPicked(emoji: string): void {
-    this.reactionPickerOpen.set(false);
-    void this.react(emoji);
   }
 
 

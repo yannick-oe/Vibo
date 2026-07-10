@@ -11,7 +11,7 @@
   <app-avatar class="message__avatar" [avatarPath]="authorAvatarPath()" surface="row" />
 }
 
-<div class="message__body">
+<div class="message__body" #bubbleAnchor>
   <div class="message__meta">
     <span class="message__author">{{ authorName() }}</span>
     <span class="message__time">{{ time() }} Uhr</span>
@@ -143,6 +143,7 @@
       [isThreadOpen]="isThreadOpen()"
       [isReplyable]="isReplyable()"
       [canEdit]="canEditNow()"
+      [bubbleElement]="bubbleAnchor"
       (reacted)="react($event)"
       (pickerRequested)="reactionPickerOpen.set(true)"
       (threadToggled)="requestThread()"
@@ -155,10 +156,18 @@
 }
 
 @if (reactionPickerOpen()) {
-  <app-emoji-picker
-    class="message__picker"
-    [isReactionTrigger]="true"
-    (picked)="onReactionPicked($event)"
+  <app-dialog-shell
+    size="menu"
+    scrim="transparent"
+    [anchor]="pickerAnchor()"
+    labelledBy="msg-reaction-title"
     (closed)="reactionPickerOpen.set(false)"
-  />
+  >
+    <span class="sr-only" id="msg-reaction-title">Reaktion auswählen</span>
+    <app-emoji-picker
+      [isReactionTrigger]="true"
+      (picked)="reactionPickerOpen.set(false); react($event)"
+      (closed)="reactionPickerOpen.set(false)"
+    />
+  </app-dialog-shell>
 }

@@ -54,8 +54,7 @@ $sheet-settle-ease: cubic-bezier(0.35, 0.35, 0.15, 1);
   &--menu {
     width: auto;
     padding: v.space('sm-md');
-    transform-origin: top right;
-    animation: balloon-inflate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    @include m.menu-inflate(top right);
   }
 
   @include m.respond-sm {
@@ -66,15 +65,27 @@ $sheet-settle-ease: cubic-bezier(0.35, 0.35, 0.15, 1);
   &--anchor-left {
     position: absolute;
     border-top-left-radius: 0;
-    transform-origin: top left;
-    animation: balloon-inflate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    @include m.menu-inflate(top left);
   }
 
   &--anchor-right {
     position: absolute;
     border-top-right-radius: 0;
-    transform-origin: top right;
-    animation: balloon-inflate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    @include m.menu-inflate(top right);
+  }
+
+  // Flipped above the trigger: square the corner toward it (now below) and
+  // inflate from the matching bottom corner.
+  &--anchor-bottom.dialog-shell__card--anchor-left {
+    border-top-left-radius: v.$radius-xl;
+    border-bottom-left-radius: 0;
+    @include m.menu-inflate(bottom left);
+  }
+
+  &--anchor-bottom.dialog-shell__card--anchor-right {
+    border-top-right-radius: v.$radius-xl;
+    border-bottom-right-radius: 0;
+    @include m.menu-inflate(bottom right);
   }
 }
 
@@ -88,25 +99,20 @@ $sheet-settle-ease: cubic-bezier(0.35, 0.35, 0.15, 1);
   padding: 0;
 }
 
-@keyframes balloon-inflate {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
+// Visually scrim-less (message action menu / reaction picker) yet still
+// click/Esc-dismissable — the transparent overlay keeps capturing outside
+// clicks. Mobile sheets keep their visible scrim.
+.dialog-shell--scrim-transparent::before {
+  background-color: transparent;
+}
 
-  100% {
-    transform: scale(1);
-    opacity: 1;
+@include m.respond-md {
+  .dialog-shell--scrim-transparent::before {
+    background-color: v.$overlay-scrim;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .dialog-shell__card--menu,
-  .dialog-shell__card--anchor-left,
-  .dialog-shell__card--anchor-right {
-    animation: none;
-  }
-}
+@include m.menu-inflate-keyframes;
 
 @include m.sheet-keyframes;
 
