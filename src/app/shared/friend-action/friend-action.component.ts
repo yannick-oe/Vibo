@@ -10,7 +10,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   booleanAttribute,
   computed,
   inject,
@@ -23,6 +22,8 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { FriendshipService } from '../../services/friendship.service';
 import { ToastService } from '../../services/toast.service';
+import { DialogAnchor, anchorBelow } from '../dialog-shell/dialog-anchor';
+import { DialogShellComponent } from '../dialog-shell/dialog-shell.component';
 
 const ACTION_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es später erneut.';
 const DM_ROUTE = '/app/dm';
@@ -37,13 +38,10 @@ const MESSAGE_LABEL_FALLBACK = 'Nachricht senden';
  */
 @Component({
   selector: 'app-friend-action',
+  imports: [DialogShellComponent],
   templateUrl: './friend-action.component.html',
   styleUrl: './friend-action.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    '(document:click)': 'onDocumentClick($event)',
-    '(keydown.escape)': 'cancelRemove()',
-  },
 })
 export class FriendActionComponent {
   readonly uid = input.required<string>();
@@ -67,7 +65,7 @@ export class FriendActionComponent {
 
   private readonly router = inject(Router);
 
-  private readonly host = inject(ElementRef<HTMLElement>);
+  protected readonly menuAnchor = signal<DialogAnchor | null>(null);
 
   protected readonly state = computed(() =>
     this.friendshipService.relationshipState(this.uid())(),
@@ -127,11 +125,16 @@ export class FriendActionComponent {
 
 
   /**
-   * Toggles the overflow menu, always leaving the confirm step.
+   * Opens the overflow menu anchored below its trigger (flipping above when
+   * space is short; sheets on mobile), always leaving the confirm step. The
+   * dialog-shell owns outside-click, Escape, focus trap and focus restore.
+   * @param event Click that opened the menu.
    */
-  protected toggleMenu(): void {
-    this.isMenuOpen.update(open => !open);
+  protected openMenu(event: Event): void {
+    const trigger = event.currentTarget;
+    this.menuAnchor.set(trigger instanceof HTMLElement ? anchorBelow(trigger, 'right') : null);
     this.isConfirming.set(false);
+    this.isMenuOpen.set(true);
   }
 
 
@@ -158,15 +161,6 @@ export class FriendActionComponent {
   protected confirmRemove(): void {
     this.cancelRemove();
     void this.run(() => this.friendshipService.removeFriend(this.uid()));
-  }
-
-
-  /**
-   * Closes the overflow menu when a click lands outside the component.
-   * @param event Document-level click event.
-   */
-  protected onDocumentClick(event: Event): void {
-    if (!this.host.nativeElement.contains(event.target as Node)) this.cancelRemove();
   }
 
 

@@ -59,9 +59,9 @@
           class="btn btn-icon friend-action__more"
           type="button"
           aria-label="Weitere Aktionen"
-          aria-haspopup="true"
+          aria-haspopup="menu"
           [attr.aria-expanded]="isMenuOpen()"
-          (click)="toggleMenu()"
+          (click)="openMenu($event)"
         >
           <img src="app-icons/more-vert.svg" alt="" aria-hidden="true" />
           @if (compact()) {
@@ -69,34 +69,43 @@
           }
         </button>
         @if (isMenuOpen()) {
-          <div class="friend-action__menu" role="menu" aria-label="Weitere Freundschaftsaktionen">
-            @if (!isConfirming()) {
-              <button
-                class="friend-action__menu-item friend-action__menu-item--danger"
-                type="button"
-                role="menuitem"
-                [disabled]="isBusy()"
-                (click)="startRemove()"
-              >
-                Freund entfernen
-              </button>
-            } @else {
-              <p class="friend-action__confirm-text">Freund wirklich entfernen?</p>
-              <div class="friend-action__confirm-actions">
+          <app-dialog-shell
+            size="menu"
+            scrim="transparent"
+            [anchor]="menuAnchor()"
+            labelledBy="friend-action-menu-title"
+            (closed)="cancelRemove()"
+          >
+            <span class="sr-only" id="friend-action-menu-title">Weitere Freundschaftsaktionen</span>
+            <div class="friend-action__menu" role="menu">
+              @if (!isConfirming()) {
                 <button
                   class="friend-action__menu-item friend-action__menu-item--danger"
                   type="button"
+                  role="menuitem"
                   [disabled]="isBusy()"
-                  (click)="confirmRemove()"
+                  (click)="startRemove()"
                 >
-                  Entfernen
+                  Freund entfernen
                 </button>
-                <button class="friend-action__menu-item" type="button" (click)="cancelRemove()">
-                  Abbrechen
-                </button>
-              </div>
-            }
-          </div>
+              } @else {
+                <p class="friend-action__confirm-text">Freund wirklich entfernen?</p>
+                <div class="friend-action__confirm-actions">
+                  <button
+                    class="friend-action__menu-item friend-action__menu-item--danger"
+                    type="button"
+                    [disabled]="isBusy()"
+                    (click)="confirmRemove()"
+                  >
+                    Entfernen
+                  </button>
+                  <button class="friend-action__menu-item" type="button" (click)="cancelRemove()">
+                    Abbrechen
+                  </button>
+                </div>
+              }
+            </div>
+          </app-dialog-shell>
         }
       }
     }

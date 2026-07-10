@@ -76,18 +76,10 @@ $menu-min-width: 220px;
 }
 
 .friend-action__menu {
-  position: absolute;
-  top: calc(100% + #{v.space('xs')});
-  right: 0;
-  z-index: v.$z-dropdown;
+  display: flex;
+  flex-direction: column;
   min-width: $menu-min-width;
-  padding: v.space('sm');
-  border-radius: v.$radius-lg;
-  @include m.glass;
-  @include m.menu-inflate(top right);
 }
-
-@include m.menu-inflate-keyframes;
 
 .friend-action__menu-item {
   display: flex;
