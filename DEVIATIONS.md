@@ -3,6 +3,34 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Emoji-picker sheet half-height detent + aurora containment (2026-07-10)
+- **Mobile picker sheet opens at a half-height detent.** The picker sheet (composer *and*
+  reaction, incl. the „Große Reaktionen" row) previously opened near full height and felt
+  overwhelming. On mobile the picker now has a fixed height token **`$emoji-sheet-height: 55dvh`**
+  (with a `55vh` fallback token for engines without `dvh`); search pill + big-reaction row are a
+  fixed header, the sticky tabs pin at the top of the scroll area, and only the grid scrolls in the
+  remaining space (the inner scroll keeps deferring to the sheet drag as before). Desktop popover
+  unchanged; all other sheets (long-press menu, profile, notifications) unchanged. Verified at
+  320×568: header fits, grid scrolls, no horizontal scroll, CLS 0, reduced-motion unaffected.
+  - **Single detent (reviewed, not two).** A second snap point (drag up → ~90 dvh, drag down from
+    half → dismiss) was **not** built: the sheet physics (`sheet-physics.ts` + the shell) is a
+    single-rest-position model — offset is measured from one hardcoded rest (the natural content
+    height) with rubber-band-only overdrag upward and no detent/snap state. Adding a second detent
+    means adding detent state, two rest positions, snap-on-release logic and dismiss-from-half — a
+    rewrite of the sheet, which the brief said to avoid. Fixed half-height shipped instead; a
+    two-detent upgrade remains an option if wanted later.
+- **Aurora clipped to the banner box (fix).** The curtains tinted the whole profile/edit dialog
+  because `.banner__aurora` was `position:absolute; inset:0` while the banner `:host` was
+  `position:static` — so the overlay resolved its containing block against a higher positioned
+  ancestor (the dialog card), and a static host's `overflow:hidden` cannot clip an abs-pos
+  descendant whose containing block is above it; `mix-blend-mode:screen` then tinted the dialog.
+  Fixed by making `:host` a containing block: **`position:relative` + `contain:paint`** (keeping the
+  existing `overflow:hidden` + `border-radius`), so the curtains resolve `inset:0` against the
+  banner, are clipped to its rounded box, and the screen blend is isolated to the starfield behind
+  them — the dialog background returns to the normal surface. Shared component ⇒ profile dialog and
+  edit preview both fixed; the reduced-motion static frame is clipped identically; text/badges
+  (below the banner) stay AA; Keine / Sternenfeld / Nebula untouched.
+
 ## Composer picker in the overlay layer, picker width, living aurora (2026-07-10)
 - **Composer emoji picker moved into the anchored overlay layer.** Root cause of the hover-through
   bug (a hovered message row's action bar painting over the open composer picker): the picker was
