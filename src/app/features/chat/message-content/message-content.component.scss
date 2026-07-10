@@ -198,12 +198,25 @@
     font-weight: v.$font-weight-semibold;
     color: v.color('primary');
   }
+
+  .message__mention--me {
+    padding: 0 v.space('xs');
+    border-radius: v.$radius-sm;
+    background-color: var(--mention-accent);
+    color: v.color('white');
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
 }
 
 :host-context(.message--own) ::ng-deep {
   a,
   .message__mention {
     color: inherit;
+  }
+
+  .message__mention--me {
+    color: v.color('white');
   }
 
   blockquote {

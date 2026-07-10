@@ -17,11 +17,16 @@ const CODE_TAGS = ['CODE', 'PRE'];
  * own header text is never processed.
  * @param html Sanitized Markdown HTML string.
  * @param userNames Known display names used to detect mentions.
+ * @param selfName Signed-in user's display name, or null.
  */
-export function enhanceMessageHtml(html: string, userNames: readonly string[]): string {
+export function enhanceMessageHtml(
+  html: string,
+  userNames: readonly string[],
+  selfName: string | null = null,
+): string {
   const template = document.createElement('template');
   template.innerHTML = html;
-  collectTextNodes(template.content).forEach(node => replaceTextNode(node, userNames));
+  collectTextNodes(template.content).forEach(node => replaceTextNode(node, userNames, selfName));
   enhanceCodeBlocks(template.content);
   return template.innerHTML;
 }
@@ -60,9 +65,10 @@ function isInCode(node: Node): boolean {
  * emoji or a mention; plain text is left untouched.
  * @param node Eligible text node.
  * @param userNames Known display names used to detect mentions.
+ * @param selfName Signed-in user's display name, or null.
  */
-function replaceTextNode(node: Text, userNames: readonly string[]): void {
-  const segments = buildMessageSegments(node.textContent ?? '', [...userNames]);
+function replaceTextNode(node: Text, userNames: readonly string[], selfName: string | null): void {
+  const segments = buildMessageSegments(node.textContent ?? '', [...userNames], selfName);
   if (!segments.some(segment => segment.asset || segment.isMention)) return;
   const fragment = document.createDocumentFragment();
   segments.forEach(segment => fragment.appendChild(segmentToNode(segment)));
@@ -76,7 +82,7 @@ function replaceTextNode(node: Text, userNames: readonly string[]): void {
  */
 function segmentToNode(segment: MessageSegment): Node {
   if (segment.asset) return emojiImage(segment.asset, segment.name ?? '');
-  if (segment.isMention) return mentionSpan(segment.text);
+  if (segment.isMention) return mentionSpan(segment.text, segment.isSelfMention);
   return document.createTextNode(segment.text);
 }
 
@@ -96,12 +102,14 @@ function emojiImage(asset: string, name: string): HTMLImageElement {
 
 
 /**
- * Builds a highlighted @mention span node.
+ * Builds a highlighted @mention span node; a mention of the signed-in user
+ * additionally carries the pill modifier class.
  * @param text Mention text including the leading "@".
+ * @param isSelf Whether the mention targets the signed-in user.
  */
-function mentionSpan(text: string): HTMLSpanElement {
+function mentionSpan(text: string, isSelf: boolean): HTMLSpanElement {
   const span = document.createElement('span');
-  span.className = 'message__mention';
+  span.className = isSelf ? 'message__mention message__mention--me' : 'message__mention';
   span.textContent = text;
   return span;
 }

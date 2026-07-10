@@ -1,5 +1,5 @@
 @if (rendered(); as html) {
   <div class="message-content" [innerHTML]="html"></div>
 } @else {
-  <div class="message-content">@for (seg of segments(); track $index) {@if (seg.asset) {<img class="message__emoji" [src]="seg.asset" [alt]="seg.name" />} @else if (seg.isMention) {<span class="message__mention">{{ seg.text }}</span>} @else {{{ seg.text }}}}</div>
+  <div class="message-content">@for (seg of segments(); track $index) {@if (seg.asset) {<img class="message__emoji" [src]="seg.asset" [alt]="seg.name" />} @else if (seg.isMention) {<span class="message__mention" [class.message__mention--me]="seg.isSelfMention">{{ seg.text }}</span>} @else {{{ seg.text }}}}</div>
 }

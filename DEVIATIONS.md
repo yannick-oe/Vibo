@@ -3,6 +3,34 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Mention visuals: self-mention pill + mention-accent unread badge (2026-07-10)
+- **One shared `--mention-accent` token, measured.** A single CSS custom property drives both the
+  message-body self-mention pill and the sidebar mention badge (light `#c4185f`, dark `#ff3d9e`);
+  the text is the existing flipping `color('white')` (`#fff` light / `#17103a` dark). Measured
+  WCAG pairs — pill/badge **text on accent**: light **5.76:1**, dark **5.47:1** (both ≥ 4.5). Pill
+  **accent vs bubble surfaces** (so it pops): light own-bubble **4.56:1**, light other-bubble
+  **5.00:1**, dark other-bubble **6.00:1**. In dark the pill on the *own* bubble (`#97a2ff`) is only
+  **1.39:1** by luminance but a distinct hue (pink vs indigo) and carries AA text — and a
+  self-mention inside one's *own* message is rare (you mention others, not yourself); the pill lands
+  overwhelmingly on foreign/other bubbles, which are AA. Subtle tints were rejected: on the aurora
+  indigo bubbles a light indigo/rosa tint measured ~1.0–1.2:1 against the surface (invisible), so a
+  filled accent pill is used instead.
+- **Self vs others (interpretation).** Mentions of **me** get the filled pill; mentions of **others**
+  keep the existing **primary (indigo) accent text** — a deliberate two-hue system (rosa = concerns
+  you, indigo = informational) rather than colouring every foreign mention rosa. The pill adds
+  horizontal padding only (no vertical → line metrics unchanged), a `$radius-sm` corner and
+  `box-decoration-break: clone` so it wraps cleanly mid-line at 320px; no layout shift, coexists with
+  inline emoji/img in the same segment pipeline. Reply-quote and notification previews stay plain
+  muted text (untouched — folding a pill into the clamped one-liner was not worth complicating it).
+- **Badge variant is glyph-less (reviewed).** The mention unread badge switches to the accent colour
+  only — no leading "@" glyph. A single-count badge is a `min-width` circle; prepending "@" would
+  grow it into a wider pill, changing the reserved geometry when the variant toggles. Per the brief's
+  "otherwise glyph-less accent", the colour-only switch is used → guaranteed **CLS 0** on toggle. The
+  status is never colour-only: the aria-label appends **„…, enthält Erwähnung"** (mandatory either
+  way). The variant derives from the existing feed (`mentionedConversationKeys`, mention groups) — no
+  new query/listener — and reverts automatically via the feed's existing auto-clear when the
+  conversation is viewed.
+
 ## Reaction-sheet single scroll region + taller reaction detent (2026-07-10)
 - **The mobile picker sheet has exactly one vertical scroll region.** The tabs moved out of
   `.picker__scroll` into the fixed header, so the big-reaction row + search pill + **tabs** now form

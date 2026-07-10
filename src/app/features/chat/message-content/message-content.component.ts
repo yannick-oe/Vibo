@@ -14,6 +14,7 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
+import { AuthService } from '../../../services/auth.service';
 import { UserService } from '../../../services/user.service';
 import { buildMessageSegments } from '../message-segments';
 import { enhanceMessageHtml } from './message-enhance';
@@ -62,6 +63,8 @@ export class MessageContentComponent {
 
   private readonly userService = inject(UserService);
 
+  private readonly authService = inject(AuthService);
+
   private readonly sanitizer = inject(DomSanitizer);
 
   private renderToken = 0;
@@ -70,7 +73,11 @@ export class MessageContentComponent {
     equal: sameNames,
   });
 
-  protected readonly segments = computed(() => buildMessageSegments(this.text(), this.userNames()));
+  private readonly selfName = computed(() => this.resolveSelfName());
+
+  protected readonly segments = computed(() =>
+    buildMessageSegments(this.text(), this.userNames(), this.selfName()),
+  );
 
   protected readonly rendered = signal<SafeHtml | null>(null);
 
@@ -79,7 +86,17 @@ export class MessageContentComponent {
    * Re-renders the Markdown whenever the text or the known user names change.
    */
   constructor() {
-    effect(() => void this.render(this.text(), this.userNames()));
+    effect(() => void this.render(this.text(), this.userNames(), this.selfName()));
+  }
+
+
+  /**
+   * The signed-in user's display name, resolved from the user directory by
+   * uid, or null when signed out or not yet loaded.
+   */
+  private resolveSelfName(): string | null {
+    const uid = this.authService.currentUser()?.uid;
+    return this.userService.users().find(user => user.uid === uid)?.name ?? null;
   }
 
 
@@ -89,12 +106,13 @@ export class MessageContentComponent {
    * stays visible. Whitespace-only text renders nothing extra.
    * @param text Raw message text.
    * @param userNames Known display names for mention detection.
+   * @param selfName Signed-in user's display name, or null.
    */
-  private async render(text: string, userNames: string[]): Promise<void> {
+  private async render(text: string, userNames: string[], selfName: string | null): Promise<void> {
     const token = ++this.renderToken;
     if (!text.trim()) return this.rendered.set(null);
     try {
-      const chrome = enhanceMessageHtml(await renderMarkdown(text), userNames);
+      const chrome = enhanceMessageHtml(await renderMarkdown(text), userNames, selfName);
       if (token !== this.renderToken) return;
       this.rendered.set(this.sanitizer.bypassSecurityTrustHtml(chrome));
       if (chrome.includes(CODE_BLOCK_CLASS)) await this.highlight(chrome, token);
