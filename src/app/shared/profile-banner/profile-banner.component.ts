@@ -1,10 +1,12 @@
 /**
- * @file Presentational profile banner: a single <canvas> rendering an animated
- * cosmic scene (parallax starfield + flowing aurora + a rare shooting star) for
- * the selected preset. Decorative (aria-hidden), DPR-scaled, GPU-friendly. The
- * requestAnimationFrame loop runs only while this component is mounted (the
- * profile card is open) and stops on destroy. Reduced motion ⇒ one rich static
- * frame; reduced transparency ⇒ the glow is toned down; thumbnails ⇒ one frame.
+ * @file Presentational profile banner: a <canvas> rendering an animated cosmic
+ * scene (parallax starfield + bands/nebula + a rare shooting star) for the
+ * selected preset, plus — for the „Polarlicht" preset — three GPU-friendly CSS
+ * gradient curtains (teal/green → app purple, transform/opacity only) layered
+ * over the starfield. Decorative (aria-hidden), DPR-scaled. The rAF loop runs
+ * only while mounted (the profile card is open) and stops on destroy. Reduced
+ * motion ⇒ one rich static frame (curtains freeze); reduced transparency ⇒ the
+ * glow is toned down; thumbnails/isStatic ⇒ one frame.
  */
 import {
   ChangeDetectionStrategy,
@@ -12,13 +14,14 @@ import {
   DestroyRef,
   ElementRef,
   afterNextRender,
+  computed,
   effect,
   inject,
   input,
   viewChild,
 } from '@angular/core';
 
-import { BANNER_NONE, cosmicParams } from '../banner-options';
+import { BANNER_AURORA, BANNER_NONE, cosmicParams } from '../banner-options';
 import { CosmicColors, CosmicScene, createScene, drawFrame, resolveColors } from './cosmic/cosmic-scene';
 
 const MAX_DPR = 2;
@@ -40,11 +43,14 @@ interface Size {
   templateUrl: './profile-banner.component.html',
   styleUrl: './profile-banner.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[class.banner--frozen]': 'isStatic()' },
 })
 export class ProfileBannerComponent {
   readonly banner = input<string>(BANNER_NONE);
 
   readonly isStatic = input(false);
+
+  protected readonly isAurora = computed(() => this.banner() === BANNER_AURORA);
 
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
 
