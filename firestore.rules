@@ -90,7 +90,7 @@ service cloud.firestore {
     // (their own uid, server time) so every viewer replays it once.
     function setsBigReaction() {
       return affectedKeys().hasOnly(['lastBigReaction'])
-        && request.resource.data.lastBigReaction.type in ['confetti', 'hearts', 'rocket', 'laugh']
+        && request.resource.data.lastBigReaction.type in ['confetti', 'hearts', 'rocket', 'laugh', 'fire', 'clap', 'tear', 'flash']
         && request.resource.data.lastBigReaction.by == request.auth.uid
         && request.resource.data.lastBigReaction.at == request.time;
     }

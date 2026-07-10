@@ -11,7 +11,14 @@ import { ChangeDetectionStrategy, Component, ElementRef, effect, inject, viewChi
 
 import { EFFECT_EMOJI, EffectKind } from '../../models/reactions';
 import { BigReactionRequest, BigReactionService } from '../../services/big-reaction.service';
-import { GlyphParticle, spawnBurst, spawnPop, stepFrame as stepGlyphs } from './glyph-particles';
+import {
+  GlyphParticle,
+  spawnBurst,
+  spawnPop,
+  spawnRain,
+  spawnRise,
+  stepFrame as stepGlyphs,
+} from './glyph-particles';
 import { Particle, mixHex, spawnParticles, stepFrame as stepShapes } from './shape-particles';
 
 const MAX_MS = 4000;
@@ -95,7 +102,8 @@ export class BigReactionOverlayComponent {
   private spawn(request: BigReactionRequest, width: number, height: number): void {
     const { type, origin } = request;
     if (reducedMotion()) return this.useGlyphs(spawnPop(EFFECT_EMOJI[type], origin.x, origin.y));
-    if (type === 'laugh') return this.useGlyphs(spawnBurst(EFFECT_EMOJI.laugh, origin.x, origin.y));
+    const glyphs = glyphsFor(type, origin.x, origin.y, width, height);
+    if (glyphs) return this.useGlyphs(glyphs);
     this.mode = 'shape';
     this.shapes = spawnParticles(type, width, height, effectColors(type));
   }
@@ -177,6 +185,30 @@ function effectColors(kind: EffectKind): string[] {
   const accent = styles.getPropertyValue(ACCENT_VAR).trim();
   if (kind === 'hearts') return [accent, mixHex(accent, WHITE, HEART_TINT)];
   return [primary, mixHex(primary, accent, MIX_HALF), accent];
+}
+
+
+/**
+ * The glyph-engine particles for an emoji-glyph effect, or null for the
+ * full-screen shape effects (confetti/hearts/rocket). Bursts radiate from the
+ * message (laugh/clap/flash); fire rises from the bottom, tears rain from the top.
+ * @param type Effect kind to build.
+ * @param x Burst origin x in CSS pixels.
+ * @param y Burst origin y in CSS pixels.
+ * @param width Canvas width in CSS pixels.
+ * @param height Canvas height in CSS pixels.
+ */
+function glyphsFor(
+  type: EffectKind,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): GlyphParticle[] | null {
+  if (type === 'laugh' || type === 'clap' || type === 'flash') return spawnBurst(EFFECT_EMOJI[type], x, y);
+  if (type === 'fire') return spawnRise(EFFECT_EMOJI.fire, width, height);
+  if (type === 'tear') return spawnRain(EFFECT_EMOJI.tear, width);
+  return null;
 }
 
 

@@ -32,7 +32,13 @@
   color: var(--text-on-aurora);
 }
 
-.picker__row,
+.picker__row {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: v.space('xs');
+  justify-content: start;
+}
+
 .picker__grid {
   display: grid;
   grid-template-columns: repeat(6, auto);

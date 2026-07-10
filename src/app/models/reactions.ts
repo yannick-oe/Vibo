@@ -5,7 +5,15 @@
 import { ReactionMap } from './message.model';
 
 /** Kinds of celebratory screen effect a big reaction broadcasts to all viewers. */
-export type EffectKind = 'confetti' | 'hearts' | 'rocket' | 'laugh';
+export type EffectKind =
+  | 'confetti'
+  | 'hearts'
+  | 'rocket'
+  | 'laugh'
+  | 'fire'
+  | 'clap'
+  | 'tear'
+  | 'flash';
 
 /** Emoji whose selection broadcasts a screen effect, mapped to that effect. */
 export const BIG_REACTIONS: Readonly<Record<string, EffectKind>> = {
@@ -13,6 +21,10 @@ export const BIG_REACTIONS: Readonly<Record<string, EffectKind>> = {
   '💖': 'hearts',
   '🚀': 'rocket',
   '😂': 'laugh',
+  '🔥': 'fire',
+  '👏': 'clap',
+  '😭': 'tear',
+  '⚡': 'flash',
 };
 
 /** German display noun of each big reaction, used in its accessible label. */
@@ -21,14 +33,22 @@ export const BIG_REACTION_LABELS: Readonly<Record<string, string>> = {
   '💖': 'Herzen',
   '🚀': 'Rakete',
   '😂': 'Lachen',
+  '🔥': 'Feuer',
+  '👏': 'Applaus',
+  '😭': 'Tränen',
+  '⚡': 'Blitz',
 };
 
-/** Emoji rendered for each effect (the reduced-motion pop and the laugh glyphs). */
+/** Emoji rendered for each effect (the reduced-motion pop and the glyph effects). */
 export const EFFECT_EMOJI: Readonly<Record<EffectKind, string>> = {
   confetti: '🎉',
   hearts: '💖',
   rocket: '🚀',
   laugh: '😂',
+  fire: '🔥',
+  clap: '👏',
+  tear: '😭',
+  flash: '⚡',
 };
 
 /** Ordered big-reaction emojis shown in the picker's Big Reactions section. */

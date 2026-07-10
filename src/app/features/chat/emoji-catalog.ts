@@ -34,6 +34,7 @@ const EMOJI_CATALOG: Record<string, EmojiMeta> = {
   '😍': { asset: 'emojis/1f60d.svg', name: 'Verliebtes Gesicht' },
   '😉': { asset: 'emojis/1f609.svg', name: 'Zwinkerndes Gesicht' },
   '😢': { asset: 'emojis/1f622.svg', name: 'Weinendes Gesicht' },
+  '😭': { asset: 'emojis/1f62d.svg', name: 'Laut weinendes Gesicht' },
   '💡': { asset: 'emojis/1f4a1.svg', name: 'Glühbirne' },
   '⚡': { asset: 'emojis/26a1.svg', name: 'Blitz' },
   '👎': { asset: 'emojis/1f44e.svg', name: 'Daumen runter' },
