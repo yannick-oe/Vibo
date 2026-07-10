@@ -84,7 +84,10 @@ $menu-min-width: 220px;
   padding: v.space('sm');
   border-radius: v.$radius-lg;
   @include m.glass;
+  @include m.menu-inflate(top right);
 }
+
+@include m.menu-inflate-keyframes;
 
 .friend-action__menu-item {
   display: flex;

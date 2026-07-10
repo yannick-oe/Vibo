@@ -221,3 +221,31 @@
     }
   }
 }
+
+// Shared "bubble inflate" entrance for trigger-opened menus/popovers: a
+// scale+opacity pop from the trigger corner. `backwards` fill applies the
+// scale(0) start frame without leaving a persistent transform after the run
+// (which would create a stacking context — see DEVIATIONS 2026-07-09). Pair
+// with `menu-inflate-keyframes` at the stylesheet root. Reduced motion ⇒ instant.
+@mixin menu-inflate($origin: top right) {
+  transform-origin: $origin;
+  animation: menu-inflate v.$menu-inflate-duration v.$menu-inflate-ease backwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@mixin menu-inflate-keyframes {
+  @keyframes menu-inflate {
+    from {
+      transform: scale(0);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+}
