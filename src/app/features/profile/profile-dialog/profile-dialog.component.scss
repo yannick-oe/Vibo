@@ -60,13 +60,15 @@ $name-error-lines: 2;
 
 .profile__identity {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: v.space('sm');
+  gap: v.space('xs') v.space('sm');
   min-width: 0;
 }
 
 .profile__name {
   min-width: 0;
+  flex-shrink: 1;
   font-size: v.font-size('h4');
   font-weight: v.$font-weight-bold;
   color: v.color('black');
@@ -78,9 +80,9 @@ $name-error-lines: 2;
 }
 
 .profile__username {
+  flex-shrink: 0;
   font-size: v.font-size('body');
   color: v.color('text-gray');
-  overflow-wrap: anywhere;
 }
 
 .profile__guest-note {

@@ -31,15 +31,14 @@
           <app-aurora-name [name]="displayName()" [isAnimated]="userAnimatedName()" />
         </h3>
         <app-badge-list class="profile__badges" [badges]="userBadges()" />
+        @if (username(); as handle) {
+          <span class="profile__username">&#64;{{ handle }}</span>
+        }
       </span>
       @if (isSelf() && !isGuestSelf()) {
         <button class="profile__edit-link" type="button" (click)="startEdit()">Bearbeiten</button>
       }
     </div>
-
-    @if (username(); as handle) {
-      <p class="profile__username">&#64;{{ handle }}</p>
-    }
 
     @if (userStatus(); as status) {
       <p class="profile__custom-status">{{ status }}</p>
