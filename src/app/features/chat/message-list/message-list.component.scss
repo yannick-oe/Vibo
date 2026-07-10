@@ -2,6 +2,7 @@
 @use 'mixins' as m;
 
 :host {
+  position: relative;
   display: block;
   height: 100%;
   min-height: 0;
@@ -14,9 +15,17 @@
   @include m.scrollbar-thin;
 }
 
+.message-list__fab {
+  position: absolute;
+  right: v.space('lg');
+  bottom: v.space('md');
+  z-index: v.$z-sticky;
+}
+
 .message-list__separator {
   display: flex;
   align-items: center;
+  gap: v.space('sm');
   margin: v.space('lg') 0;
 
   &::before,
@@ -36,6 +45,32 @@
   font-size: v.font-size('body');
   line-height: 1;
   color: v.color('black');
+  white-space: nowrap;
+}
+
+.message-list__new-separator {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: v.color('primary');
+  }
+}
+
+.message-list__new-chip {
+  padding: v.space('xs') v.space('md');
+  border: 1px solid v.color('primary');
+  border-radius: v.$radius-pill;
+  background-color: v.color('white');
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  line-height: 1;
+  color: v.color('primary');
   white-space: nowrap;
 }
 

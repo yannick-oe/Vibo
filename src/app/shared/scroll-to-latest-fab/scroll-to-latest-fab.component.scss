@@ -1,0 +1,83 @@
+@use 'variables' as v;
+
+$fab-size: v.$btn-height;
+$fab-badge-offset: -(v.space('xs'));
+
+:host {
+  display: block;
+}
+
+.fab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: $fab-size;
+  height: $fab-size;
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-round;
+  background-color: v.color('white');
+  box-shadow: v.$shadow-md;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+  transition:
+    opacity v.$transition-fast,
+    transform v.$transition-base v.$menu-inflate-ease;
+}
+
+.fab--visible {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.fab:hover {
+  background-color: v.color('bg');
+}
+
+.fab:focus-visible {
+  outline: none;
+  box-shadow: v.$shadow-md, v.$shadow-focus;
+}
+
+.fab__icon {
+  width: v.$icon-md;
+  height: v.$icon-md;
+}
+
+.fab__badge {
+  position: absolute;
+  top: $fab-badge-offset;
+  right: $fab-badge-offset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: v.space('md');
+  height: v.space('md');
+  padding: 0 v.space('xs');
+  border-radius: v.$radius-pill;
+  background-color: v.color('primary');
+  color: v.color('white');
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity v.$transition-fast;
+}
+
+.fab__badge--shown {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab,
+  .fab__badge {
+    transition: none;
+  }
+
+  .fab {
+    transform: none;
+  }
+}

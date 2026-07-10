@@ -41,13 +41,25 @@
   @include m.text-ellipsis;
 }
 
-.thread__scroll {
+.thread__body {
+  position: relative;
   flex: 1;
   min-height: 0;
+}
+
+.thread__scroll {
+  height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   padding: v.space('lg');
   @include m.scrollbar-thin;
+}
+
+.thread__fab {
+  position: absolute;
+  right: v.space('lg');
+  bottom: v.space('md');
+  z-index: v.$z-sticky;
 }
 
 .thread__origin {

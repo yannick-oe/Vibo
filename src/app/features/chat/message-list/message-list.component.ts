@@ -23,11 +23,15 @@ import { BigReactionService } from '../../../services/big-reaction.service';
 import { ReadEntry } from '../../../services/read-state.service';
 import { LayoutService } from '../../../services/layout.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
+import { ReducedMotionService } from '../../../services/reduced-motion.service';
+import { ScrollToLatestFabComponent } from '../../../shared/scroll-to-latest-fab/scroll-to-latest-fab.component';
 import { BigReactionTracker } from '../big-reaction-tracker';
 import { MessageEntranceTracker } from '../message-entrance';
+import { ScrollFabTracker } from '../scroll-fab-tracker';
 import { MessageItemComponent } from '../message-item/message-item.component';
 
 const TODAY_LABEL = 'Heute';
+const NEW_DIVIDER_LABEL = 'Neu';
 const DATE_KEY_FORMAT = 'yyyy-MM-dd';
 const DAY_LABEL_FORMAT = 'EEEE, d. MMMM';
 const NEAR_BOTTOM_THRESHOLD_PX = 120;
@@ -51,7 +55,7 @@ interface MessageGroup {
  */
 @Component({
   selector: 'app-message-list',
-  imports: [MessageItemComponent],
+  imports: [MessageItemComponent, ScrollToLatestFabComponent],
   templateUrl: './message-list.component.html',
   styleUrl: './message-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -71,6 +75,8 @@ export class MessageListComponent {
 
   readonly isSelfConversation = input(false);
 
+  readonly unreadSince = input<Timestamp | null>(null);
+
   readonly threadRequested = output<Message>();
 
   readonly replyRequested = output<Message>();
@@ -86,6 +92,8 @@ export class MessageListComponent {
   private readonly layoutService = inject(LayoutService);
 
   private readonly bigReactionService = inject(BigReactionService);
+
+  private readonly reducedMotion = inject(ReducedMotionService);
 
   protected readonly reactionLimit = computed(() =>
     this.layoutService.isMobile() ? MOBILE_REACTION_LIMIT : DESKTOP_REACTION_LIMIT,
@@ -108,7 +116,13 @@ export class MessageListComponent {
 
   protected readonly groups = computed(() => this.groupMessages());
 
+  protected readonly boundaryId = computed(() => this.deriveBoundaryId());
+
+  protected readonly newLabel = NEW_DIVIDER_LABEL;
+
   protected readonly entrance = new MessageEntranceTracker();
+
+  protected readonly scrollFab = new ScrollFabTracker();
 
   private readonly bigReaction = new BigReactionTracker();
 
@@ -144,6 +158,8 @@ export class MessageListComponent {
     effect(() => this.handleMessagesRendered(this.groups()));
     effect(() => this.handleFocusTarget(this.groups()));
     effect(() => this.playBigReactions(this.messages()));
+    effect(() => this.scrollFab.sync(this.visibleMessages().length, this.stickToBottom));
+    effect(() => this.reanchorOnBoundary(this.boundaryId()));
   }
 
 
@@ -185,6 +201,22 @@ export class MessageListComponent {
     if (!element) return;
     const distance = element.scrollHeight - element.scrollTop - element.clientHeight;
     this.stickToBottom = distance < NEAR_BOTTOM_THRESHOLD_PX;
+    this.scrollFab.onScroll(distance, element.clientHeight, this.stickToBottom);
+  }
+
+
+  /**
+   * Smoothly scrolls to the newest message — instantly under reduced motion —
+   * and marks the list caught up so the jump button hides at once.
+   */
+  protected jumpToLatest(): void {
+    const element = this.scrollContainer()?.nativeElement;
+    if (!element) return;
+    this.stickToBottom = true;
+    const distance = element.scrollHeight - element.scrollTop - element.clientHeight;
+    this.scrollFab.markCaughtUp(distance);
+    const behavior = this.reducedMotion.prefersReducedMotion() ? 'auto' : 'smooth';
+    element.scrollTo({ top: element.scrollHeight, behavior });
   }
 
 
@@ -198,6 +230,7 @@ export class MessageListComponent {
     this.stickToBottom = true;
     this.entrance.open();
     this.bigReaction.open();
+    this.scrollFab.open();
   }
 
 
@@ -208,6 +241,40 @@ export class MessageListComponent {
    */
   private handleMessagesRendered(groups: MessageGroup[]): void {
     if (groups.length === 0 || !this.stickToBottom) return;
+    requestAnimationFrame(() => {
+      const element = this.scrollContainer()?.nativeElement;
+      if (element) element.scrollTop = element.scrollHeight;
+    });
+  }
+
+
+  /**
+   * Id of the first message unread since the conversation was opened — newer
+   * than the frozen read marker and authored by someone else — or null when
+   * there is none. Stable while reading because the boundary is frozen at open.
+   */
+  private deriveBoundaryId(): string | null {
+    const since = this.unreadSince();
+    if (!since) return null;
+    const me = this.authService.currentUser()?.uid;
+    const first = this.visibleMessages().find(
+      message => message.authorId !== me && isAfter(message.createdAt, since),
+    );
+    return first?.id ?? null;
+  }
+
+
+  /**
+   * Re-pins the list to the bottom when the unread divider first appears while
+   * the user is at the latest message. The boundary is derived asynchronously
+   * (after the read marker resolves), so inserting the divider would otherwise
+   * push the newest messages down; re-anchoring before paint keeps them put
+   * (CLS 0). Only fires while sticking to the bottom; scrolled-up insertions are
+   * below the viewport or absorbed by browser scroll anchoring.
+   * @param boundaryId First-unread message id, or null (effect dependency).
+   */
+  private reanchorOnBoundary(boundaryId: string | null): void {
+    if (!boundaryId || !this.stickToBottom) return;
     requestAnimationFrame(() => {
       const element = this.scrollContainer()?.nativeElement;
       if (element) element.scrollTop = element.scrollHeight;
@@ -251,4 +318,16 @@ export class MessageListComponent {
  */
 function resolveDate(value: Message['createdAt']): Date {
   return value instanceof Timestamp ? value.toDate() : new Date();
+}
+
+
+/**
+ * Whether a message createdAt is strictly after the frozen unread boundary;
+ * pending sentinels never count (own just-sent messages are excluded by author
+ * before this runs, so only stored timestamps reach here).
+ * @param value createdAt field value of a message.
+ * @param since Frozen unread-boundary timestamp.
+ */
+function isAfter(value: Message['createdAt'], since: Timestamp): boolean {
+  return value instanceof Timestamp && value.toMillis() > since.toMillis();
 }

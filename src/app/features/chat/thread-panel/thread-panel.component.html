@@ -9,33 +9,42 @@
     </button>
   </header>
 
-  <div class="thread__scroll" #replyScroll>
-    @if (origin(); as originMessage) {
-      <ul class="thread__origin">
-        <li
-          app-message-item
-          [entry]="originMessage"
-          [messagePath]="originPath()"
-          [reactionLimit]="reactionLimit"
-        ></li>
-      </ul>
-    }
+  <div class="thread__body">
+    <div class="thread__scroll" #replyScroll (scroll)="onScroll()">
+      @if (origin(); as originMessage) {
+        <ul class="thread__origin">
+          <li
+            app-message-item
+            [entry]="originMessage"
+            [messagePath]="originPath()"
+            [reactionLimit]="reactionLimit"
+          ></li>
+        </ul>
+      }
 
-    <div class="thread__divider" role="separator">
-      <span class="thread__divider-label">{{ replyCountLabel() }}</span>
+      <div class="thread__divider" role="separator">
+        <span class="thread__divider-label">{{ replyCountLabel() }}</span>
+      </div>
+
+      <ul class="thread__replies">
+        @for (reply of visibleReplies(); track reply.id) {
+          <li
+            app-message-item
+            [entry]="reply"
+            [messagePath]="replyPathFor(reply)"
+            [reactionLimit]="reactionLimit"
+            [enterAnimate]="entrance.shouldEnter(reply)"
+          ></li>
+        }
+      </ul>
     </div>
 
-    <ul class="thread__replies">
-      @for (reply of visibleReplies(); track reply.id) {
-        <li
-          app-message-item
-          [entry]="reply"
-          [messagePath]="replyPathFor(reply)"
-          [reactionLimit]="reactionLimit"
-          [enterAnimate]="entrance.shouldEnter(reply)"
-        ></li>
-      }
-    </ul>
+    <app-scroll-to-latest-fab
+      class="thread__fab"
+      [visible]="scrollFab.visible()"
+      [count]="scrollFab.count()"
+      (jump)="jumpToLatest()"
+    />
   </div>
 
   <div class="thread__composer">

@@ -2,9 +2,17 @@
   @for (group of groups(); track group.key) {
     <div class="message-list__separator" role="separator">
       <span class="message-list__separator-label">{{ group.label }}</span>
+      @if (boundaryId() === group.messages[0].id) {
+        <span class="message-list__new-chip">{{ newLabel }}</span>
+      }
     </div>
     <ul class="message-list__day">
       @for (message of group.messages; track message.id) {
+        @if (message.id === boundaryId() && message.id !== group.messages[0].id) {
+          <li class="message-list__new-separator" role="separator">
+            <span class="message-list__new-chip">{{ newLabel }}</span>
+          </li>
+        }
         <li
           app-message-item
           [entry]="message"
@@ -27,3 +35,10 @@
     </ul>
   }
 </div>
+
+<app-scroll-to-latest-fab
+  class="message-list__fab"
+  [visible]="scrollFab.visible()"
+  [count]="scrollFab.count()"
+  (jump)="jumpToLatest()"
+/>

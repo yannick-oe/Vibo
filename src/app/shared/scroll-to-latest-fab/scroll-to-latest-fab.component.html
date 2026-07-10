@@ -1,0 +1,12 @@
+<button
+  type="button"
+  class="fab"
+  [class.fab--visible]="visible()"
+  [attr.aria-hidden]="!visible()"
+  [attr.tabindex]="visible() ? 0 : -1"
+  aria-label="Zu neuesten Nachrichten springen"
+  (click)="jump.emit()"
+>
+  <img class="fab__icon" src="app-icons/arrow-down.svg" alt="" aria-hidden="true" />
+  <span class="fab__badge" [class.fab__badge--shown]="count() > 0" aria-hidden="true">{{ badgeLabel() }}</span>
+</button>
