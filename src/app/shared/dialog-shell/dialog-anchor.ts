@@ -1,7 +1,8 @@
 /**
  * @file Anchoring model of the dialog shell: width presets and the
- * viewport-position helper docking a dialog card below its trigger element
- * per the Figma prototype.
+ * viewport-position helpers that dock a dialog card below or above its trigger
+ * and flip it toward the available space when the preferred side would
+ * overflow the viewport.
  */
 
 const ANCHOR_GAP_PX = 8;
@@ -13,20 +14,31 @@ const ANCHORED_BOTTOM_INSET_PX = 24;
 /** Width preset of the dialog card, mapped to the Figma measurements. */
 export type DialogSize = 'default' | 'members' | 'add-members' | 'profile' | 'menu' | 'search';
 
-/** Viewport position a dialog card is anchored to (Figma prototype). */
+/**
+ * Viewport position a dialog card is anchored to. Exactly one vertical edge
+ * (top for below-trigger, bottom for above-trigger) and one horizontal edge
+ * are set; the trigger's vertical extent is carried so {@link placeVertically}
+ * can flip the card to the other side after measuring it.
+ */
 export interface DialogAnchor {
-  /** Top edge of the card in viewport pixels. */
-  readonly top: number;
+  /** Top edge of the card in viewport pixels (card opens below the trigger). */
+  readonly top?: number;
+  /** Bottom inset in viewport pixels (card opens above the trigger). */
+  readonly bottom?: number;
   /** Left edge for trigger-left-aligned cards. */
   readonly left?: number;
   /** Right inset for cards aligned with a reference right edge. */
   readonly right?: number;
+  /** Trigger's top edge, used when flipping to open above. */
+  readonly triggerTop?: number;
+  /** Trigger's bottom edge, used when flipping to open below. */
+  readonly triggerBottom?: number;
 }
 
 
 /**
  * Builds the anchor docking a dialog below its trigger per the Figma
- * prototype; null on small viewports, where dialogs center instead.
+ * prototype; null on small viewports, where dialogs center (or sheet) instead.
  * @param trigger Element the dialog is anchored to.
  * @param align Left-align with the trigger or right-align with an edge.
  * @param edgeElement Element whose right edge right-aligned cards use;
@@ -39,19 +51,61 @@ export function anchorBelow(
 ): DialogAnchor | null {
   if (window.innerWidth <= ANCHOR_MIN_VIEWPORT_PX) return null;
   const rect = trigger.getBoundingClientRect();
-  const top = rect.bottom + ANCHOR_GAP_PX;
-  if (align === 'left') return { top, left: rect.left };
-  const edge = (edgeElement ?? trigger).getBoundingClientRect().right;
-  return { top, right: window.innerWidth - edge };
+  const base = { top: rect.bottom + ANCHOR_GAP_PX, triggerTop: rect.top, triggerBottom: rect.bottom };
+  if (align === 'left') return { ...base, left: rect.left };
+  return { ...base, right: window.innerWidth - (edgeElement ?? trigger).getBoundingClientRect().right };
+}
+
+
+/**
+ * Builds the anchor docking a card above its trigger, aligned to the trigger's
+ * left or right edge; null on small viewports (where the card sheets). Used by
+ * the message action menu, which opens above its bubble.
+ * @param trigger Element the card opens above (e.g. the message bubble).
+ * @param align Left-align with the trigger's left edge, or right with its right.
+ */
+export function anchorAbove(trigger: HTMLElement, align: 'left' | 'right'): DialogAnchor | null {
+  if (window.innerWidth <= ANCHOR_MIN_VIEWPORT_PX) return null;
+  const rect = trigger.getBoundingClientRect();
+  const base = {
+    bottom: window.innerHeight - rect.top + ANCHOR_GAP_PX,
+    triggerTop: rect.top,
+    triggerBottom: rect.bottom,
+  };
+  if (align === 'left') return { ...base, left: rect.left };
+  return { ...base, right: window.innerWidth - rect.right };
+}
+
+
+/**
+ * Resolves an anchor's vertical side against the measured card height: a
+ * below-anchored card that would overflow the viewport bottom flips above its
+ * trigger (and vice versa), unless the opposite side has even less room, in
+ * which case the preferred side is kept and its height capped separately.
+ * @param anchor Preferred anchor from anchorBelow/anchorAbove.
+ * @param cardHeight Measured card height in pixels.
+ */
+export function placeVertically(anchor: DialogAnchor, cardHeight: number): DialogAnchor {
+  const bottomLimit = window.innerHeight - ANCHORED_BOTTOM_INSET_PX;
+  const fitsAbove = (anchor.triggerTop ?? 0) - cardHeight >= ANCHORED_BOTTOM_INSET_PX;
+  if (anchor.top !== undefined && anchor.triggerTop !== undefined) {
+    if (anchor.top + cardHeight <= bottomLimit || !fitsAbove) return anchor;
+    return { ...anchor, top: undefined, bottom: window.innerHeight - anchor.triggerTop + ANCHOR_GAP_PX };
+  }
+  if (anchor.bottom !== undefined && anchor.triggerBottom !== undefined && !fitsAbove) {
+    return { ...anchor, bottom: undefined, top: anchor.triggerBottom + ANCHOR_GAP_PX };
+  }
+  return anchor;
 }
 
 
 /**
  * The max-height style that limits an anchored card to the space between its
- * top edge and the bottom of the viewport; null while centered (SCSS-styled).
+ * anchored edge and the opposite viewport edge; null while centered (SCSS).
  * @param anchor Active anchor, or null when the dialog is centered.
  */
 export function anchoredMaxHeightStyle(anchor: DialogAnchor | null): string | null {
   if (!anchor) return null;
-  return `calc(100dvh - ${anchor.top + ANCHORED_BOTTOM_INSET_PX}px)`;
+  const offset = anchor.top ?? anchor.bottom ?? 0;
+  return `calc(100dvh - ${offset + ANCHORED_BOTTOM_INSET_PX}px)`;
 }
