@@ -27,6 +27,8 @@ import {
 } from '../../../shared/suggestion-dropdown/suggestion-dropdown.component';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
 import { GifPickerComponent } from '../gif-picker/gif-picker.component';
+import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
+import { anchorAbove } from '../../../shared/dialog-shell/dialog-anchor';
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -53,7 +55,7 @@ export interface ReplyContext {
  */
 @Component({
   selector: 'app-message-input',
-  imports: [EmojiPickerComponent, GifPickerComponent, SuggestionDropdownComponent],
+  imports: [EmojiPickerComponent, GifPickerComponent, SuggestionDropdownComponent, DialogShellComponent],
   templateUrl: './message-input.component.html',
   styleUrl: './message-input.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -89,13 +91,21 @@ export class MessageInputComponent {
 
   private readonly backdrop = viewChild<ElementRef<HTMLDivElement>>('backdrop');
 
+  private readonly smileButton = viewChild.required<ElementRef<HTMLButtonElement>>('smileBtn');
+
   protected readonly inputId = `composer-text-${MessageInputComponent.instanceCounter++}`;
 
   protected readonly suggestionIdPrefix = `${this.inputId}-suggestion`;
 
+  protected readonly emojiTitleId = `${this.inputId}-emoji-title`;
+
   protected readonly text = signal('');
 
   protected readonly pickerOpen = signal(false);
+
+  protected readonly pickerAnchor = computed(() =>
+    this.pickerOpen() ? anchorAbove(this.smileButton().nativeElement, 'left') : null,
+  );
 
   protected readonly gifPickerOpen = signal(false);
 
@@ -167,16 +177,25 @@ export class MessageInputComponent {
 
 
   /**
-   * Inserts a picked emoji at the caret and keeps focus in the field.
+   * Inserts a picked emoji at the caret and returns focus to the field.
    * @param emoji Picked emoji character.
    */
   protected insertEmoji(emoji: string): void {
-    this.pickerOpen.set(false);
     const element = this.textarea().nativeElement;
     const start = element.selectionStart ?? element.value.length;
     element.setRangeText(emoji, start, element.selectionEnd ?? start, 'end');
     this.text.set(element.value);
-    element.focus();
+    this.closePicker();
+  }
+
+
+  /**
+   * Closes the emoji picker and returns focus to the composer input after the
+   * overlay has run its own focus restoration (hence the deferred focus).
+   */
+  protected closePicker(): void {
+    this.pickerOpen.set(false);
+    requestAnimationFrame(() => this.focusInput());
   }
 
 
@@ -352,7 +371,7 @@ export class MessageInputComponent {
       .map(user => ({
         id: user.uid,
         label: user.name,
-        avatar: avatarUrl(user.avatarPath),
+        avatar: resolveAvatarPath(user.avatarPath),
         online: this.presenceService.isOnline(user.uid),
       }));
   }
@@ -374,13 +393,4 @@ function detectMention(text: string, caret: number): MentionState | null {
     return { type: char, query: text.slice(index + 1, caret), start: index };
   }
   return null;
-}
-
-
-/**
- * Maps an avatar path to an absolute asset URL with placeholder fallback.
- * @param path Avatar path stored on a user document.
- */
-function avatarUrl(path: string): string {
-  return resolveAvatarPath(path);
 }

@@ -1,11 +1,13 @@
 /**
- * @file Catalog of reaction emojis: unicode characters mapped to their
- * Twemoji (jdecked fork) SVG assets and an accessible German name. Firestore
- * reaction keys stay unicode characters, so existing reaction data keeps
- * working and the artwork set can change without a data migration — only the
- * UI resolves the SVGs and labels.
+ * @file Seed catalog of the common reaction emojis, mapping unicode characters
+ * to a synchronous German name (and a pinned Twemoji asset). It is the
+ * name/asset source for surfaces that render outside the picker without the
+ * lazily-loaded full catalogue — reaction chips, the action-bar quick
+ * reactions and the notification toasts. The full picker set comes from
+ * {@link EmojiDataService}; the emoji grid itself no longer reads this file.
  */
-import { bigReactionEffect, bigReactionLabel } from '../../models/reactions';
+import { bigReactionLabel } from '../../models/reactions';
+import { twemojiFilename } from './emoji-filename';
 
 /** Rendering metadata of one catalog emoji: SVG asset path and a11y name. */
 interface EmojiMeta {
@@ -44,22 +46,16 @@ const EMOJI_CATALOG: Record<string, EmojiMeta> = {
   '💖': { asset: 'emojis/1f496.svg', name: 'Funkelndes Herz' },
 };
 
-/** Ordered full catalog: the composer insert grid and the source GRID_EMOJI_SET filters. */
-export const EMOJI_SET: readonly string[] = Object.keys(EMOJI_CATALOG);
-
-/** Main picker grid in reaction context: the catalog minus the big reactions. */
-export const GRID_EMOJI_SET: readonly string[] = EMOJI_SET.filter(
-  emoji => bigReactionEffect(emoji) === null,
-);
-
 
 /**
- * Resolves the Twemoji asset URL of a reaction emoji; null for characters
- * outside the catalog (legacy keys render as plain text).
+ * Resolves the Twemoji asset URL of a reaction emoji, derived from its code
+ * points so the full self-hosted set renders (not just the seed catalog); the
+ * seed catalog still pins the handful whose filename it overrides. Reactable
+ * emojis all ship artwork, so the derived path always resolves.
  * @param emoji Unicode emoji character used as the reaction key.
  */
-export function emojiAsset(emoji: string): string | null {
-  return EMOJI_CATALOG[emoji]?.asset ?? null;
+export function emojiAsset(emoji: string): string {
+  return EMOJI_CATALOG[emoji]?.asset ?? `emojis/${twemojiFilename(emoji)}.svg`;
 }
 
 

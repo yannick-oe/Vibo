@@ -1,17 +1,17 @@
 <div class="picker" role="dialog" aria-label="Emoji auswählen">
   @if (isReactionTrigger()) {
-    <div class="picker__section" role="group" [attr.aria-labelledby]="headingId">
-      <h3 class="picker__heading" [id]="headingId">Große Reaktionen</h3>
+    <div class="picker__section" role="group" aria-label="Große Reaktionen">
+      <h3 class="picker__heading">Große Reaktionen</h3>
       <div class="picker__row">
         @for (emoji of bigEmojis; track emoji) {
           <button
             class="picker__emoji picker__emoji--big"
             type="button"
-            [attr.aria-label]="labelFor(emoji)"
-            [attr.title]="labelFor(emoji)"
-            (click)="picked.emit(emoji)"
+            [attr.aria-label]="bigLabel(emoji)"
+            [attr.title]="bigLabel(emoji)"
+            (click)="pick(emoji)"
           >
-            <img class="picker__img" [src]="assetFor(emoji)" [alt]="nameFor(emoji)" />
+            <img class="picker__img" [src]="assetFor(emoji)" [alt]="emoji" />
           </button>
         }
       </div>
@@ -19,16 +19,53 @@
     <hr class="picker__divider" aria-hidden="true" />
   }
 
-  <div class="picker__grid">
-    @for (emoji of gridEmojis(); track emoji) {
-      <button
-        class="picker__emoji"
-        type="button"
-        [attr.aria-label]="labelFor(emoji)"
-        (click)="picked.emit(emoji)"
-      >
-        <img class="picker__img" [src]="assetFor(emoji)" [alt]="nameFor(emoji)" />
-      </button>
+  <div class="picker__search">
+    <img class="picker__search-icon" src="app-icons/search.svg" alt="" aria-hidden="true" />
+    <input
+      class="picker__search-input"
+      type="search"
+      [value]="query()"
+      (input)="onSearch($event)"
+      placeholder="Emoji suchen"
+      aria-label="Emoji suchen"
+    />
+  </div>
+
+  <div class="picker__scroll">
+    @if (loading()) {
+      <p class="picker__loading" role="status">Emojis werden geladen …</p>
+    } @else if (searching()) {
+      <div class="picker__grid" role="listbox" aria-label="Suchergebnisse">
+        @for (entry of results(); track entry.u) {
+          <button class="picker__emoji" type="button" [attr.aria-label]="gridLabel(entry)" (click)="pick(entry.u)">
+            <img class="picker__img" [src]="'emojis/' + entry.f + '.svg'" [alt]="entry.u" loading="lazy" />
+          </button>
+        } @empty {
+          <p class="picker__empty">Keine Treffer</p>
+        }
+      </div>
+    } @else {
+      <div class="picker__tabs" role="tablist" aria-label="Emoji-Kategorien">
+        @for (tab of tabs(); track tab.id) {
+          <button
+            class="picker__tab"
+            type="button"
+            role="tab"
+            [class.picker__tab--active]="tab.id === activeTab()"
+            [attr.aria-selected]="tab.id === activeTab()"
+            (click)="selectTab(tab.id)"
+          >
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+      <div class="picker__grid" role="listbox" aria-label="Emojis">
+        @for (entry of activeEmojis(); track entry.u) {
+          <button class="picker__emoji" type="button" [attr.aria-label]="gridLabel(entry)" (click)="pick(entry.u)">
+            <img class="picker__img" [src]="'emojis/' + entry.f + '.svg'" [alt]="entry.u" loading="lazy" />
+          </button>
+        }
+      </div>
     }
   </div>
 </div>

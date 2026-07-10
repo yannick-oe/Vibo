@@ -1,15 +1,18 @@
 /**
  * @file Pure helper that tokenizes message text into renderable segments:
- * @mentions, plain text and catalog emoji. Emoji are matched against the
- * unicode catalog so they render as the shared Twemoji SVG set inline with
- * the surrounding text; unknown characters stay plain text.
+ * @mentions, plain text and emoji. Emoji are detected by the Unicode RGI emoji
+ * set — plain, skin-tone, ZWJ, flag and keycap sequences alike — and resolved
+ * to the self-hosted Twemoji SVG; only actual emoji carry an asset, so plain
+ * text is never turned into an image. A missing asset degrades to the native
+ * glyph via the image alt (the emoji character), never a broken icon.
  */
-import { EMOJI_SET, emojiAsset, emojiName } from './emoji-catalog';
+import { emojiAsset } from './emoji-catalog';
 import { parseMentions } from './mention-parser';
 
 /**
  * One renderable run of a message bubble. An emoji segment carries a non-null
- * asset and name; mention and plain-text segments leave both null.
+ * asset and its character as the name; mention and plain-text segments leave
+ * both null.
  */
 export interface MessageSegment {
   readonly text: string;
@@ -18,26 +21,7 @@ export interface MessageSegment {
   readonly name: string | null;
 }
 
-const EMOJI_PATTERN = buildEmojiPattern();
-
-
-/**
- * Builds the alternation that matches any catalog emoji; longer sequences
- * win first so skin-tone and variation-selector emoji beat their base form.
- */
-function buildEmojiPattern(): RegExp {
-  const keys = [...EMOJI_SET].sort((a, b) => b.length - a.length).map(escapeRegExp);
-  return new RegExp(`(${keys.join('|')})`, 'g');
-}
-
-
-/**
- * Escapes a string for literal use inside a RegExp.
- * @param value Raw emoji character.
- */
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+const EMOJI_PATTERN = /\p{RGI_Emoji}/gv;
 
 
 /**
@@ -62,19 +46,38 @@ function mentionSegment(text: string): MessageSegment {
 
 
 /**
- * Splits a plain-text run into alternating text and catalog-emoji segments.
+ * Splits a plain-text run into alternating text and emoji segments, matching
+ * every RGI emoji sequence and leaving the rest as plain text.
  * @param text Plain-text run without mentions.
  */
 function splitEmoji(text: string): MessageSegment[] {
-  return text.split(EMOJI_PATTERN).filter(part => part.length > 0).map(toSegment);
+  const segments: MessageSegment[] = [];
+  let cursor = 0;
+  for (const match of text.matchAll(EMOJI_PATTERN)) {
+    const at = match.index ?? cursor;
+    if (at > cursor) segments.push(textSegment(text.slice(cursor, at)));
+    segments.push(emojiSegment(match[0]));
+    cursor = at + match[0].length;
+  }
+  if (cursor < text.length) segments.push(textSegment(text.slice(cursor)));
+  return segments;
 }
 
 
 /**
- * Maps a split fragment to an emoji segment when it is a catalog emoji,
- * otherwise to a plain-text segment.
- * @param part Fragment produced by the emoji split.
+ * Builds an emoji segment: the Twemoji asset for the character, with the
+ * character itself as the alt/name so a missing asset shows the native glyph.
+ * @param emoji Matched emoji character or sequence.
  */
-function toSegment(part: string): MessageSegment {
-  return { text: part, isMention: false, asset: emojiAsset(part), name: emojiName(part) };
+function emojiSegment(emoji: string): MessageSegment {
+  return { text: emoji, isMention: false, asset: emojiAsset(emoji), name: emoji };
+}
+
+
+/**
+ * Builds a plain-text segment.
+ * @param text Non-emoji, non-mention text run.
+ */
+function textSegment(text: string): MessageSegment {
+  return { text, isMention: false, asset: null, name: null };
 }

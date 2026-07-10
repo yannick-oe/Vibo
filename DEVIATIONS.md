@@ -3,6 +3,114 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Composer picker in the overlay layer, picker width, living aurora (2026-07-10)
+- **Composer emoji picker moved into the anchored overlay layer.** Root cause of the hover-through
+  bug (a hovered message row's action bar painting over the open composer picker): the picker was
+  an **inline panel inside the composer DOM** (`.composer__picker`, `z-index` competing within the
+  composer's stacking context), not the top-level overlay. It now opens through the shared
+  **dialog-shell** exactly like the reaction picker — `size="menu"`, transparent scrim, inflate,
+  `anchorAbove` the smiley button (flips via `placeVertically`), and a **bottom sheet on mobile**.
+  Insertion/caret behaviour is unchanged; Escape/outside-click close; focus returns to the composer
+  input via a post-teardown `requestAnimationFrame` (the shell restores focus to the opener first).
+  The fix is **structural**: the full-screen `pointer-events:auto` shell at `$z-modal` blocks row
+  hover entirely and outranks the `$z-raised` action bar, so the bleed-through is impossible.
+  - **Edit-box picker left inline (reported).** It reuses the same `<app-emoji-picker>`, but
+    `message-item.component.ts` is at **399/400 LOC**, so migrating it cheaply is impossible without
+    an extraction pass. It is also a low-frequency surface (only while editing *your own* message,
+    where that row's own action bar is already suppressed). Flagged for a future extraction.
+- **Picker width token.** Desktop anchored menu caps at a named token **`$emoji-picker-width: 360px`**
+  (`_variables.scss`, Discord-like popover); the `auto-fill` grid fills that cap with no sparse
+  columns. In the mobile **bottom sheet** the picker spans the **full content width** (`width:100%`,
+  no shadow, sheet handles the height) so search pill, tabs, „Große Reaktionen" row and grid all
+  share the sheet width and `auto-fill` yields more columns — no more narrow left-hugging column.
+- **Living aurora banner („Polarlicht").** New token pair **`--banner-aurora-a` (teal) /
+  `--banner-aurora-b` (green)** in `_themes.scss` with distinct light/dark values (deeper in light so
+  it doesn't glare against the frosted card, brighter in dark to pop). The `aurora` preset's **canvas
+  is now starfield-only** (`auroraStyle:'none'`, `auroraIntensity:0`); the aurora itself is **three
+  absolutely-positioned CSS gradient curtains** (teal / green / app-purple via `color-mix` on the
+  tokens + `--color-primary`) layered over the starfield with `mix-blend-mode:screen`, drifting via
+  **transform + opacity only** (`translate3d`/`scaleY`, staggered 15/19/23 s, no animated filters →
+  GPU-friendly, CLS 0). One shared component renders the profile dialog **and** the edit-mode live
+  preview identically. `prefers-reduced-motion` (and `isStatic` thumbnails) freeze the curtains at
+  their full 0 % keyframe → a polished static aurora frame. No text sits on the banner (avatar
+  overlaps, name/badges are below), so contrast is unaffected; the canvas `curtains` engine mode is
+  now unused but kept (the `bands`/`starfield` preset still needs the shared aurora-draw path).
+  Keine / Sternenfeld / Nebula untouched.
+
+## Emoji-in-message fix, lightning v2, full emoji picker (2026-07-10)
+- **In-message emoji render fix (regression).** Making `emojiAsset()` derive a path for *any*
+  string (foundation work) broke `message-segments.ts`, which used a non-null asset as the
+  "this fragment is an emoji" flag — so plain-text fragments got a derived garbage path and
+  rendered as broken `<img>`s (chips were fine: they only ever pass a real reaction key).
+  Rewritten to detect emoji with the Unicode **`/\p{RGI_Emoji}/gv`** property-of-strings regex
+  (plain, skin-tone, ZWJ, flag and keycap sequences alike) and set an asset **only** on actual
+  emoji runs; the derived filename matches the generator's naming (FE0F stripped unless ZWJ),
+  and the image **alt is the emoji character** so a missing asset shows the native glyph, never a
+  broken icon. Verified against realistic old-message text (plain text → 0 images; catalog and
+  full-set emoji resolve to present assets — stored messages unchanged). This also extends
+  in-message coverage from the old 28-emoji subset to the whole set. Requires the `v`-flag regex
+  (browsers ≥ 2023; the app targets modern engines).
+- **Lightning effect v2.** The diagonal glyph/rocket-style streaks read as "rockets from the
+  other side", so ⚡ was rebuilt on a dedicated bolt engine (`bolt-particles.ts`): 1–2 **jagged
+  bolt paths** struck top-to-bottom, revealed by an animated **line-dash offset**, with a glowing
+  trail and a fainter forked branch, then fading — a silhouette clearly distinct from the rocket
+  trail. **WCAG 2.3.1:** no luminance pulse and no repetition at all (moving strokes, not a
+  full-screen flash — cannot strobe). Reduced-motion ⇒ the chip pop. Broadcast enum + rules
+  untouched.
+- **Full shared emoji picker.** The reaction quick-grid and the composer mini-grid were replaced
+  by one picker consuming `EmojiDataService`: a pill search (German label + keyword), a
+  „Zuletzt verwendet" section, category tabs, a **responsive `auto-fill` grid that fills its
+  container** (square cells, no sparse stretched columns), a loading state, and — in the reaction
+  context only — the „Große Reaktionen" row on top (composer insertion behaviour unchanged).
+  Picking records the shared recents **and** the two action-bar quick reactions.
+  - **Model deviation (reviewed):** instead of scroll-through-all-sections with
+    IntersectionObserver per-section mounting + reserved heights, the picker shows **one category
+    at a time** via sticky tabs. This bounds the mounted image count to a single category
+    (≤ ~360, plus native `loading="lazy"`) and guarantees **CLS 0** by construction, without a
+    fragile observer/reserved-height system — the goals (bounded DOM, sticky category navigation,
+    no image storm) are met more robustly. Say the word to switch to the scrolling-sections model.
+  - **Retired:** `EMOJI_SET` and `GRID_EMOJI_SET` (superseded — the grid now comes from
+    `EmojiDataService`, in-message detection from the RGI regex). **Kept:** the seed `EMOJI_CATALOG`
+    + `emojiName`/`reactionTriggerLabel`, because reaction chips, action-bar quick reactions and
+    notification toasts render **outside** the picker and need a *synchronous* German name before
+    the lazy full catalogue is fetched (unknown names fall back to the emoji character).
+
+## Full emoji set, big-reaction motion rework, big-reaction row (2026-07-10)
+- **Full self-hosted emoji set + metadata.** The used-subset asset folder (28 SVGs) was replaced
+  by the **full jdecked Twemoji set — 1869 base emojis, ~8.0 MB** (codepoint filenames, drop-in),
+  generated by the one-shot `scripts/generate-emoji.mjs` from **@twemoji/svg** (jdecked fork,
+  CC-BY 4.0) plus **emojibase-data** de locale (MIT, German names/keywords/categories). Neither
+  is a runtime dependency — the script `npm pack`s the artwork and fetches the emojibase JSON, so
+  `package.json` is untouched (the RC-pinned `@angular/fire` makes a devDep install eresolve-fail;
+  generating from packed sources side-steps it). The ~45 newest Unicode-16 emojis with no Twemoji
+  artwork yet are skipped — a **data-driven availability filter, never a hand-curated exclusion
+  list.** Skin-tone variants (group 2) are excluded from the picker set. README attribution added
+  for both sources. `emojiAsset()` now **derives** the Twemoji filename from an emoji's code points
+  (FE0F stripped unless a ZWJ sequence — `emoji-filename.ts`, matching the generator), so any
+  reaction/emoji resolves to its SVG without a hand-maintained catalogue. The **German metadata
+  (`public/emoji-data.de.json`, ~211 KB) is a static asset fetched lazily on first picker open**
+  and cached in `EmojiDataService`, so it never enters the initial JS bundle (verified: initial
+  total 682 kB, well under the 800 kB budget) — a one-shot fetch, not a listener (§14).
+- **ZWJ / rules cap decision.** The local Firestore emulator could not run (no Java/CLI), so the
+  reaction-`emoji` `size() <= 16` rule was assessed analytically: the longest emoji in the shipped
+  set is 🏴󠁧󠁢󠁥󠁮󠁧󠁿 (England flag) at **7 code points / ~14 UTF-16 units / 28 bytes**, which fits `<= 16`
+  under **code-point and UTF-16-unit** semantics (research indicates Firestore string ops count
+  code points). **No rules change ships; full coverage.** Contingency if a live test ever shows
+  byte semantics: bump `notificationFieldsValid`'s `emoji.size() <= 16` → `<= 32` (28-byte
+  longest) — a one-line change, deploy manually.
+- **Big-reaction motion rework** (effects only; broadcast enum + rules untouched). 🔥 fire keeps
+  its buoyant rise; 👏 clap changes from a radial burst to the same **hearts-style rise** (float up,
+  staggered, varied sizes); 😭 tear becomes a **statelier rain** — fewer/larger drops, slower fall
+  under light gravity with a real **sinusoidal sway** (a per-glyph `sway`/`phase` added to the glyph
+  engine), longer duration; ⚡ flash becomes a **rocket-class spectacle** — bright diagonal bolts
+  streaking across on the glow-trail shape engine. **WCAG 2.3.1 (photosensitivity):** the flash has
+  **no luminance pulse and no repetition** at all (a moving streak, not a full-screen flash), so it
+  cannot strobe. Reduced-motion ⇒ the single chip pop for all four, as before.
+- **„Große Reaktionen" row** is now one full-width row of 8 (`grid-auto-flow: column`,
+  `minmax(44px, 1fr)` equal columns, token gaps, ≥44px targets). Below the width where 8 fit it
+  becomes a **horizontal scroll-snap row** with an edge-fade mask — never wraps, never clusters
+  left (verified headless: fills at desktop, single-row scroll at 320px). CLS 0, both themes.
+
 ## Big-reaction expansion, overflow-menu flip, inline profile handle (2026-07-10)
 - **Big reactions 4 → 8** (no Figma design). Added 🔥 `fire`, 👏 `clap`, 😭 `tear`, ⚡ `flash`
   alongside 🎉 💖 🚀 😂. The effects reuse the established broadcast + play-once/baseline engine

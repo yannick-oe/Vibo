@@ -52,24 +52,16 @@
 
   <div class="composer__toolbar">
     <div class="composer__tools">
-      <span class="composer__picker-wrap">
-        <button
-          class="composer__tool"
-          type="button"
-          aria-label="Emoji einfügen"
-          [attr.aria-expanded]="pickerOpen()"
-          (click)="pickerOpen.set(!pickerOpen()); $event.stopPropagation()"
-        >
-          <img src="app-icons/smile.svg" alt="" aria-hidden="true" />
-        </button>
-        @if (pickerOpen()) {
-          <app-emoji-picker
-            class="composer__picker"
-            (picked)="insertEmoji($event)"
-            (closed)="pickerOpen.set(false)"
-          />
-        }
-      </span>
+      <button
+        #smileBtn
+        class="composer__tool"
+        type="button"
+        aria-label="Emoji einfügen"
+        [attr.aria-expanded]="pickerOpen()"
+        (click)="pickerOpen.set(!pickerOpen()); $event.stopPropagation()"
+      >
+        <img src="app-icons/smile.svg" alt="" aria-hidden="true" />
+      </button>
       @if (gifEnabled()) {
         <button
           class="composer__tool"
@@ -102,6 +94,19 @@
     </button>
   </div>
 </div>
+
+@if (pickerOpen()) {
+  <app-dialog-shell
+    size="menu"
+    scrim="transparent"
+    [anchor]="pickerAnchor()"
+    [labelledBy]="emojiTitleId"
+    (closed)="closePicker()"
+  >
+    <span class="sr-only" [id]="emojiTitleId">Emoji einfügen</span>
+    <app-emoji-picker (picked)="insertEmoji($event)" (closed)="closePicker()" />
+  </app-dialog-shell>
+}
 
 @defer (when gifPickerOpen()) {
   @if (gifPickerOpen()) {

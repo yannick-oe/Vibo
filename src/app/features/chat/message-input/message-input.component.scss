@@ -167,17 +167,6 @@ $reply-cancel-size: 28px;
   gap: v.space('sm');
 }
 
-.composer__picker-wrap {
-  position: relative;
-}
-
-.composer__picker {
-  position: absolute;
-  bottom: calc(100% + #{v.space('xs')});
-  left: 0;
-  z-index: v.$z-dropdown;
-}
-
 .composer__tool,
 .composer__send {
   @include m.flex-center;
@@ -218,9 +207,5 @@ $reply-cancel-size: 28px;
 @include m.respond-md {
   .composer__suggestions {
     right: 0;
-  }
-
-  .composer__picker {
-    left: calc(-1 * #{v.space('lg')});
   }
 }

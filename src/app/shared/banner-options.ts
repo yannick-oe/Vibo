@@ -24,6 +24,9 @@ export interface CosmicParams {
 /** Id of the no-banner default; the model defaults to this so nobody is decorated. */
 export const BANNER_NONE = 'none';
 
+/** Id of the living-aurora banner (starfield canvas + CSS „Polarlicht" curtains). */
+export const BANNER_AURORA = 'aurora';
+
 /** Fixed set of banners offered in the profile picker; "Keine" is the default. */
 export const BANNER_OPTIONS: readonly BannerOption[] = [
   { id: BANNER_NONE, label: 'Keine' },
@@ -40,7 +43,7 @@ const NONE_PARAMS: CosmicParams = {
 };
 
 const COSMIC_PARAMS: Readonly<Record<string, CosmicParams>> = {
-  aurora: { starDensity: 0.4, auroraIntensity: 1, auroraStyle: 'curtains', nebulaIntensity: 0 },
+  [BANNER_AURORA]: { starDensity: 0.5, auroraIntensity: 0, auroraStyle: 'none', nebulaIntensity: 0 },
   starfield: { starDensity: 1.5, auroraIntensity: 0.35, auroraStyle: 'bands', nebulaIntensity: 0 },
   nebula: { starDensity: 0.9, auroraIntensity: 0, auroraStyle: 'none', nebulaIntensity: 1 },
 };
