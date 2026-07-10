@@ -1,4 +1,4 @@
-<div class="picker" role="dialog" aria-label="Emoji auswählen">
+<div class="picker" role="dialog" aria-label="Emoji auswählen" [class.picker--reaction]="isReactionTrigger()">
   @if (isReactionTrigger()) {
     <div class="picker__section" role="group" aria-label="Große Reaktionen">
       <h3 class="picker__heading">Große Reaktionen</h3>
@@ -31,6 +31,23 @@
     />
   </div>
 
+  @if (!loading() && !searching()) {
+    <div class="picker__tabs" role="tablist" aria-label="Emoji-Kategorien">
+      @for (tab of tabs(); track tab.id) {
+        <button
+          class="picker__tab"
+          type="button"
+          role="tab"
+          [class.picker__tab--active]="tab.id === activeTab()"
+          [attr.aria-selected]="tab.id === activeTab()"
+          (click)="selectTab(tab.id)"
+        >
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+  }
+
   <div class="picker__scroll">
     @if (loading()) {
       <p class="picker__loading" role="status">Emojis werden geladen …</p>
@@ -45,20 +62,6 @@
         }
       </div>
     } @else {
-      <div class="picker__tabs" role="tablist" aria-label="Emoji-Kategorien">
-        @for (tab of tabs(); track tab.id) {
-          <button
-            class="picker__tab"
-            type="button"
-            role="tab"
-            [class.picker__tab--active]="tab.id === activeTab()"
-            [attr.aria-selected]="tab.id === activeTab()"
-            (click)="selectTab(tab.id)"
-          >
-            {{ tab.label }}
-          </button>
-        }
-      </div>
       <div class="picker__grid" role="listbox" aria-label="Emojis">
         @for (entry of activeEmojis(); track entry.u) {
           <button class="picker__emoji" type="button" [attr.aria-label]="gridLabel(entry)" (click)="pick(entry.u)">

@@ -3,6 +3,24 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Reaction-sheet single scroll region + taller reaction detent (2026-07-10)
+- **The mobile picker sheet has exactly one vertical scroll region.** The tabs moved out of
+  `.picker__scroll` into the fixed header, so the big-reaction row + search pill + **tabs** now form
+  a non-scrolling header inside the detent and the **grid is the only scroller** (`flex:1;
+  min-height:0`, no magic numbers). Because the grid absorbs all overflow, the picker can never
+  exceed its detent height, so the outer sheet can no longer scroll — no nested scrollbars. Tabs are
+  a plain flex header now (the `position:sticky` + masking they had inside the scroll is gone).
+  Desktop popover behaves the same (tabs at the top, grid scrolls below); the composer sheet is
+  unchanged.
+- **Reaction context gets a taller detent (reviewed).** The reaction header carries a big-reaction
+  row + divider (~70 px) the composer lacks, so at the shared 55 dvh detent its grid would show only
+  ~2 rows at 320 px. Per the brief's preference (raise the detent rather than reintroduce outer
+  scroll), the reaction context uses **`$emoji-sheet-height-reaction: 62dvh`** (with a `62vh`
+  fallback token) via a `.picker--reaction` modifier; the composer keeps `55dvh`. Verified at 320 px
+  (headless, conservative viewport): both contexts show a single scroll region, the composer grid ≈
+  4 rows and the reaction grid ≈ 3 rows (more on real phones), no horizontal scroll, CLS 0,
+  reduced-motion unaffected.
+
 ## Emoji-picker sheet half-height detent + aurora containment (2026-07-10)
 - **Mobile picker sheet opens at a half-height detent.** The picker sheet (composer *and*
   reaction, incl. the „Große Reaktionen" row) previously opened near full height and felt

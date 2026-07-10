@@ -30,6 +30,11 @@ $picker-max-height: 26rem;
     padding: v.space('sm-md') 0 0;
     box-shadow: none;
   }
+
+  .picker--reaction {
+    height: v.$emoji-sheet-height-reaction-fallback;
+    height: v.$emoji-sheet-height-reaction;
+  }
 }
 
 :host-context(html:not([data-theme='dark'])) .picker {
@@ -128,15 +133,11 @@ $picker-max-height: 26rem;
 }
 
 .picker__tabs {
-  position: sticky;
-  top: 0;
-  z-index: v.$z-raised;
   display: flex;
+  flex-shrink: 0;
   gap: v.space('xs');
-  padding-bottom: v.space('xs');
   overflow-x: auto;
   scrollbar-width: none;
-  background-color: color-mix(in srgb, v.color('white') 88%, transparent);
 
   &::-webkit-scrollbar {
     display: none;
