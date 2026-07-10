@@ -4,7 +4,9 @@ $banner-radius: v.$radius-md;
 
 :host {
   display: block;
+  position: relative;
   overflow: hidden;
+  contain: paint;
   border-radius: $banner-radius;
   background-color: var(--banner-space);
 }
