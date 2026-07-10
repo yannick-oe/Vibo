@@ -3,6 +3,36 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Big-reaction expansion, overflow-menu flip, inline profile handle (2026-07-10)
+- **Big reactions 4 → 8** (no Figma design). Added 🔥 `fire`, 👏 `clap`, 😭 `tear`, ⚡ `flash`
+  alongside 🎉 💖 🚀 😂. The effects reuse the established broadcast + play-once/baseline engine
+  and the **glyph** particle engine (real emoji glyphs, OS colour font — no Twemoji asset needed
+  for the effect): `clap`/`flash` are radial **bursts** (like the laugh), `fire` is a buoyant
+  **rise** and `tear` is a **rain** — the two new motions come from a per-particle `gravity`
+  field added to the glyph engine (burst = full gravity arc, rise ≈ 0 buoyancy, rain = gravity
+  fall). Reduced-motion ⇒ the single emoji pop, as before. The „Große Reaktionen" row is a fixed
+  4-column grid so 8 items wrap **2×4** at 320px with CLS 0. Only the 😭 (`1f62d`) Twemoji SVG
+  was missing from the used-subset asset folder and was added (jdecked fork, CC-BY 4.0, same as
+  the rest); 🔥 👏 ⚡ assets already existed. **Requires a rules bump** (below): the broadcast
+  `lastBigReaction.type` enum was pinned to the original 4, so the 4 new types are rejected until
+  deploy — reactions (chips) still register; only the screen-effect broadcast waits for the rule.
+- **Overflow menus flip (friend-action).** The friend-action 3-dot overflow menu (friends list +
+  friend-profile dialog) was an always-downward `position: absolute` popover that forced scrolling
+  at the viewport bottom. Migrated onto the shared anchored dialog-shell (transparent scrim,
+  inflate, `placeVertically`): **default below, flips above** only when below-space is short;
+  sheets on mobile. Inside the profile dialog it is a **nested overlay** — a second dialog-shell
+  above the open profile dialog: both at `$z-modal`, the later-DOM menu paints on top, its scrim
+  captures outside clicks, and the reference-counted scroll lock restores the page exactly once.
+  **Flip sweep:** the only other always-down anchored *menu* was this one; `new-message` and
+  `search-bar` dropdowns are caret/input-driven **autocompletes** (kept inline/instant, like the
+  mention dropdown) and the `message-actions`/`badge-list` `top:100%` elements are **tooltips**,
+  not menus — all deliberately left as-is.
+- **Profile handle inline** (both own- and friend-profile). The `@username` moved from its own
+  line to **behind the name and badge** („Yannick ⭐ @yannick", muted token), removing a line so
+  the card is shorter. The identity is a `min-width: 0` wrapping flex row: the name ellipsizes
+  first, the badge never clips (`flex-shrink: 0`), and the handle wraps to its own line only on
+  very narrow widths — verified at 320px (no horizontal overflow).
+
 ## Anchored menu layer: transparent-scrim fork, flip placement, message menu/picker (2026-07-09)
 Overlay/popup polish built on the dialog-shell.
 - **Scrim fork — message-level transparent vs. app-level visible.** dialog-shell gains a
