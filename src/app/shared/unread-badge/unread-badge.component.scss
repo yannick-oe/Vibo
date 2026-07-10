@@ -22,3 +22,7 @@
   font-weight: v.$font-weight-semibold;
   line-height: 1;
 }
+
+.unread--mention {
+  background-color: var(--mention-accent);
+}

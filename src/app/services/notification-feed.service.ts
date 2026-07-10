@@ -101,6 +101,13 @@ export class NotificationFeedService {
    */
   readonly eventCount: Signal<number> = computed(() => this.entriesState().length);
 
+  /**
+   * Conversation keys (channel:… / dm:…) that currently carry a pending
+   * @mention for the signed-in user, letting the sidebar unread badge switch
+   * to its mention variant. Derived from the existing feed — no extra query.
+   */
+  readonly mentionedConversationKeys: Signal<Set<string>> = computed(() => this.buildMentionKeys());
+
 
   /**
    * Re-anchors the baseline on every sign-in/out, subscribes to the own
@@ -127,6 +134,21 @@ export class NotificationFeedService {
    */
   openGroup(group: NotificationGroup): void {
     void this.openTarget(group.latest);
+  }
+
+
+  /**
+   * Builds the set of conversation keys with a pending @mention from the
+   * coalesced feed; empty while signed out.
+   */
+  private buildMentionKeys(): Set<string> {
+    const me = this.authService.currentUser()?.uid;
+    if (!me) return new Set();
+    return new Set(
+      this.groups()
+        .filter(group => group.latest.kind === 'mention')
+        .map(group => conversationKeyOf(group.latest, me)),
+    );
   }
 
 

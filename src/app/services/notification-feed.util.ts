@@ -20,6 +20,10 @@ import { channelMessagesPath, directMessagesPath } from './message.service';
 
 const CHANNEL_MESSAGE_PATTERN = /^channels\/([^/]+)\/messages\/([^/]+?)(\/replies\/[^/]+)?$/;
 const DM_MESSAGE_PATTERN = /^directMessages\/([^/]+)\/messages\/([^/]+?)(\/replies\/[^/]+)?$/;
+const CHANNEL_CONVERSATION_PATTERN = /^channels\/([^/]+)$/;
+const DM_CONVERSATION_PATTERN = /^directMessages\/([^/]+)$/;
+const CHANNEL_KEY_PREFIX = 'channel:';
+const DM_KEY_PREFIX = 'dm:';
 const REPLY_VERB = 'geantwortet';
 const INLINE_REPLY_VERB = 'auf deine Nachricht geantwortet';
 const REACTION_VERB = 'reagiert';
@@ -105,8 +109,23 @@ export function dmPartnerOf(conversationId: string, me: string): string {
  * @param me Recipient's uid.
  */
 export function conversationKeyOf(doc: NotificationDoc, me: string): string {
-  if (doc.channelId) return `channel:${doc.channelId}`;
-  return `dm:${dmPartnerOf(doc.conversationId ?? '', me)}`;
+  if (doc.channelId) return `${CHANNEL_KEY_PREFIX}${doc.channelId}`;
+  return `${DM_KEY_PREFIX}${dmPartnerOf(doc.conversationId ?? '', me)}`;
+}
+
+
+/**
+ * The conversation key of a sidebar entry's Firestore path, in the same
+ * format as {@link conversationKeyOf}, so the unread badge can look up a
+ * pending mention; null for an unrecognised path.
+ * @param conversationPath Path `channels/{id}` or `directMessages/{id}`.
+ * @param me Signed-in user's uid.
+ */
+export function conversationKeyOfPath(conversationPath: string, me: string): string | null {
+  const channel = conversationPath.match(CHANNEL_CONVERSATION_PATTERN);
+  if (channel) return `${CHANNEL_KEY_PREFIX}${channel[1]}`;
+  const dm = conversationPath.match(DM_CONVERSATION_PATTERN);
+  return dm ? `${DM_KEY_PREFIX}${dmPartnerOf(dm[1], me)}` : null;
 }
 
 

@@ -20,6 +20,8 @@ import { Timestamp } from '@angular/fire/firestore';
 import { Observable, combineLatest, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../services/auth.service';
+import { NotificationFeedService } from '../../services/notification-feed.service';
+import { conversationKeyOfPath } from '../../services/notification-feed.util';
 import { ConversationMeta, ReadMarker, ReadStateService } from '../../services/read-state.service';
 
 const UNREAD_CAP = 99;
@@ -30,6 +32,7 @@ const EPOCH_MILLIS = 0;
 const PENDING_LABEL = 'Ungelesene Nachrichten';
 const COUNT_LABEL_SINGULAR = 'ungelesene Nachricht';
 const COUNT_LABEL_PLURAL = 'ungelesene Nachrichten';
+const MENTION_ARIA_SUFFIX = 'enthält Erwähnung';
 const HYDRATION_DELAY_MS = 1500;
 
 /**
@@ -64,6 +67,8 @@ export class UnreadBadgeComponent {
 
   private readonly authService = inject(AuthService);
 
+  private readonly feedService = inject(NotificationFeedService);
+
   private readonly uid = computed(() => this.authService.currentUser()?.uid ?? null);
 
   private readonly meta = toSignal(this.metaStream());
@@ -79,6 +84,8 @@ export class UnreadBadgeComponent {
   protected readonly isUnread = computed(() => this.deriveUnread());
 
   protected readonly shouldShow = computed(() => this.deriveShouldShow());
+
+  protected readonly hasMention = computed(() => this.shouldShow() && this.mentionPending());
 
   protected readonly badgeText = computed(() => this.deriveText());
 
@@ -149,14 +156,36 @@ export class UnreadBadgeComponent {
 
 
   /**
-   * Accessible label announcing the unread count, e.g. "3 ungelesene
-   * Nachrichten"; a generic label while the count is pending.
+   * Accessible label announcing the unread count and, for a pending mention,
+   * that the conversation contains a mention (never colour-only status).
    */
   private deriveAria(): string {
+    const base = this.baseAria();
+    return this.hasMention() ? `${base}, ${MENTION_ARIA_SUFFIX}` : base;
+  }
+
+
+  /**
+   * The count-only accessible label, e.g. "3 ungelesene Nachrichten"; a
+   * generic label while the count is still pending.
+   */
+  private baseAria(): string {
     const value = this.count();
     if (value <= COUNT_NONE) return PENDING_LABEL;
     const shown = value > UNREAD_CAP ? UNREAD_CAP_LABEL : String(value);
     return `${shown} ${value === 1 ? COUNT_LABEL_SINGULAR : COUNT_LABEL_PLURAL}`;
+  }
+
+
+  /**
+   * Whether this conversation carries a pending @mention in the activity feed,
+   * matched by the shared conversation-key format; drives the mention variant.
+   */
+  private mentionPending(): boolean {
+    const uid = this.uid();
+    if (!uid) return false;
+    const key = conversationKeyOfPath(this.conversationPath(), uid);
+    return key !== null && this.feedService.mentionedConversationKeys().has(key);
   }
 
 
