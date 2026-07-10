@@ -20,6 +20,7 @@ import {
   stepFrame as stepGlyphs,
 } from './glyph-particles';
 import { Particle, mixHex, spawnParticles, stepFrame as stepShapes } from './shape-particles';
+import { Bolt, spawnBolts, stepBolts } from './bolt-particles';
 
 const MAX_MS = 4000;
 const MAX_DPR = 2;
@@ -51,7 +52,9 @@ export class BigReactionOverlayComponent {
 
   private glyphs: GlyphParticle[] = [];
 
-  private mode: 'shape' | 'glyph' = 'glyph';
+  private bolts: Bolt[] = [];
+
+  private mode: 'shape' | 'glyph' | 'bolt' = 'glyph';
 
   private startedAt = 0;
 
@@ -104,8 +107,19 @@ export class BigReactionOverlayComponent {
     if (reducedMotion()) return this.useGlyphs(spawnPop(EFFECT_EMOJI[type], origin.x, origin.y));
     const glyphs = glyphsFor(type, origin.x, origin.y, width, height);
     if (glyphs) return this.useGlyphs(glyphs);
+    if (type === 'flash') return this.useBolts(spawnBolts(width, height, effectColors(type)));
     this.mode = 'shape';
     this.shapes = spawnParticles(type, width, height, effectColors(type));
+  }
+
+
+  /**
+   * Switches the overlay to the lightning bolt engine with the given bolts.
+   * @param bolts Bolts to animate.
+   */
+  private useBolts(bolts: Bolt[]): void {
+    this.mode = 'bolt';
+    this.bolts = bolts;
   }
 
 
@@ -145,6 +159,7 @@ export class BigReactionOverlayComponent {
    */
   private step(ctx: CanvasRenderingContext2D, width: number, height: number): void {
     if (this.mode === 'shape') this.shapes = stepShapes(ctx, this.shapes, width, height);
+    else if (this.mode === 'bolt') this.bolts = stepBolts(ctx, this.bolts, width, height);
     else this.glyphs = stepGlyphs(ctx, this.glyphs, width, height);
   }
 
@@ -153,7 +168,9 @@ export class BigReactionOverlayComponent {
    * Whether the active engine still has live particles.
    */
   private alive(): boolean {
-    return this.mode === 'shape' ? this.shapes.length > 0 : this.glyphs.length > 0;
+    if (this.mode === 'shape') return this.shapes.length > 0;
+    if (this.mode === 'bolt') return this.bolts.length > 0;
+    return this.glyphs.length > 0;
   }
 }
 
@@ -205,8 +222,8 @@ function glyphsFor(
   width: number,
   height: number,
 ): GlyphParticle[] | null {
-  if (type === 'laugh' || type === 'clap' || type === 'flash') return spawnBurst(EFFECT_EMOJI[type], x, y);
-  if (type === 'fire') return spawnRise(EFFECT_EMOJI.fire, width, height);
+  if (type === 'laugh') return spawnBurst(EFFECT_EMOJI.laugh, x, y);
+  if (type === 'fire' || type === 'clap') return spawnRise(EFFECT_EMOJI[type], width, height);
   if (type === 'tear') return spawnRain(EFFECT_EMOJI.tear, width);
   return null;
 }

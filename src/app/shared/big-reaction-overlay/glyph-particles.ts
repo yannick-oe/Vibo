@@ -30,10 +30,15 @@ const RISE_MAX = 4.5;
 const RISE_GRAVITY = 0.03;
 const RISE_DECAY = 0.007;
 const RISE_SWAY = 0.6;
-const RAIN_COUNT = 40;
-const RAIN_MIN = 3;
-const RAIN_MAX = 6;
-const RAIN_DECAY = 0.006;
+const RAIN_COUNT = 22;
+const RAIN_MIN = 1.5;
+const RAIN_MAX = 2.8;
+const RAIN_DECAY = 0.0035;
+const RAIN_GRAVITY = 0.06;
+const RAIN_SWAY = 0.9;
+const RAIN_SIZE_MIN = 30;
+const RAIN_SIZE_MAX = 50;
+const SWAY_SPEED = 0.05;
 
 /** One animated emoji glyph in canvas CSS-pixel space; life fades 1 → 0. */
 export interface GlyphParticle {
@@ -49,6 +54,8 @@ export interface GlyphParticle {
   spin: number;
   pop: boolean;
   gravity: number;
+  sway: number;
+  phase: number;
 }
 
 
@@ -87,7 +94,7 @@ function makeGlyph(glyph: string, x: number, y: number): GlyphParticle {
   return {
     glyph, x, y, vx: Math.cos(angle) * speed * direction, vy: -Math.sin(angle) * speed,
     life: 1, decay: BURST_DECAY, size: rand(SIZE_MIN, SIZE_MAX),
-    rotation: rand(0, TWO_PI), spin: rand(-SPIN_MAX, SPIN_MAX), pop: false, gravity: GRAVITY,
+    rotation: rand(0, TWO_PI), spin: rand(-SPIN_MAX, SPIN_MAX), pop: false, gravity: GRAVITY, sway: 0, phase: 0,
   };
 }
 
@@ -104,13 +111,14 @@ export function spawnRise(glyph: string, width: number, height: number): GlyphPa
     glyph, x: rand(0, width), y: height + rand(0, EDGE_MARGIN),
     vx: rand(-RISE_SWAY, RISE_SWAY), vy: -rand(RISE_MIN, RISE_MAX),
     life: 1, decay: RISE_DECAY, size: rand(SIZE_MIN, SIZE_MAX),
-    rotation: 0, spin: 0, pop: false, gravity: RISE_GRAVITY,
+    rotation: 0, spin: 0, pop: false, gravity: RISE_GRAVITY, sway: 0, phase: 0,
   }));
 }
 
 
 /**
- * Builds a tear rain: glyphs seeded above the top edge falling under gravity.
+ * Builds a stately tear rain: fewer, larger drops seeded above the top edge,
+ * falling slowly under light gravity with a gentle sinusoidal sway.
  * @param glyph Emoji character to render.
  * @param width Canvas width in CSS pixels.
  */
@@ -118,8 +126,8 @@ export function spawnRain(glyph: string, width: number): GlyphParticle[] {
   return Array.from({ length: RAIN_COUNT }, () => ({
     glyph, x: rand(0, width), y: rand(-EDGE_MARGIN, 0),
     vx: 0, vy: rand(RAIN_MIN, RAIN_MAX),
-    life: 1, decay: RAIN_DECAY, size: rand(SIZE_MIN, SIZE_MAX),
-    rotation: 0, spin: 0, pop: false, gravity: GRAVITY,
+    life: 1, decay: RAIN_DECAY, size: rand(RAIN_SIZE_MIN, RAIN_SIZE_MAX),
+    rotation: 0, spin: 0, pop: false, gravity: RAIN_GRAVITY, sway: RAIN_SWAY, phase: rand(0, TWO_PI),
   }));
 }
 
@@ -134,7 +142,7 @@ export function spawnRain(glyph: string, width: number): GlyphParticle[] {
 export function spawnPop(glyph: string, x: number, y: number): GlyphParticle[] {
   return [{
     glyph, x, y, vx: 0, vy: 0, life: 1, decay: POP_DECAY,
-    size: POP_SIZE, rotation: 0, spin: 0, pop: true, gravity: 0,
+    size: POP_SIZE, rotation: 0, spin: 0, pop: true, gravity: 0, sway: 0, phase: 0,
   }];
 }
 
@@ -172,9 +180,10 @@ export function stepFrame(
  */
 function update(p: GlyphParticle): void {
   if (!p.pop) {
+    p.phase += SWAY_SPEED;
     p.vy += p.gravity;
     p.rotation += p.spin;
-    p.x += p.vx;
+    p.x += p.vx + Math.sin(p.phase) * p.sway;
     p.y += p.vy;
   }
   p.life -= p.decay;
