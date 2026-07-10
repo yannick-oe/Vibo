@@ -3,6 +3,44 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Anchored menu layer: transparent-scrim fork, flip placement, message menu/picker (2026-07-09)
+Overlay/popup polish built on the dialog-shell.
+- **Scrim fork — message-level transparent vs. app-level visible.** dialog-shell gains a
+  `scrim` input (`'visible'` default / `'transparent'`). The **message action menu** and the
+  **reaction picker** open with a *fully transparent* scrim: visually scrim-less (Discord/Slack/
+  Teams render desktop message context menus and reaction pickers without a dim; reacting is a
+  high-frequency micro-interaction), yet structurally identical — the overlay element still
+  captures outside clicks and Escape to close, and scroll stays locked. Transparency is a
+  **class flag** (`background-color: transparent`, no hardcoded rgba). **App-level menus**
+  (topbar profile, notification center, channel settings) keep their **visible** scrim, and on
+  mobile the transparent variant is overridden back to the visible scrim so the **long-press
+  bottom sheet** keeps its dim.
+- **Message action menu + reaction picker → dialog-shell**, replacing the row-local
+  absolutely-positioned popovers. They open **above the bubble**, aligned to the bubble side
+  (own → right, others → left) via a new `anchorAbove` helper, and **flip below** when the space
+  above is insufficient (`placeVertically`, measured after render; the inflate masks the flip).
+  On mobile they sheet (the anchor helpers return null ≤768px). Because they now render at
+  `$z-modal` and **escape the row DOM entirely** (fixed positioning, no transformed ancestor),
+  the item-A invariant holds *by construction*: an open picker/menu at `$z-modal` (400) always
+  outranks any hovered row's `$z-raised` (10) toolbar, and the pointer-capturing scrim means
+  adjacent rows can't even be hovered while one is open. Keyboard/focus (trap + restore) and the
+  touch long-press path come from the shell.
+- **Action-bar straddle without `transform`.** The hover toolbar anchor previously straddled the
+  row's top edge with `transform: translateY(-50%)`. A `transform` makes an element the
+  **containing block for `position: fixed` descendants**, which would have re-based the menu's
+  fixed dialog-shell onto that tiny box (verified in headless Chrome: fixed child at the
+  ancestor's offset, not the viewport). Replaced with a **zero-height flex** straddle
+  (`height: 0; display: flex; align-items: center;`) — same visual, no containing block, so the
+  overlay resolves against the viewport.
+- **`placeVertically` flip** (dialog-anchor) also benefits the existing anchored dialogs, which
+  never overflow below their topbar trigger, so it is inert for them (no regression).
+- **Centralized "bubble inflate."** The scale+opacity pop is now a shared `menu-inflate` mixin
+  (token-based duration/easing, `backwards` fill so no persistent transform/stacking context —
+  see the z-order entry below), replacing three duplicated keyframes (dialog-shell, message
+  actions, and now friend-action's overflow menu, which previously had none). Applied **only to
+  trigger-opened menus**; the composer's **mention suggestion-dropdown is deliberately left
+  untouched** (caret-following autocomplete must appear/update instantly while typing).
+
 ## Overlay polish: z-order root cause + background scroll lock (2026-07-09)
 Continuation of the z-order work in the entry below.
 - **Z-order root cause & final fix.** The previous pass raised the *active* message row's
