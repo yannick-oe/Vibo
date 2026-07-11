@@ -13,6 +13,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { Timestamp } from '@angular/fire/firestore';
 import { of, switchMap } from 'rxjs';
 
 import { GifResult } from '../../../models/gif.model';
@@ -94,6 +95,10 @@ export class DirectMessageViewComponent {
   private readonly replyTarget = signal<ReplyRef | null>(null);
 
   protected readonly replyContext = computed<ReplyContext | null>(() => this.buildReplyContext());
+
+  protected readonly unreadSince = signal<Timestamp | null>(null);
+
+  private readonly boundaryCapturedFor = signal<string | null>(null);
 
   protected readonly messages = toSignal(
     toObservable(this.uid).pipe(
@@ -181,8 +186,28 @@ export class DirectMessageViewComponent {
    */
   private markRead(): void {
     const path = this.conversationPath();
-    if (!path || !this.lastMessageId()) return;
+    if (!path || !this.lastMessageId() || this.boundaryCapturedFor() !== path) return;
     void this.readState.markRead(path);
+  }
+
+
+  /**
+   * Freezes the unread boundary for the just-opened conversation from the read
+   * marker as it was before this visit. The markRead gate is re-closed
+   * synchronously here (before the await, so a re-entry cannot advance the
+   * marker on a stale capture) and re-opened once this visit's marker is read;
+   * a stale capture from a fast re-switch is dropped.
+   */
+  private async captureUnreadBoundary(): Promise<void> {
+    const path = this.conversationPath();
+    const uid = this.authService.currentUser()?.uid;
+    this.unreadSince.set(null);
+    this.boundaryCapturedFor.set(null);
+    if (!path || !uid) return;
+    const marker = await this.readState.getReadMarkerOnce(path, uid).catch(() => undefined);
+    if (this.conversationPath() !== path) return;
+    this.unreadSince.set(marker?.lastReadAt ?? null);
+    this.boundaryCapturedFor.set(path);
   }
 
 
@@ -303,6 +328,7 @@ export class DirectMessageViewComponent {
     if (this.focusedUid !== null) this.threadService.close();
     this.focusedUid = uid;
     this.replyTarget.set(null);
+    void this.captureUnreadBoundary();
     requestAnimationFrame(() => this.composer()?.focusInput());
   }
 }

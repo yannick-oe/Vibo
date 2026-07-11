@@ -51,6 +51,7 @@
       [collectionPath]="messagesCollectionPath()"
       [reads]="reads()"
       [otherUids]="otherUids()"
+      [unreadSince]="unreadSince()"
       (threadRequested)="toggleThread($event)"
       (replyRequested)="startReply($event)"
       (authorSelected)="openProfile($event)"

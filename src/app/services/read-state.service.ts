@@ -15,6 +15,7 @@ import {
   doc,
   docData,
   getCountFromServer,
+  getDoc,
   query,
   serverTimestamp,
   setDoc,
@@ -92,6 +93,21 @@ export class ReadStateService {
     return runInInjectionContext(this.injector, () =>
       docData(doc(this.firestore, this.readPath(conversationPath, uid))),
     ) as Observable<ReadMarker | undefined>;
+  }
+
+
+  /**
+   * Reads a user's read marker once (not a live stream) so the unread boundary
+   * can be frozen at the moment a conversation opens — before opening it marks
+   * it read. A missing marker resolves to undefined.
+   * @param conversationPath Path of the conversation document.
+   * @param uid Uid whose read marker is read.
+   */
+  async getReadMarkerOnce(conversationPath: string, uid: string): Promise<ReadMarker | undefined> {
+    const snapshot = await runInInjectionContext(this.injector, () =>
+      getDoc(doc(this.firestore, this.readPath(conversationPath, uid))),
+    );
+    return snapshot.exists() ? (snapshot.data() as ReadMarker) : undefined;
   }
 
 

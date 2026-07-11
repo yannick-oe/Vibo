@@ -13,6 +13,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { Timestamp } from '@angular/fire/firestore';
 import { switchMap } from 'rxjs';
 
 import { Channel } from '../../../models/channel.model';
@@ -102,6 +103,10 @@ export class ChannelViewComponent {
 
   protected readonly replyContext = computed<ReplyContext | null>(() => this.buildReplyContext());
 
+  protected readonly unreadSince = signal<Timestamp | null>(null);
+
+  private readonly boundaryCapturedFor = signal<string | null>(null);
+
 
   /**
    * Closes the members dialog and opens the member's profile.
@@ -182,8 +187,29 @@ export class ChannelViewComponent {
    * one so the active channel always shows zero unread.
    */
   private markRead(): void {
-    if (!this.lastMessageId()) return;
-    void this.readState.markRead(this.conversationPath());
+    const path = this.conversationPath();
+    if (!this.lastMessageId() || this.boundaryCapturedFor() !== path) return;
+    void this.readState.markRead(path);
+  }
+
+
+  /**
+   * Freezes the unread boundary for the just-opened channel from the read
+   * marker as it was before this visit. The markRead gate is re-closed
+   * synchronously here (before the await, so a re-entry cannot advance the
+   * marker on a stale capture) and re-opened once this visit's marker is read;
+   * a stale capture from a fast re-switch is dropped.
+   */
+  private async captureUnreadBoundary(): Promise<void> {
+    const path = this.conversationPath();
+    const uid = this.authService.currentUser()?.uid;
+    this.unreadSince.set(null);
+    this.boundaryCapturedFor.set(null);
+    if (!uid) return;
+    const marker = await this.readState.getReadMarkerOnce(path, uid).catch(() => undefined);
+    if (this.conversationPath() !== path) return;
+    this.unreadSince.set(marker?.lastReadAt ?? null);
+    this.boundaryCapturedFor.set(path);
   }
 
 
@@ -327,6 +353,7 @@ export class ChannelViewComponent {
     if (this.focusedChannelId !== null) this.threadService.close();
     this.focusedChannelId = channelId;
     this.replyTarget.set(null);
+    void this.captureUnreadBoundary();
     requestAnimationFrame(() => this.composer()?.focusInput());
   }
 

@@ -59,6 +59,7 @@
         [reads]="reads()"
         [otherUids]="otherUids()"
         [isSelfConversation]="isSelf()"
+        [unreadSince]="unreadSince()"
         (threadRequested)="toggleThread($event)"
         (replyRequested)="startReply($event)"
         (authorSelected)="profileUid.set($event)"
