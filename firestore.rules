@@ -150,7 +150,8 @@ service cloud.firestore {
     }
 
     function typingDocValid() {
-      return request.resource.data.keys().hasOnly(['updatedAt'])
+      return request.resource.data.keys().hasOnly(['uid', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid
         && request.resource.data.updatedAt == request.time;
     }
 
@@ -349,13 +350,14 @@ service cloud.firestore {
           && isChannelMember(channelId) && readDocValid();
       }
 
-      // Co-located per-user typing state; readable by any member. Each user
-      // writes only their own marker (throttled client-side); deletes clear it.
-      match /typing/{uid} {
+      // Co-located per-session typing state (doc id = client session, so two
+      // windows of the shared guest account never mute each other). The writer's
+      // uid rides inside the doc; a member may only write their own uid and may
+      // only delete a marker that carries it.
+      match /typing/{sessionId} {
         allow read: if isChannelMember(channelId);
-        allow create, update: if signedIn() && request.auth.uid == uid
-          && isChannelMember(channelId) && typingDocValid();
-        allow delete: if signedIn() && request.auth.uid == uid;
+        allow create, update: if isChannelMember(channelId) && typingDocValid();
+        allow delete: if signedIn() && (resource == null || resource.data.uid == request.auth.uid);
       }
     }
 
@@ -483,13 +485,14 @@ service cloud.firestore {
           && request.auth.uid == uid && readDocValid();
       }
 
-      // Co-located per-user typing state; readable by either participant. Each
-      // writes only their own marker (throttled client-side); deletes clear it.
-      match /typing/{uid} {
+      // Co-located per-session typing state (doc id = client session, so two
+      // windows of the shared guest account never mute each other). The writer's
+      // uid rides inside the doc; a participant may only write their own uid and
+      // may only delete a marker that carries it.
+      match /typing/{sessionId} {
         allow read: if isParticipant(conversationId);
-        allow create, update: if isParticipant(conversationId)
-          && request.auth.uid == uid && typingDocValid();
-        allow delete: if isParticipant(conversationId) && request.auth.uid == uid;
+        allow create, update: if isParticipant(conversationId) && typingDocValid();
+        allow delete: if isParticipant(conversationId) && (resource == null || resource.data.uid == request.auth.uid);
       }
     }
   }

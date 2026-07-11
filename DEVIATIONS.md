@@ -3,6 +3,74 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Chat ergonomics v2 — scroll-to-latest FAB, „Neu" divider, drafts, typing (2026-07-10)
+Roadmap V2 Phase 1. No Figma frames for any of the four; all strictly token-based, AA in both themes.
+
+- **Scroll-to-latest FAB (net-new).** A circular button floats bottom-right above the composer of the
+  channel, DM **and** thread panels (shared `ScrollToLatestFabComponent` + `ScrollFabTracker` plain
+  class, mirroring the entrance/big-reaction trackers). It appears once the user has scrolled up past
+  **one viewport** (`distance > clientHeight`) *or* a message arrived while they were away, and hides
+  at the bottom. A count badge shows arrivals-while-away, capped „99+"; the badge is absolutely
+  positioned on the out-of-flow FAB so it reserves geometry (**CLS 0**). „Caught up" is driven by the
+  list's existing `stickToBottom` truth, so freshly loaded history never counts as arrivals. Click
+  scrolls smoothly (`behavior:'smooth'`, instant under `prefers-reduced-motion`) and **suppresses** the
+  button until the scroll settles (a `suppressed` flag lifted on arrival, or on a genuine scroll back up
+  detected by rising distance) so it hides at once and never flashes back mid-animation. Entrance/exit
+  is opacity+scale via `$transition-*` / `$menu-inflate-ease`; z-order via `$z-sticky`. It never overlaps
+  the reply-context bar (which lives inside the composer, below the list). **Behaviour change:** the
+  thread panel now respects `stickToBottom` too (previously it always yanked to the newest reply), so
+  reading older replies is no longer interrupted — a deliberate alignment with the main list.
+- **„Neu" unread divider — adjacency decision (documented).** On entering a conversation with
+  unread messages, a subtle divider marks the first message newer than the read marker **and** authored
+  by someone else (own messages never count, matching the unread-badge). The boundary is **frozen once
+  at open** from the *pre-visit* read marker: the view reads it with a one-shot `getReadMarkerOnce`
+  (`getDoc`) and `markRead` is **gated** behind that capture (a `boundaryCapturedFor` signal that is
+  re-closed synchronously on every switch — before the async read — so a fast re-entry can't advance the
+  marker on a stale capture; it relies on the switch effect flushing before the markRead effect, the
+  same effect-order the message-list already relies on). A stale capture from a fast re-switch is dropped
+  (path guard); a failed read degrades to „no divider" (never blocks `markRead`). The boundary stays put
+  while reading and is gone next visit; first-ever visits (no marker) show **no** divider. **Adjacency
+  rule (never two stacked lines):** when the boundary coincides with a date separator (the common
+  "returned the next day" case), the **date separator wins** and carries an extra „Neu" chip on the same
+  row — so the date label („Heute") is never lost; only when the boundary falls mid-day does a standalone
+  „Neu" separator render. The chip is `color('primary')` text+border on `color('white')` (AA both themes,
+  the same flip trick as the date pill). The divider inserts asynchronously after the marker resolves; to
+  keep **CLS 0**, the list re-pins to the bottom (in a pre-paint rAF) when the divider first appears while
+  stuck to the bottom, so the newest messages never shift.
+- **Per-conversation drafts (net-new).** Unsent composer text persists per conversation in
+  `localStorage` under `vibo:draft:{conversationPath}` (length-capped 5000, best-effort — storage
+  failures degrade to „no draft"), restored on reopen and cleared on send. The **reply-context bar is
+  NOT persisted** (it resets on leave, matching Discord). Restore is written straight into the textarea
+  in a pre-paint `requestAnimationFrame` (the `[value]` binding is unreliable under this app's coalesced
+  zoneless change detection — the same reason `submit()` clears imperatively) so switching conversations
+  never flashes the previous draft. Scoped to the **channel + DM** composers: the **thread and
+  „Neue Nachricht" composers bind no `conversationPath`, so they are skipped** — wiring them would need a
+  separate draft key and would entangle the typing writes, out of scope. Drafts pushed
+  `message-input.component.ts` over the 400-LOC cap, so the composer's pure mention/suggestion helpers
+  were extracted to `composer-mentions.ts` and the draft binding to `composer-draft.ts` (both single-
+  responsibility, no behaviour change).
+- **Typing indicator — placement + guest keying.** The pre-existing typing feature (co-located `typing`
+  subcollection, one listener per open conversation — the isolated-writes design that keeps the
+  meta/last-message listeners noise-free, §14-clean) was kept and extended, not rebuilt. Typing markers
+  are **re-keyed from `{uid}` to a per-tab client-session id** (`ClientSessionService`, persisted in
+  `sessionStorage` so a reload reuses the same doc rather than orphaning it, while each new tab still gets
+  its own id), with the writer's `uid` stored **inside** the doc; the reader excludes the viewer's own
+  **session** (not uid). This fixes the **shared guest account**: two guest windows share a uid, so the
+  old uid-keyed scheme made each window filter the other out as „self" and neither saw the other type —
+  now each window is a distinct session. Text is **multi-user aware** and named: „{A} schreibt …",
+  „{A} und {B} schreiben …", „{A}, {B} und weitere schreiben …" (distinct names, sorted;
+  „schreibt/schreiben" replaces the earlier „tippt"). Sender heartbeat throttled to **4 s**, cleared on
+  send/blur and after a **5 s** idle timeout (and never issues a delete for a marker it never wrote —
+  avoids a doomed permission-denied on blur-without-typing); reader recency window **8 s** (> heartbeat,
+  so a dropped beat doesn't flicker). The reader query is `orderBy updatedAt desc, limit 20` so read cost
+  stays bounded regardless of abandoned markers (active typers are always the freshest). **Tech-debt
+  (accepted):** a tab closed/crashed while a marker is live leaves one orphan typing doc (no `pagehide`
+  delete — `deleteDoc` on unload isn't guaranteed; recency hides it and the `limit` caps its read cost;
+  a *reload* reuses the same session doc and never orphans). Analogous to the existing "crash mid-delete
+  leaves orphaned subcollection docs" note. **Requires a firestore.rules deploy** (the typing doc shape
+  changed) — until deployed, typing writes fail silently (already `.catch`), so the indicator is simply
+  absent, never an error.
+
 ## Mention visuals: self-mention pill + mention-accent unread badge (2026-07-10)
 - **One shared `--mention-accent` token, measured.** A single CSS custom property drives both the
   message-body self-mention pill and the sidebar mention badge (light `#c4185f`, dark `#ff3d9e`);
