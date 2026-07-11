@@ -1,21 +1,25 @@
 /**
- * @file "{name} tippt…" indicator for a conversation. Streams the typing
- * subcollection, keeps only other users whose state is within a recency window
- * (re-checked on a timer so stale states self-expire) and resolves names. The
- * bar reserves its height permanently so it never shifts the layout (CLS 0).
+ * @file "{name} schreibt …" indicator for a conversation. Streams the typing
+ * subcollection, keeps only entries whose state is within a recency window
+ * (re-checked on a timer so stale states self-expire) excluding the viewer's own
+ * client session, and resolves names — multi-user aware for channels. The bar
+ * reserves its height permanently so it never shifts the layout (CLS 0).
  */
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Timestamp } from '@angular/fire/firestore';
 import { Observable, interval, of, switchMap } from 'rxjs';
 
-import { AuthService } from '../../../services/auth.service';
+import { ClientSessionService } from '../../../services/client-session.service';
 import { TypingEntry, TypingService } from '../../../services/typing.service';
 import { UserService } from '../../../services/user.service';
 
-const RECENCY_MS = 5000;
+const RECENCY_MS = 8000;
 const RECHECK_MS = 1500;
-const MULTIPLE_TYPING_TEXT = 'mehrere tippen…';
+const TYPING_VERB_ONE = 'schreibt …';
+const TYPING_VERB_MANY = 'schreiben …';
+const TYPING_CONNECTOR = 'und';
+const TYPING_MORE = 'und weitere';
 
 /**
  * Shows the live typing text for the conversation at `conversationPath`. Empty
@@ -32,7 +36,7 @@ export class TypingIndicatorComponent {
 
   private readonly typingService = inject(TypingService);
 
-  private readonly authService = inject(AuthService);
+  private readonly clientSession = inject(ClientSessionService);
 
   private readonly userService = inject(UserService);
 
@@ -57,35 +61,41 @@ export class TypingIndicatorComponent {
 
   /**
    * Builds the indicator text from the current recent typers: empty for none,
-   * "{name} tippt…" for one, "mehrere tippen…" for several.
+   * "{name} schreibt …" for one, and named plural forms for several.
    */
   private buildText(): string {
     this.tick();
     const names = this.recentTypers();
     if (names.length === 0) return '';
-    return names.length === 1 ? `${names[0]} tippt…` : MULTIPLE_TYPING_TEXT;
+    if (names.length === 1) return `${names[0]} ${TYPING_VERB_ONE}`;
+    if (names.length === 2) return `${names[0]} ${TYPING_CONNECTOR} ${names[1]} ${TYPING_VERB_MANY}`;
+    return `${names[0]}, ${names[1]} ${TYPING_MORE} ${TYPING_VERB_MANY}`;
   }
 
 
   /**
-   * Names of other users whose typing state is within the recency window right
-   * now; entries for users without a document are skipped.
+   * Distinct names of other client sessions whose typing state is within the
+   * recency window right now; the viewer's own session and unknown users are
+   * excluded, and shared names (e.g. two guest windows) collapse to one.
    */
   private recentTypers(): string[] {
-    const me = this.authService.currentUser()?.uid;
+    const mySession = this.clientSession.id;
     const now = Date.now();
-    return this.entries()
-      .filter(entry => entry.uid !== me && isRecent(entry.updatedAt, now))
+    const names = this.entries()
+      .filter(entry => entry.sessionId !== mySession && isRecent(entry.updatedAt, now))
       .map(entry => this.nameOf(entry.uid))
       .filter((name): name is string => name !== null);
+    return [...new Set(names)].sort();
   }
 
 
   /**
-   * Resolves a uid to its display name, or null when no user document exists.
-   * @param uid Uid of a typing user.
+   * Resolves a uid to its display name, or null when it is missing or has no
+   * user document.
+   * @param uid Uid stored on a typing marker, if present.
    */
-  private nameOf(uid: string): string | null {
+  private nameOf(uid: string | undefined): string | null {
+    if (!uid) return null;
     return this.userService.users().find(user => user.uid === uid)?.name ?? null;
   }
 }
