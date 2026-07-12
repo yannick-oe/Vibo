@@ -3,6 +3,60 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Message windowing / pagination + typing ellipsis (2026-07-12)
+Roadmap V2 Phase 2. No Figma frames; strictly token-based, AA both themes.
+
+- **Windowing architecture (§14 read reduction).** Each open channel/DM main stream now loads through a
+  `ConversationWindow`: exactly ONE live listener over the newest `PAGE_SIZE` (50) messages
+  (`orderBy createdAt desc, limit`), merged into an id-keyed store and rendered ascending. Older history
+  is fetched on demand as one-shot `getDocs` pages (`startAfter` the oldest-loaded snapshot), **never**
+  listeners. This replaces the previous unbounded per-conversation listener — a large read reduction on
+  open. `MessageService.openWindow` is the factory; the views create one window per conversation via
+  `effect(onCleanup)` and destroy the previous. The now-dead `streamMessages` / `streamMessagesWith`
+  path was removed. No `firestore.rules` / `firestore.indexes.json` change (single-field
+  `orderBy(createdAt)` + `startAfter` needs no composite index).
+- **Staleness trade-off (accepted).** Messages that leave the live window — paginated-in older pages, or
+  messages that slid out as newer ones arrived — keep their last-known state: edits/deletes/reactions on
+  them do **not** live-update until the conversation is reopened. Only the newest-window messages stay
+  fully reactive. Attaching listeners to old pages would defeat the read reduction.
+- **Newest-edge discontinuity → reset (never a silent gap).** A merge cannot bridge a jump of
+  ≥ PAGE_SIZE newer messages arriving in one snapshot delta (an atomic 50+ batch, or an offline/
+  backgrounded resync that delivers only the current top-50). When an incoming live page shares **no id**
+  with the store, the window **resets** to that page and re-anchors the cursor, so older history stays
+  re-fetchable and nothing is silently lost. Rare cost: loaded older history is dropped on such a jump
+  (re-fetchable by scrolling up) — acceptable because the trigger is essentially an away/resync where
+  showing the latest is the right behaviour.
+- **Scroll anchoring (CLS 0).** Paging older history preserves the viewport by anchoring to the previous
+  top **row's** viewport position (`getBoundingClientRect().top`), restored before paint — not a
+  scroll-height delta — so a foreign message appending below the fold during the fetch cannot over-scroll
+  it. A reserved-height edge row shows a spinner (reduced-motion: static; `role="status"` announces the
+  „Ältere Nachrichten werden geladen" text) while loading, and a friendly start marker at the true
+  beginning („Willkommen in #channel" / „Das ist der Anfang eurer Unterhaltung"). Prepended history is
+  **not** entrance-animated (the time-based `MessageEntranceTracker` gates by createdAt > open-time, so
+  past-dated rows never animate — verified; no extra gating needed).
+- **Focus click-through (quote / notification / search), cap 5.** A target outside the loaded window
+  pages older history in until it renders (bounded `MAX_FOCUS_PAGES` = 5), then scrolls to it; beyond the
+  cap a **toast** („Diese Nachricht liegt weiter zurück…") explains it and clears the target — a toast,
+  not an inline note, because the target row is not present to attach a note to. The predicate checks the
+  **rendered** (hiddenFor-filtered) set, and the paginator waits for the window's first snapshot before
+  paging, so a fresh cross-conversation open finds a recent target instead of falsely reporting it too
+  old.
+- **„Neu" divider with windowing.** The divider extends the initial load to include the boundary (bounded
+  5 pages); beyond the cap it gracefully rides the top of the loaded window (never vanishes —
+  `deriveBoundaryId` returns the oldest-loaded foreign message). **Known minor edge (browser-conditioned,
+  documented):** if the user scrolls up *during* this background extension on a 50+-unread conversation, a
+  prepend can shift the viewport on browsers without native scroll-anchoring (Safari/iOS); Chrome/Firefox
+  mask it. Accepted as a narrow edge — the sentinel-triggered (user-initiated) paging is fully anchored.
+- **Empty/loading states.** The window exposes a `loaded` flag (set on the first non-empty cache page or
+  the first server snapshot); the channel intro and the DM empty card render only once loaded, so
+  switching conversations never flashes a wrong empty/intro state during the load gap (the message list
+  shows its own spinner meanwhile).
+- **Thread panel left unpaginated** (replies are short; `streamReplies` stays a single live listener) —
+  confirmed, unchanged. **Date separators** stay correct across page seams (grouping runs on the whole
+  sorted list, extracted to `message-grouping.ts`).
+- **Typing indicator:** dropped the literal „…" from all label variants; the animated dots (static under
+  reduced-motion, always rendered) are now the sole ellipsis, so the label never ends bare.
+
 ## Chat ergonomics v2 — scroll-to-latest FAB, „Neu" divider, drafts, typing (2026-07-10)
 Roadmap V2 Phase 1. No Figma frames for any of the four; all strictly token-based, AA in both themes.
 
