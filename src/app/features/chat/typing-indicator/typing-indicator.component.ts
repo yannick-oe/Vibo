@@ -16,8 +16,8 @@ import { UserService } from '../../../services/user.service';
 
 const RECENCY_MS = 8000;
 const RECHECK_MS = 1500;
-const TYPING_VERB_ONE = 'schreibt …';
-const TYPING_VERB_MANY = 'schreiben …';
+const TYPING_VERB_ONE = 'schreibt';
+const TYPING_VERB_MANY = 'schreiben';
 const TYPING_CONNECTOR = 'und';
 const TYPING_MORE = 'und weitere';
 
