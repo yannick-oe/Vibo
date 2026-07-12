@@ -11,11 +11,8 @@ import {
   doc,
   docData,
   increment,
-  onSnapshot,
   orderBy,
   query,
-  Query,
-  QuerySnapshot,
   serverTimestamp,
   updateDoc,
   writeBatch,
@@ -24,6 +21,7 @@ import { Observable, catchError, of } from 'rxjs';
 
 import { GifResult } from '../models/gif.model';
 import { Message, MessageDoc, ReactionMap, Reply, ReplyDoc, ReplyRef } from '../models/message.model';
+import { ConversationWindow } from './conversation-window';
 import { applyReaction } from './message-reactions';
 import { buildGifMessage, buildGifReply, buildMessage, buildReply } from './message-build';
 import { AuthService } from './auth.service';
@@ -80,12 +78,15 @@ export class MessageService {
 
 
   /**
-   * Streams a messages collection live, oldest first. Safe to call from
-   * reactive callbacks — the query is created in the injection context.
+   * Opens a windowed, paginated view over a conversation's messages: one live
+   * listener on the newest page plus on-demand older pages. Destroy it on a
+   * context switch. Load errors reuse the shared messages-load toast.
    * @param collectionPath Firestore path of the messages collection.
    */
-  streamMessages(collectionPath: string): Observable<Message[]> {
-    return runInInjectionContext(this.injector, () => this.queryMessages(collectionPath));
+  openWindow(collectionPath: string): ConversationWindow {
+    return new ConversationWindow(this.firestore, this.injector, collectionPath, () =>
+      this.toastService.show(MESSAGES_LOAD_ERROR),
+    );
   }
 
 
@@ -323,39 +324,6 @@ export class MessageService {
 
 
   /**
-   * Builds the live query; on Firestore errors a toast is shown and an
-   * empty list keeps the UI functional.
-   * @param collectionPath Firestore path of the messages collection.
-   */
-  private queryMessages(collectionPath: string): Observable<Message[]> {
-    const messagesQuery = query(
-      collection(this.firestore, collectionPath),
-      orderBy('createdAt'),
-    );
-    return this.messageSnapshots(messagesQuery).pipe(catchError(() => this.reportLoadError()));
-  }
-
-
-  /**
-   * Streams a messages query with metadata so each message carries the
-   * hasPendingWrites flag (sending vs stored on the server) for read receipts.
-   * @param messagesQuery Ordered query of the messages collection.
-   */
-  private messageSnapshots(messagesQuery: Query): Observable<Message[]> {
-    return new Observable<Message[]>(subscriber =>
-      runInInjectionContext(this.injector, () =>
-        onSnapshot(
-          messagesQuery,
-          { includeMetadataChanges: true },
-          snapshot => subscriber.next(mapMessages(snapshot)),
-          error => subscriber.error(error),
-        ),
-      ),
-    );
-  }
-
-
-  /**
    * Plays the chat notification sound, restarting it if already playing.
    * Rejections are swallowed because browsers block autoplay until the
    * first user gesture.
@@ -373,18 +341,4 @@ export class MessageService {
     this.toastService.show(MESSAGES_LOAD_ERROR);
     return of([]);
   }
-}
-
-
-/**
- * Maps a messages query snapshot to Message objects, attaching the id and the
- * pending-write metadata that distinguishes "sending" from "stored".
- * @param snapshot Firestore query snapshot of a messages collection.
- */
-function mapMessages(snapshot: QuerySnapshot): Message[] {
-  return snapshot.docs.map(document => ({
-    ...(document.data() as MessageDoc),
-    id: document.id,
-    hasPendingWrites: document.metadata.hasPendingWrites,
-  }));
 }

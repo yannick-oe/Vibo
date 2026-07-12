@@ -1,4 +1,22 @@
 <div class="message-list" #scrollContainer (scroll)="onScroll()">
+  @if (window().atStart()) {
+    @if (messages().length > 0) {
+      <div class="message-list__edge message-list__edge--start" role="status">
+        <span class="message-list__start-text">{{ startMarker() }}</span>
+      </div>
+    }
+  } @else {
+    <div class="message-list__edge" #sentinel role="status">
+      <span
+        class="message-list__spinner"
+        [class.message-list__spinner--on]="window().loadingOlder()"
+        aria-hidden="true"
+      ></span>
+      @if (window().loadingOlder()) {
+        <span class="sr-only">Ältere Nachrichten werden geladen</span>
+      }
+    </div>
+  }
   @for (group of groups(); track group.key) {
     <div class="message-list__separator" role="separator">
       <span class="message-list__separator-label">{{ group.label }}</span>

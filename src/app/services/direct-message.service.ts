@@ -27,7 +27,7 @@ import { Observable, catchError, of, switchMap } from 'rxjs';
 
 import { DirectMessageDoc, buildConversationId } from '../models/direct-message.model';
 import { GifResult } from '../models/gif.model';
-import { Message, ReplyRef } from '../models/message.model';
+import { ReplyRef } from '../models/message.model';
 import { AuthService } from './auth.service';
 import { FriendshipService } from './friendship.service';
 import { MessageService, directMessagesPath } from './message.service';
@@ -64,29 +64,6 @@ export class DirectMessageService {
 
   /** Partner uids of every conversation that already exists. */
   readonly conversationPartnerUids = computed(() => this.collectPartnerUids());
-
-
-  /**
-   * Streams the conversation with the given partner live, oldest first.
-   * Reacts to the auth state instead of assuming it: on a hard reload the
-   * session is restored asynchronously, so the stream stays empty until
-   * the signed-in user is known.
-   * @param partnerUid Uid of the conversation partner (own uid for the
-   * self conversation).
-   */
-  streamMessagesWith(partnerUid: string): Observable<Message[]> {
-    return runInInjectionContext(this.injector, () =>
-      toObservable(this.authService.currentUser),
-    ).pipe(
-      switchMap(current =>
-        current
-          ? this.messageService.streamMessages(
-              directMessagesPath(buildConversationId(current.uid, partnerUid)),
-            )
-          : of([]),
-      ),
-    );
-  }
 
 
   /**

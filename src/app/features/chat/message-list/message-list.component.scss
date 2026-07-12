@@ -80,6 +80,50 @@
   gap: v.space('lg');
 }
 
+.message-list__edge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: v.$btn-height-sm;
+  padding: v.space('sm') v.space('lg');
+}
+
+.message-list__edge--start {
+  padding: v.space('md') v.space('lg') v.space('lg');
+}
+
+.message-list__spinner {
+  width: v.$icon-md;
+  height: v.$icon-md;
+  border: 2px solid v.color('lines');
+  border-top-color: v.color('primary');
+  border-radius: v.$radius-round;
+  opacity: 0;
+}
+
+.message-list__spinner--on {
+  opacity: 1;
+  animation: message-list-spin 0.8s linear infinite;
+}
+
+.message-list__start-text {
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  text-align: center;
+}
+
+@keyframes message-list-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-list__spinner--on {
+    animation: none;
+  }
+}
+
 @include m.respond-md {
   .message-list {
     padding: v.space('md');

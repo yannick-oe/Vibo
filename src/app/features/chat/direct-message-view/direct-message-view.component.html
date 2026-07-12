@@ -32,7 +32,7 @@
     </div>
   </header>
 
-  @if (messages().length === 0) {
+  @if (messageWindow()?.loaded() && messages().length === 0) {
     <div class="dm__empty">
       <img class="dm__empty-avatar" appAvatarFallback [src]="partnerAvatar()" alt="" aria-hidden="true" />
       <h2 class="dm__empty-name">{{ displayName() }}</h2>
@@ -51,19 +51,22 @@
     </div>
   } @else {
     <div class="dm__list">
-      <app-message-list
-        [messages]="messages()"
-        [resetKey]="uid()"
-        [openThreadId]="openThreadMessageId()"
-        [collectionPath]="messagesCollectionPath()"
-        [reads]="reads()"
-        [otherUids]="otherUids()"
-        [isSelfConversation]="isSelf()"
-        [unreadSince]="unreadSince()"
-        (threadRequested)="toggleThread($event)"
-        (replyRequested)="startReply($event)"
-        (authorSelected)="profileUid.set($event)"
-      />
+      @if (messageWindow(); as window) {
+        <app-message-list
+          [window]="window"
+          [resetKey]="uid()"
+          [openThreadId]="openThreadMessageId()"
+          [collectionPath]="messagesCollectionPath()"
+          [reads]="reads()"
+          [otherUids]="otherUids()"
+          [isSelfConversation]="isSelf()"
+          [unreadSince]="unreadSince()"
+          [startMarker]="startMarker"
+          (threadRequested)="toggleThread($event)"
+          (replyRequested)="startReply($event)"
+          (authorSelected)="profileUid.set($event)"
+        />
+      }
     </div>
   }
 

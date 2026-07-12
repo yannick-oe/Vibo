@@ -19,8 +19,9 @@ import { of, switchMap } from 'rxjs';
 import { GifResult } from '../../../models/gif.model';
 import { Message, ReplyRef } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
+import { ConversationWindow } from '../../../services/conversation-window';
 import { DirectMessageService } from '../../../services/direct-message.service';
-import { conversationDocPath } from '../../../services/message.service';
+import { MessageService, conversationDocPath } from '../../../services/message.service';
 import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { PresenceService } from '../../../services/presence.service';
 import { ReadEntry, ReadStateService } from '../../../services/read-state.service';
@@ -39,10 +40,12 @@ import { MessageInputComponent, ReplyContext } from '../message-input/message-in
 import { MessageListComponent } from '../message-list/message-list.component';
 import { buildReplyRef } from '../reply-ref';
 import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
+import { extendWindowToBoundary } from '../unread-window';
 
 const SEND_ERROR = 'Die Nachricht konnte nicht gesendet werden.';
 const UNKNOWN_PARTNER = 'Unbekannt';
 const SELF_SUFFIX = ' (Du)';
+const DM_START_MARKER = 'Das ist der Anfang eurer Unterhaltung';
 
 /**
  * Chat view of a direct conversation per the Figma DM frames: header with
@@ -72,6 +75,8 @@ export class DirectMessageViewComponent {
 
   private readonly directMessageService = inject(DirectMessageService);
 
+  private readonly messageService = inject(MessageService);
+
   private readonly notificationFanout = inject(NotificationFanoutService);
 
   private readonly readState = inject(ReadStateService);
@@ -100,12 +105,11 @@ export class DirectMessageViewComponent {
 
   private readonly boundaryCapturedFor = signal<string | null>(null);
 
-  protected readonly messages = toSignal(
-    toObservable(this.uid).pipe(
-      switchMap(partnerUid => this.directMessageService.streamMessagesWith(partnerUid)),
-    ),
-    { initialValue: [] as Message[] },
-  );
+  protected readonly messageWindow = signal<ConversationWindow | null>(null);
+
+  protected readonly messages = computed(() => this.messageWindow()?.messages() ?? []);
+
+  protected readonly startMarker = DM_START_MARKER;
 
   protected readonly isSelf = computed(
     () => this.uid() === this.authService.currentUser()?.uid,
@@ -177,6 +181,24 @@ export class DirectMessageViewComponent {
   constructor() {
     effect(() => this.handleConversationSwitch(this.uid()));
     effect(() => this.markRead());
+    effect(onCleanup => this.openWindow(this.messagesCollectionPath(), onCleanup));
+  }
+
+
+  /**
+   * Opens a fresh windowed message source for the conversation and tears the
+   * previous one down on switch or destroy; no window while signed out.
+   * @param path Messages collection path, or null while signed out.
+   * @param onCleanup Registers the teardown for the previous window.
+   */
+  private openWindow(path: string | null, onCleanup: (cleanup: () => void) => void): void {
+    if (!path) {
+      this.messageWindow.set(null);
+      return;
+    }
+    const window = this.messageService.openWindow(path);
+    this.messageWindow.set(window);
+    onCleanup(() => window.destroy());
   }
 
 
@@ -208,6 +230,8 @@ export class DirectMessageViewComponent {
     if (this.conversationPath() !== path) return;
     this.unreadSince.set(marker?.lastReadAt ?? null);
     this.boundaryCapturedFor.set(path);
+    const window = this.messageWindow();
+    if (window) void extendWindowToBoundary(window, marker?.lastReadAt ?? null);
   }
 
 

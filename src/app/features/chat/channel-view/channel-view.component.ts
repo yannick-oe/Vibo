@@ -22,6 +22,7 @@ import { Message, ReplyRef } from '../../../models/message.model';
 import { UserDoc } from '../../../models/user.model';
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
+import { ConversationWindow } from '../../../services/conversation-window';
 import { LayoutService } from '../../../services/layout.service';
 import { MessageService, channelMessagesPath, conversationDocPath } from '../../../services/message.service';
 import { NotificationFanoutService } from '../../../services/notification-fanout.service';
@@ -39,6 +40,7 @@ import { MessageInputComponent, ReplyContext } from '../message-input/message-in
 import { MessageListComponent } from '../message-list/message-list.component';
 import { buildReplyRef } from '../reply-ref';
 import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
+import { extendWindowToBoundary } from '../unread-window';
 
 const SEND_ERROR = 'Die Nachricht konnte nicht gesendet werden.';
 const HEAD_AVATAR_LIMIT = 3;
@@ -117,12 +119,9 @@ export class ChannelViewComponent {
     this.profileUid.set(uid);
   }
 
-  protected readonly messages = toSignal(
-    toObservable(this.channelId).pipe(
-      switchMap(id => this.messageService.streamMessages(channelMessagesPath(id))),
-    ),
-    { initialValue: [] as Message[] },
-  );
+  protected readonly messageWindow = signal<ConversationWindow | null>(null);
+
+  protected readonly messages = computed(() => this.messageWindow()?.messages() ?? []);
 
   protected readonly channel = computed<Channel | undefined>(() =>
     this.channelService.channels().find(channel => channel.id === this.channelId()),
@@ -135,12 +134,17 @@ export class ChannelViewComponent {
   protected readonly memberCount = computed(() => this.resolvedMembers().length);
 
   protected readonly showIntro = computed(
-    () => this.messages().length === 0 && this.channel()?.createdBy === this.authService.currentUser()?.uid,
+    () =>
+      this.messageWindow()?.loaded() === true &&
+      this.messages().length === 0 &&
+      this.channel()?.createdBy === this.authService.currentUser()?.uid,
   );
 
   protected readonly composerPlaceholder = computed(
     () => `Nachricht an #${this.channel()?.name ?? ''}`,
   );
+
+  protected readonly startMarker = computed(() => `Willkommen in #${this.channel()?.name ?? ''}`);
 
   protected readonly openThreadMessageId = computed(() =>
     this.threadService.openMessageIdIn(channelMessagesPath(this.channelId())),
@@ -179,6 +183,20 @@ export class ChannelViewComponent {
   constructor() {
     effect(() => this.handleChannelSwitch(this.channelId()));
     effect(() => this.markRead());
+    effect(onCleanup => this.openWindow(this.channelId(), onCleanup));
+  }
+
+
+  /**
+   * Opens a fresh windowed message source for the channel and tears the
+   * previous one down on switch or destroy.
+   * @param channelId Currently routed channel id.
+   * @param onCleanup Registers the teardown for the previous window.
+   */
+  private openWindow(channelId: string, onCleanup: (cleanup: () => void) => void): void {
+    const window = this.messageService.openWindow(channelMessagesPath(channelId));
+    this.messageWindow.set(window);
+    onCleanup(() => window.destroy());
   }
 
 
@@ -210,6 +228,8 @@ export class ChannelViewComponent {
     if (this.conversationPath() !== path) return;
     this.unreadSince.set(marker?.lastReadAt ?? null);
     this.boundaryCapturedFor.set(path);
+    const window = this.messageWindow();
+    if (window) void extendWindowToBoundary(window, marker?.lastReadAt ?? null);
   }
 
 

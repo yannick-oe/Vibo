@@ -44,18 +44,21 @@
   </header>
 
   <div class="channel__list">
-    <app-message-list
-      [messages]="messages()"
-      [resetKey]="channelId()"
-      [openThreadId]="openThreadMessageId()"
-      [collectionPath]="messagesCollectionPath()"
-      [reads]="reads()"
-      [otherUids]="otherUids()"
-      [unreadSince]="unreadSince()"
-      (threadRequested)="toggleThread($event)"
-      (replyRequested)="startReply($event)"
-      (authorSelected)="openProfile($event)"
-    />
+    @if (messageWindow(); as window) {
+      <app-message-list
+        [window]="window"
+        [resetKey]="channelId()"
+        [openThreadId]="openThreadMessageId()"
+        [collectionPath]="messagesCollectionPath()"
+        [reads]="reads()"
+        [otherUids]="otherUids()"
+        [unreadSince]="unreadSince()"
+        [startMarker]="startMarker()"
+        (threadRequested)="toggleThread($event)"
+        (replyRequested)="startReply($event)"
+        (authorSelected)="openProfile($event)"
+      />
+    }
     @if (showIntro()) {
       <div class="channel__intro">
         <h2 class="channel__intro-title">
