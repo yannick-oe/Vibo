@@ -5,3 +5,28 @@
 @use 'styles/layout';
 @use 'styles/buttons';
 @use 'styles/forms';
+
+// ─── Route view transitions ─────────────────────────────────────────────────
+// Router cross-fade (withViewTransitions — feature-detected; reduced motion is
+// skipped in the router callback). Only the main content (.shell__chat, named
+// `chat-content`) cross-fades on channel/DM/friends/new-message switches; the
+// persistent sidebar and thread stay in `root`, whose animation is disabled so
+// they never flicker.
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(chat-content),
+::view-transition-new(chat-content) {
+  animation-duration: v.$duration-base;
+  animation-timing-function: v.$ease-standard;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}

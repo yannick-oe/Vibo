@@ -95,6 +95,7 @@
   background-color: v.color('white');
   box-shadow: v.$shadow-sm;
   overflow: hidden;
+  view-transition-name: chat-content;
 }
 
 .shell__thread {
