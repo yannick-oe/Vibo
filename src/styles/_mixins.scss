@@ -82,6 +82,25 @@
   box-shadow: $shadow;
 }
 
+// ─── Motion — interaction feedback ─────────────────────────────────────────────
+// Subtle press feedback: a quick scale-down on :active. The element must include
+// `transform v.$transition-fast` in its own transition (so background/colour
+// transitions are never clobbered). Reduced motion drops the scale for an
+// opacity dip only. Use on buttons and interactive rows.
+
+@mixin press-feedback($scale: v.$press-scale) {
+  &:active {
+    transform: scale($scale);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+      opacity: 0.7;
+    }
+  }
+}
+
 // ─── Focus Ring ───────────────────────────────────────────────────────────────
 
 @mixin focus-ring($color: v.color('primary')) {
