@@ -23,7 +23,10 @@
     background-color v.$transition-base,
     color v.$transition-base,
     border-color v.$transition-base,
-    box-shadow v.$transition-base;
+    box-shadow v.$transition-base,
+    transform v.$transition-fast;
+
+  @include m.press-feedback;
 
   &:focus-visible {
     @include m.focus-ring;

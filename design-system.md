@@ -178,3 +178,30 @@ $space: (
 - Desktop: max. 20 Reaktionen sichtbar.
 - Mobil (+ Desktop-Thread): max. 7 sichtbar + „+ x weitere"-Button.
 - Die zwei zuletzt genutzten Emojis direkt in der Aktionsleiste (sonst Standard-Emojis wie in Figma).
+
+---
+
+## 10. Motion (Mikro-Interaktionen)
+
+Tokens in [_variables.scss](src/styles/_variables.scss) (Motion-Block); Reduced-Motion wird
+überall respektiert. **Keine Rohwerte** in Komponenten — immer diese Tokens verwenden.
+
+| Token | Wert | Zweck |
+|-------|------|-------|
+| `$duration-fast` | `150ms` | Hover, Press, kleine State-Wechsel |
+| `$duration-base` | `200ms` | Farb-/Layout-Übergänge, Standard |
+| `$duration-slow` | `350ms` | Collapse/Expand, größere Flächen |
+| `$ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` | Allgemeine UI-Übergänge (Default) |
+| `$ease-decelerate` | `cubic-bezier(0, 0, 0.2, 1)` | Eintretende Elemente |
+| `$ease-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Verspielter Pop (Menu-Inflate, `= $menu-inflate-ease`) |
+| `$press-scale` | `0.96` | Scale-Ziel des Press-Feedbacks |
+
+- **Transition-Shorthands** `$transition-fast/base/slow` sind aus Dauer + `$ease-standard`
+  komponiert → einheitliche Hover-/Übergangs-Kurve app-weit.
+- **Press-Feedback:** Mixin `press-feedback` ([_mixins.scss](src/styles/_mixins.scss)) — kurzer
+  `scale($press-scale)` auf `:active` (das Element nimmt `transform $transition-fast` in seine
+  eigene Transition auf, damit Hintergrund-Übergänge nicht überschrieben werden). Auf `.btn`
+  (alle Buttons) und interaktiven Zeilen (`.workspace__item`) aktiv. **Reduced-Motion:** kein
+  Scale, nur dezente Opacity-Absenkung.
+- Dekorative Ambient-Animationen (Aurora-Banner-Drift, Intro-Splash, Typing-Dots, Lade-Spinner)
+  behalten ihre bespoke Dauer — sie sind keine Mikro-Interaktionen und nutzen die Tokens bewusst nicht.

@@ -167,8 +167,10 @@
   text-align: left;
   text-decoration: none;
   transition: background-color v.$transition-fast, color v.$transition-fast,
-    box-shadow v.$transition-fast;
+    box-shadow v.$transition-fast, transform v.$transition-fast;
   outline: none;
+
+  @include m.press-feedback;
 
   &:hover {
     background-color: v.color('bg');
