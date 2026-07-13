@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Only the root URL is listed: the app uses hash routing (netcup shared
+     hosting, see DEVIATIONS.md), and fragment routes are not addressable
+     as separate sitemap entries. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://vibo.yannick-oetelshoven.at/</loc>
+  </url>
+</urlset>
