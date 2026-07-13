@@ -3,6 +3,28 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Feel & Motion completion — recency sort + FLIP, edit-picker migration, edit-in-view (2026-07-12)
+Roadmap V2 Phase 3 completion, items A–C. Reduced motion respected throughout; §14 clean.
+
+- **Direct-message list now sorts by recency (decision).** DMs sort by the conversation's denormalized
+  `lastMessageAt` (name tiebreak) — a new message bumps the conversation to the top, like Discord/WhatsApp
+  — computed from the **existing** `directMessageService.conversations` stream (no new listener, §14). The
+  signed-in self entry keeps leading the list. **Channels keep alphabetical order** (stable navigation);
+  their rare reorders (rename / new) still animate.
+- **FLIP reorder** ([flip-list.directive.ts](src/app/shared/flip-list.directive.ts)): rows carry a
+  `data-flip-id`; on each list change the directive batch-measures the rows after re-render, then plays
+  each moved row from its previous position to the new one via the **Web Animations API** (compositor
+  `transform` only — no layout, auto-cleanup), token duration/easing; genuinely new rows fade + scale in;
+  badges ride along on the row transform (no flicker). The **first pass only seeds the baseline** so the
+  initial sidebar render is never mass-animated. **Reduced motion ⇒ instant** (store refreshed, no play).
+  The bound list value is only a change trigger — order and positions are read back from the DOM.
+- **Edit mode stays in view (reported).** Entering edit mode focuses the field with `preventScroll`, then
+  scrolls the whole edit container (buttons included) just into view with `block: 'nearest'` (smooth, or
+  instant under reduced motion) so a message near the fold reveals its buttons while a fully-visible
+  mid-list message never jumps. Works in channel, DM and thread; the native scroll updates
+  `stickToBottom`/FAB through the existing scroll handler, so nothing is fought.
+- **Edit-picker migration** — see the resolved entry below (the reported inline-picker inconsistency).
+
 ## Feel & Motion — micro-interaction tokens + route view transitions (2026-07-12)
 Roadmap V2 Phase 3, items A + B. Canonical motion tokens live in
 [design-system.md](design-system.md) §10; reduced motion is respected throughout.
@@ -242,10 +264,12 @@ Roadmap V2 Phase 1. No Figma frames for any of the four; all strictly token-base
   input via a post-teardown `requestAnimationFrame` (the shell restores focus to the opener first).
   The fix is **structural**: the full-screen `pointer-events:auto` shell at `$z-modal` blocks row
   hover entirely and outranks the `$z-raised` action bar, so the bleed-through is impossible.
-  - **Edit-box picker left inline (reported).** It reuses the same `<app-emoji-picker>`, but
-    `message-item.component.ts` is at **399/400 LOC**, so migrating it cheaply is impossible without
-    an extraction pass. It is also a low-frequency surface (only while editing *your own* message,
-    where that row's own action bar is already suppressed). Flagged for a future extraction.
+  - **Edit-box picker — RESOLVED (2026-07-12, Phase 3).** The edit-mode emoji picker now opens through
+    the anchored overlay layer exactly like the composer and reaction pickers (desktop popover anchored
+    above the edit smile button / mobile bottom sheet, transparent scrim, flip-near-edge). The edit logic
+    was extracted into `message-edit.ts` (`MessageEdit` controller) for the LOC headroom the migration
+    needed (the item component dropped 399 → 342). Caret insertion and focus-return to the edit field
+    are preserved.
 - **Picker width token.** Desktop anchored menu caps at a named token **`$emoji-picker-width: 360px`**
   (`_variables.scss`, Discord-like popover); the `auto-fill` grid fills that cap with no sparse
   columns. In the mobile **bottom sheet** the picker spans the **full content width** (`width:100%`,
