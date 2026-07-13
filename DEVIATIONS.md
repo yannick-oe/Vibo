@@ -3,6 +3,51 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Lighthouse closeout (2026-07-13)
+Measured with Lighthouse CLI 12.8.2 (headless Chrome) against the production build served
+locally: **desktop 99/100/100/100, mobile 72–78/100/100/100** (Performance/Accessibility/Best
+Practices/SEO). The mobile performance band is run-condition variance of the simulated
+throttling on the dev machine — a same-condition A/B (baseline commit vs. closeout changes,
+rebuilt and measured back-to-back) scored identically, and script/CSS transfer sizes are
+byte-identical; the closeout changes are performance-neutral on mobile and SEO/deploy hygiene.
+
+Shipped: German `<title>`, canonical `https://vibo.yannick-oetelshoven.at/`, per-theme
+`theme-color` (mirrors the `bg` tokens), Open Graph/Twitter tags (**no `og:image`** — the only
+logo assets are SVG wrappers around embedded PNGs, which scrapers do not render; deliberately
+skipped rather than creating new artwork), `robots.txt` sitemap pointer, root-only
+`sitemap.xml` (**hash routes cannot be listed as separate URLs** — same netcup/hash-routing
+deviation as documented below), `fetchpriority="high"` on the intro-splash logo (the desktop
+LCP element), and the extended `public/.htaccess` (see below).
+
+Accepted deviations (Lighthouse findings deliberately not "fixed"):
+- **Mobile LCP ≈ 4.7–5.4 s (render delay).** The LCP element is login text that renders only
+  after the Angular CSR boot; the fix would be SSR/prerendering, excluded by the hash-routing/
+  shared-hosting decision. No route-splitting refactors in scope.
+- **`unused-javascript` ≈ 113 KiB.** The eagerly provided Firebase SDK (documented decision:
+  `provideAuth`/`provideFirestore` stay eager; see tech debt).
+- **`legacy-javascript` (minor).** Angular CLI browserslist output; build-config changes are
+  out of scope.
+- **Third-party cache TTLs / dependency chain** (`apis.google.com` gapi + the Firebase auth
+  iframe): Google-controlled, not fixable client-side.
+- **Fonts:** only `Inter-Variable.woff2` is preloaded (the LCP text's family). A Nunito preload
+  was tried and **measurably regressed mobile FCP** (competes with the critical JS on the
+  throttled connection) — reverted; Nunito still uses `font-display: swap`. The italic Inter
+  variant is intentionally not preloaded. Preloading the intro logo was skipped because repeat
+  visits (no splash) would log unused-preload console warnings.
+- First-visit caching findings against the **local static server** don't reflect production:
+  compression and cache lifetimes are configured in `.htaccess` for the netcup host.
+
+`public/.htaccess` (ships with the build output; upload via FileZilla with "Force showing
+hidden files" enabled): SPA rewrite + `auth-action` redirect (pre-existing), MIME types for
+`.woff2`/`.webp`/`.mjs`, gzip/brotli compression, immutable 1-year caching for hash-named
+build files, 7-day caching for unhashed static assets, daily revalidation for the emoji
+catalogue JSON and `no-cache` for `index.html`. Every block is `<IfModule>`-guarded so a host
+without a module serves without a 500.
+
+Zero console messages (errors or warnings) on the served login page (headless capture).
+Remaining for manual audit: logged-in app views (channel/DM/thread), light-theme spot checks,
+and a re-measure against the real netcup deploy with `.htaccess` active.
+
 ## Synthesized UI sound design (2026-07-13)
 Roadmap V2 Phase 4. No Figma/checklist requirement — additive UX. All sounds are **synthesized at
 play time via the Web Audio API** (no audio assets, no licensing; the old `sounds/chat-notification.mp3`

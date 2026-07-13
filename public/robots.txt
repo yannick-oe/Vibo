@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://vibo.yannick-oetelshoven.at/sitemap.xml
