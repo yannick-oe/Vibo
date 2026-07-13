@@ -162,6 +162,13 @@ $sheet-settle-ease: cubic-bezier(0.35, 0.35, 0.15, 1);
     }
   }
 
+  // Detent sheets slide up to the half rest offset instead of translateY(0);
+  // the shell keeps the matching inline transform, so the fill-forwards end
+  // frame and the idle rest agree and the entrance never jumps.
+  .dialog-shell__card--detents {
+    animation-name: sheet-slide-up-detent;
+  }
+
   .dialog-shell__card--search .dialog-shell__grabber {
     display: none;
   }
