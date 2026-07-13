@@ -236,13 +236,6 @@ $message-hide-scale-to: 0.92;
   }
 }
 
-.message__edit-picker {
-  position: absolute;
-  bottom: calc(100% + #{v.space('xs')});
-  left: 0;
-  z-index: v.$z-dropdown;
-}
-
 .message__edit-actions {
   display: flex;
   gap: v.space('md');

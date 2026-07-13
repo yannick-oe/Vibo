@@ -34,44 +34,39 @@
 
   @if (isDeleted()) {
     <p class="message__tombstone" [class.message__tombstone--pop]="justDeleted()">Nachricht gelöscht</p>
-  } @else if (isEditing()) {
+  } @else if (edit.active()) {
     <div class="message__edit">
       <label class="sr-only" [for]="editFieldId">Nachricht bearbeiten</label>
-      <div class="message__edit-grow" [attr.data-replicated-value]="editText()">
+      <div class="message__edit-grow" [attr.data-replicated-value]="edit.text()">
         <textarea
           #editTextarea
           [id]="editFieldId"
           class="message__edit-text"
           rows="1"
-          [value]="editText()"
-          (input)="onEditInput($event)"
-          (keydown)="onEditKeydown($event)"
+          [value]="edit.text()"
+          (input)="edit.onInput($event)"
+          (keydown)="edit.onKeydown($event)"
         ></textarea>
       </div>
       <div class="message__edit-toolbar">
         <span class="message__edit-picker-wrap">
           <button
+            #editSmileBtn
             class="message__edit-emoji"
             type="button"
             aria-label="Emoji einfügen"
-            (click)="editPickerOpen.set(!editPickerOpen()); $event.stopPropagation()"
+            [attr.aria-expanded]="edit.pickerOpen()"
+            (click)="edit.pickerOpen.set(!edit.pickerOpen()); $event.stopPropagation()"
           >
             <img src="app-icons/smile.svg" alt="" aria-hidden="true" />
           </button>
-          @if (editPickerOpen()) {
-            <app-emoji-picker
-              class="message__edit-picker"
-              (picked)="onEditPicked($event)"
-              (closed)="editPickerOpen.set(false)"
-            />
-          }
         </span>
         <div class="message__edit-actions">
           <button
             class="btn btn-secondary btn-sm message__edit-btn message__edit-btn--cancel"
             type="button"
             aria-label="Abbrechen"
-            (click)="cancelEdit()"
+            (click)="edit.cancel()"
           >
             <img class="message__edit-btn-icon" src="app-icons/close.svg" alt="" aria-hidden="true" />
             <span class="message__edit-btn-label">Abbrechen</span>
@@ -80,8 +75,8 @@
             class="btn btn-primary btn-sm message__edit-btn message__edit-btn--save"
             type="button"
             aria-label="Speichern"
-            [disabled]="!canSaveEdit()"
-            (click)="saveEdit()"
+            [disabled]="!edit.canSave()"
+            (click)="edit.save()"
           >
             <img
               class="message__edit-btn-icon"
@@ -135,7 +130,7 @@
   }
 </div>
 
-@if (!isDeleted() && !isEditing() && messagePath()) {
+@if (!isDeleted() && !edit.active() && messagePath()) {
   <div class="message__actions-anchor">
     <app-message-actions
       [isOwn]="isOwn()"
@@ -169,5 +164,18 @@
       (picked)="reactionPickerOpen.set(false); react($event)"
       (closed)="reactionPickerOpen.set(false)"
     />
+  </app-dialog-shell>
+}
+
+@if (edit.pickerOpen()) {
+  <app-dialog-shell
+    size="menu"
+    scrim="transparent"
+    [anchor]="editPickerAnchor()"
+    labelledBy="msg-edit-title"
+    (closed)="edit.pickerOpen.set(false)"
+  >
+    <span class="sr-only" id="msg-edit-title">Emoji einfügen</span>
+    <app-emoji-picker (picked)="edit.insertEmoji($event)" (closed)="edit.pickerOpen.set(false)" />
   </app-dialog-shell>
 }

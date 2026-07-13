@@ -29,14 +29,13 @@ import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import {
   delay,
-  insertAtCaret,
-  isSavableEdit,
   messageTime,
   prefersReducedMotion,
   replyPreviewTime,
   runMessageAction,
   withinEditWindow,
 } from './message-item.util';
+import { MessageEdit } from '../message-edit';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
 import { MessageActionsComponent } from '../message-actions/message-actions.component';
 import { MessageContentComponent } from '../message-content/message-content.component';
@@ -138,6 +137,8 @@ export class MessageItemComponent {
 
   private readonly bubbleAnchor = viewChild.required<ElementRef<HTMLElement>>('bubbleAnchor');
 
+  private readonly editSmileBtn = viewChild<ElementRef<HTMLButtonElement>>('editSmileBtn');
+
   private readonly host = inject(ElementRef<HTMLElement>);
 
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -154,9 +155,13 @@ export class MessageItemComponent {
 
   protected readonly editFieldId = `message-edit-${MessageItemComponent.instanceCounter++}`;
 
-  protected readonly isEditing = signal(false);
-
-  protected readonly editText = signal('');
+  protected readonly edit = new MessageEdit(
+    this.messageService,
+    this.toastService,
+    () => this.entry(),
+    () => this.messagePath(),
+    () => this.editTextarea()?.nativeElement,
+  );
 
   protected readonly reactionPickerOpen = signal(false);
 
@@ -166,7 +171,12 @@ export class MessageItemComponent {
       : null,
   );
 
-  protected readonly editPickerOpen = signal(false);
+  protected readonly editPickerAnchor = computed(() => {
+    const button = this.editSmileBtn();
+    return this.edit.pickerOpen() && button
+      ? anchorAbove(button.nativeElement, this.isOwn() ? 'right' : 'left')
+      : null;
+  });
 
   protected readonly isOwn = computed(
     () => this.entry().authorId === this.authService.currentUser()?.uid,
@@ -294,79 +304,12 @@ export class MessageItemComponent {
 
 
   /**
-   * Enters edit mode with the current text and focuses the textarea.
+   * Enters edit mode (delegated to the edit controller) and closes any open
+   * long-press bar.
    */
   protected startEdit(): void {
     this.barOpen.set(false);
-    this.editText.set(this.entry().text);
-    this.isEditing.set(true);
-    requestAnimationFrame(() => this.editTextarea()?.nativeElement.focus());
-  }
-
-
-  /**
-   * Leaves edit mode without saving.
-   */
-  protected cancelEdit(): void {
-    this.isEditing.set(false);
-    this.editPickerOpen.set(false);
-  }
-
-
-  /**
-   * Syncs the edit signal with the textarea.
-   * @param event Input event of the edit textarea.
-   */
-  protected onEditInput(event: Event): void {
-    this.editText.set((event.target as HTMLTextAreaElement).value);
-  }
-
-
-  /**
-   * Reports whether the edited text is non-empty and actually changed.
-   */
-  protected canSaveEdit(): boolean {
-    return isSavableEdit(this.editText(), this.entry().text);
-  }
-
-
-  /**
-   * Persists the edited text and stamps editedAt; stays in edit mode on a
-   * failed write so the draft is not lost (the failure surfaces as a toast).
-   */
-  protected async saveEdit(): Promise<void> {
-    const messagePath = this.messagePath();
-    if (!messagePath || !this.canSaveEdit()) return;
-    const saved = await runMessageAction(this.toastService, () =>
-      this.messageService.editMessage(messagePath, this.editText().trim()),
-    );
-    if (saved) this.cancelEdit();
-  }
-
-
-  /**
-   * Handles edit-textarea keys: Enter saves (Shift+Enter inserts a newline,
-   * matching the composer), Escape cancels.
-   * @param event Keydown event of the edit textarea.
-   */
-  protected onEditKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') return this.cancelEdit();
-    if (event.key !== 'Enter' || event.shiftKey) return;
-    event.preventDefault();
-    void this.saveEdit();
-  }
-
-
-  /**
-   * Inserts a picked emoji at the caret of the edit textarea.
-   * @param emoji Picked emoji character.
-   */
-  protected onEditPicked(emoji: string): void {
-    this.editPickerOpen.set(false);
-    const element = this.editTextarea()?.nativeElement;
-    if (!element) return;
-    this.editText.set(insertAtCaret(element, emoji));
-    element.focus();
+    this.edit.start();
   }
 
 
