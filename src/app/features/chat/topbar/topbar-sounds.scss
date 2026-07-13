@@ -2,6 +2,7 @@
 // section heading, the switch rows (master toggle + swipe opt-in), the
 // labelled volume slider and the preview button. Split out of
 // topbar.component.scss to keep both files within the 400-LOC limit.
+@use 'sass:math';
 @use 'variables' as v;
 @use 'mixins' as m;
 
@@ -12,6 +13,10 @@ $switch-thumb-size: 16px;
 $switch-thumb-inset: 3px;
 $switch-thumb-travel: $switch-track-width - $switch-thumb-size - 2 * $switch-thumb-inset;
 $volume-slider-min-width: 96px;
+$volume-track-height: 6px;
+$volume-thumb-size: 20px;
+$volume-thumb-border-width: 2px;
+$volume-thumb-top-offset: math.div($volume-track-height - $volume-thumb-size, 2);
 $disabled-control-opacity: 0.5;
 
 .topbar__menu-sounds {
@@ -97,6 +102,10 @@ $disabled-control-opacity: 0.5;
   .topbar__switch-thumb {
     transition: none;
   }
+
+  .topbar__sound-volume-slider::-webkit-slider-runnable-track {
+    transition: none;
+  }
 }
 
 .topbar__sound-volume {
@@ -113,11 +122,20 @@ $disabled-control-opacity: 0.5;
   color: v.color('black');
 }
 
+// Fully custom range styling: both engines otherwise render engine-default
+// tracks that are invisible on the frosted menu surface. The filled portion
+// is driven by the --volume-fill custom property the template binds from the
+// input value (WebKit paints it as a no-repeat gradient sized to the fill;
+// Firefox uses its native ::-moz-range-progress). The fill transition only
+// eases keyboard steps — while the pointer is held (:active) it is disabled
+// so dragging tracks the finger 1:1.
 .topbar__sound-volume-slider {
   flex: 1;
   min-width: $volume-slider-min-width;
   min-height: $sound-control-min-height;
-  accent-color: v.color('primary');
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
   cursor: pointer;
   touch-action: none;
 
@@ -128,6 +146,53 @@ $disabled-control-opacity: 0.5;
   &:disabled {
     opacity: $disabled-control-opacity;
     cursor: default;
+  }
+
+  &::-webkit-slider-runnable-track {
+    height: $volume-track-height;
+    border-radius: v.$radius-pill;
+    background-color: v.color('text-gray');
+    background-image: linear-gradient(v.color('primary'), v.color('primary'));
+    background-repeat: no-repeat;
+    background-size: var(--volume-fill, 0%) 100%;
+    transition: background-size v.$transition-fast;
+  }
+
+  &:active::-webkit-slider-runnable-track {
+    transition: none;
+  }
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    width: $volume-thumb-size;
+    height: $volume-thumb-size;
+    margin-top: $volume-thumb-top-offset;
+    border: $volume-thumb-border-width solid v.color('primary');
+    border-radius: v.$radius-round;
+    background-color: v.color('white');
+  }
+
+  &::-moz-range-track {
+    height: $volume-track-height;
+    border-radius: v.$radius-pill;
+    background-color: v.color('text-gray');
+  }
+
+  &::-moz-range-progress {
+    height: $volume-track-height;
+    border-radius: v.$radius-pill;
+    background-color: v.color('primary');
+  }
+
+  &::-moz-range-thumb {
+    box-sizing: border-box;
+    width: $volume-thumb-size;
+    height: $volume-thumb-size;
+    border: $volume-thumb-border-width solid v.color('primary');
+    border-radius: v.$radius-round;
+    background-color: v.color('white');
   }
 }
 
