@@ -3,6 +3,78 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Synthesized UI sound design (2026-07-13)
+Roadmap V2 Phase 4. No Figma/checklist requirement — additive UX. All sounds are **synthesized at
+play time via the Web Audio API** (no audio assets, no licensing; the old `sounds/chat-notification.mp3`
+is removed together with its two `new Audio` call sites — the disliked send sound it backed is gone).
+
+- **Central `SoundService`** (`services/sound.service.ts` + the palette in `services/sound-palette.ts`):
+  one lazily created AudioContext, unlocked on the first user gesture (document-level
+  `pointerdown`/`keydown`, listeners removed once running); a play request before the unlock is
+  **dropped silently, never queued** — no autoplay console errors. Chain: oscillator/noise → per-step
+  envelope gain (8 ms soft attack, exponential decay) → master gain (volume) → destination. Per-kind
+  minimum-interval throttles prevent machine-gunning. Settings as signals, persisted to
+  localStorage (`vibo:soundEnabled` default on, `vibo:soundVolume` default 0.6,
+  `vibo:swipeSoundEnabled` default off).
+- **Palette** (each ≤ ~180 ms, low gains, calm/cosmic): send = two-note upward triangle blip
+  520→780 Hz; receive = bell-like sine 880 Hz with quiet 1760 Hz shimmer falling to 660 Hz; delete =
+  low sine thud gliding 150→70 Hz; reaction = tiny sine pop 340→560 Hz; error = soft triangle
+  double-tone 311→233 Hz; swipe = band-passed noise whoosh sweeping 500→1400 Hz (opt-in only).
+- **Trigger points** (always the user's own action or the toast — never a snapshot echo): sends play
+  optimistically at the start of `MessageService.commitMessage`/`commitReply`/
+  `sendChannelMessageAsJoiner` (covers channel/DM/thread/GIF/new-message); the notification toast
+  plays `receive` through the service (its existing gating stays); delete-for-me/for-all play
+  `delete` post-confirmation; adding a reaction plays `reaction` (own adds only); rejected message
+  mutations play `error` inside `MessageService.withErrorSound` — riding the **existing** failure
+  handlers (toasts) without new UX. **The `swipe` kind is defined and gated but currently unwired:
+  the codebase has no sidebar swipe gesture** (the workspace column toggles via button); the sound
+  and its opt-in are ready for when such a gesture lands.
+- **Settings UI** in the topbar profile menu (`topbar-sounds.scss`): „Sounds" group with the
+  „Soundeffekte" master switch (`role="switch"`), a labelled „Lautstärke" slider (0–100 in steps of
+  10, `aria-valuetext`, `accent-color` styling, sheet-drag-safe via `pointerdown` stop +
+  `touch-action: none`), a „Testen" preview button playing the send sound at the current volume, and
+  the swipe opt-in switch. Dependent controls disable while the master toggle is off; touch targets
+  ≥ 44 px; token-only colors AA in both themes; reduced motion drops the switch transitions.
+
+## Picker sheet: two detents + anchor-independent placement (2026-07-13)
+Roadmap V2 Phase 3, item F. Supersedes the 2026-07-10 „single detent, not two" note — the sheet
+physics now carries the detent state that entry deferred. No Figma design (mobile sheets are already
+a documented deviation); reduced motion respected; §14 clean.
+
+- **Bug fix — sheet placement no longer follows the trigger.** Root cause: in sheet mode the shell
+  still applied the anchor-derived inline styles. `anchoredMaxHeightStyle` capped the card at
+  `calc(100dvh − (anchorOffset + inset))`, so the sheet's visible height depended on the trigger's
+  viewport position (reaction picker on a low message → sheet almost entirely cut off, only the
+  big-reaction row + search visible); the inline `top/left/right` were inert only by cascade
+  accident (`position: static` wins by source order). Two gaps compounded: `activeAnchor` was not
+  gated on sheet mode, and `anchorAtPoint` (right-click, 2026-07-13) lacks the ≤768 px null guard
+  `anchorBelow`/`anchorAbove` have — so cursor anchors flowed into the 769–992 px sheet window.
+  Fix: the shell now resolves `activeAnchor` to **null in sheet mode** (and skips `placeVertically`),
+  so every sheet — picker, menu, profile — pins to the viewport bottom and its rest position derives
+  only from the sheet model, identically for every trigger.
+- **Two-detent model for the three picker sheets** (composer emoji, reaction, edit-mode emoji; all
+  other sheets keep single-rest behavior). The picker card is now `$emoji-sheet-tall-height: 85dvh`
+  (single token, aligned with `TALL_DETENT_DVH`; the 55/62 dvh split tokens are gone — this also
+  supersedes the 2026-07-10 „reaction context gets a taller detent" sizing) and opens **translated
+  down to a half detent** that reveals `HALF_DETENT_DVH: 45` of the 85, via
+  `detentRestOffset(detent, cardHeight)` — pure px math from the measured card height, viewport-
+  bottom-relative, never anchor-derived. Release resolution (`resolveDetentRelease`): upward fling
+  (`DETENT_FLING_VELOCITY_PX_PER_MS: 0.5`) → tall; downward fling → dismiss from the half offset
+  down, else half; no fling → nearest detent, or dismiss past `halfOffset + (cardHeight −
+  halfOffset) · SWIPE_DISMISS_FRACTION`. At half, an upward content drag with the grid at scroll
+  top expands to tall (at tall it scrolls the grid — iOS-sheet convention); the scrim stays opaque
+  down to the half offset and fades only on the dismiss stretch below it.
+- **Entrance lands on the half detent without a jump.** Detent sheets animate a dedicated
+  `sheet-slide-up-detent` keyframe whose end frame is the shell-provided `--sheet-detent-offset`
+  custom property (measured pre-paint), and the shell keeps a matching inline transform, so the
+  fill-forwards end state and the idle rest agree; `prefers-reduced-motion` shows the sheet directly
+  at the half offset.
+- **Drag-controller extraction (pure refactor).** The pointer/drag/settle machine moved out of
+  `dialog-shell.component.ts` (399 → 156 LOC) into `sheet-drag.controller.ts` next to
+  `sheet-physics.ts`; the shell binds the controller's signals. This created the LOC headroom the
+  detent state needed. The settle duration is now velocity-matched in both directions (a fling into
+  a detent continues at the release speed; spring-backs keep the fallback speed, as before).
+
 ## Loading skeletons + desktop right-click context menu (2026-07-13)
 Roadmap V2 Phase 3 final, items D & E. No Figma design for either — both are additive; tokens only, CLS 0, reduced motion respected, §14 clean (no new listeners — the two loaded flags ride existing streams).
 
@@ -29,8 +101,8 @@ Roadmap V2 Phase 3 final, items D & E. No Figma design for either — both are a
   the target owns one (`input, textarea, [contenteditable], a[href]`) so composing and links are untouched.
   The point anchor is cleared on close, so a later open via the action-bar button re-anchors to the bubble.
   **Long-press (touch) and keyboard paths are unchanged**; this is the desktop analogue of the existing
-  long-press bar. (The picker sheet's deferred second detent — item F — is **not** in this batch; see the
-  2026-07-10 "single detent, not two" note, which still stands.)
+  long-press bar. (The picker sheet's deferred second detent — item F — landed 2026-07-13; see the
+  entry above, which supersedes the 2026-07-10 "single detent, not two" note.)
 
 ## Feel & Motion completion — recency sort + FLIP, edit-picker migration, edit-in-view (2026-07-12)
 Roadmap V2 Phase 3 completion, items A–C. Reduced motion respected throughout; §14 clean.
@@ -263,13 +335,13 @@ Roadmap V2 Phase 1. No Figma frames for any of the four; all strictly token-base
   remaining space (the inner scroll keeps deferring to the sheet drag as before). Desktop popover
   unchanged; all other sheets (long-press menu, profile, notifications) unchanged. Verified at
   320×568: header fits, grid scrolls, no horizontal scroll, CLS 0, reduced-motion unaffected.
-  - **Single detent (reviewed, not two).** A second snap point (drag up → ~90 dvh, drag down from
-    half → dismiss) was **not** built: the sheet physics (`sheet-physics.ts` + the shell) is a
-    single-rest-position model — offset is measured from one hardcoded rest (the natural content
-    height) with rubber-band-only overdrag upward and no detent/snap state. Adding a second detent
-    means adding detent state, two rest positions, snap-on-release logic and dismiss-from-half — a
-    rewrite of the sheet, which the brief said to avoid. Fixed half-height shipped instead; a
-    two-detent upgrade remains an option if wanted later.
+  - **Single detent (reviewed, not two) — SUPERSEDED 2026-07-13.** A second snap point (drag up →
+    ~90 dvh, drag down from half → dismiss) was **not** built at the time: the sheet physics
+    (`sheet-physics.ts` + the shell) was a single-rest-position model — offset measured from one
+    hardcoded rest (the natural content height) with rubber-band-only overdrag upward and no
+    detent/snap state, and adding detent state inside the 399-LOC shell was out of scope. The
+    two-detent upgrade landed 2026-07-13 after the drag-controller extraction; see „Picker sheet:
+    two detents + anchor-independent placement" at the top of this file.
 - **Aurora clipped to the banner box (fix).** The curtains tinted the whole profile/edit dialog
   because `.banner__aurora` was `position:absolute; inset:0` while the banner `:host` was
   `position:static` — so the overlay resolved its containing block against a higher positioned
