@@ -78,6 +78,22 @@ export function anchorAbove(trigger: HTMLElement, align: 'left' | 'right'): Dial
 
 
 /**
+ * Builds a fixed-point anchor docking a card at a viewport coordinate (e.g. a
+ * right-click position). The card grows down from the point and toward the
+ * nearer horizontal edge (left half → left-aligned, right half → right-aligned)
+ * so it never overflows sideways; {@link placeVertically} flips it above the
+ * point when there is no room below.
+ * @param x Horizontal viewport coordinate in pixels.
+ * @param y Vertical viewport coordinate in pixels.
+ */
+export function anchorAtPoint(x: number, y: number): DialogAnchor {
+  const horizontal =
+    x > window.innerWidth / 2 ? { right: window.innerWidth - x } : { left: x };
+  return { top: y, triggerTop: y, triggerBottom: y, ...horizontal };
+}
+
+
+/**
  * Resolves an anchor's vertical side against the measured card height: a
  * below-anchored card that would overflow the viewport bottom flips above its
  * trigger (and vice versa), unless the opposite side has even less room, in

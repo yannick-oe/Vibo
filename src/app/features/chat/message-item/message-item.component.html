@@ -156,13 +156,13 @@
     scrim="transparent"
     [anchor]="pickerAnchor()"
     labelledBy="msg-reaction-title"
-    (closed)="reactionPickerOpen.set(false)"
+    (closed)="closeReactionPicker()"
   >
     <span class="sr-only" id="msg-reaction-title">Reaktion auswählen</span>
     <app-emoji-picker
       [isReactionTrigger]="true"
-      (picked)="reactionPickerOpen.set(false); react($event)"
-      (closed)="reactionPickerOpen.set(false)"
+      (picked)="closeReactionPicker(); react($event)"
+      (closed)="closeReactionPicker()"
     />
   </app-dialog-shell>
 }

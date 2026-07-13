@@ -43,13 +43,15 @@ import { ReactionChipsComponent } from '../reaction-chips/reaction-chips.compone
 import { ReplyQuoteComponent } from '../reply-quote/reply-quote.component';
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
-import { anchorAbove } from '../../../shared/dialog-shell/dialog-anchor';
+import { DialogAnchor, anchorAbove, anchorAtPoint } from '../../../shared/dialog-shell/dialog-anchor';
+import { LayoutService } from '../../../services/layout.service';
 import { ReadReceiptComponent } from '../../../shared/read-receipt/read-receipt.component';
 
 const UNKNOWN_AUTHOR = 'Unbekannt';
 const LONG_PRESS_MS = 500;
 const DESKTOP_REACTION_LIMIT = 20;
 const DELETE_POP_MS = 220;
+const NATIVE_MENU_SELECTOR = 'input, textarea, [contenteditable], a[href]';
 
 /**
  * One message row per the Figma chat frames: avatar, author meta, bubble,
@@ -84,6 +86,7 @@ const DELETE_POP_MS = 220;
     '(touchstart)': 'startLongPress()',
     '(touchend)': 'cancelLongPress()',
     '(touchmove)': 'cancelLongPress()',
+    '(contextmenu)': 'onContextMenu($event)',
     '(document:click)': 'onDocumentClick($event)',
   },
 })
@@ -129,6 +132,8 @@ export class MessageItemComponent {
 
   private readonly messageFocusService = inject(MessageFocusService);
 
+  private readonly layoutService = inject(LayoutService);
+
   private readonly toastService = inject(ToastService);
 
   private readonly locale = inject(LOCALE_ID);
@@ -165,11 +170,15 @@ export class MessageItemComponent {
 
   protected readonly reactionPickerOpen = signal(false);
 
-  protected readonly pickerAnchor = computed(() =>
-    this.reactionPickerOpen()
-      ? anchorAbove(this.bubbleAnchor().nativeElement, this.isOwn() ? 'right' : 'left')
-      : null,
-  );
+  private readonly pointAnchor = signal<DialogAnchor | null>(null);
+
+  protected readonly pickerAnchor = computed(() => {
+    if (!this.reactionPickerOpen()) return null;
+    return (
+      this.pointAnchor() ??
+      anchorAbove(this.bubbleAnchor().nativeElement, this.isOwn() ? 'right' : 'left')
+    );
+  });
 
   protected readonly editPickerAnchor = computed(() => {
     const button = this.editSmileBtn();
@@ -258,6 +267,42 @@ export class MessageItemComponent {
   protected onDocumentClick(event: Event): void {
     if (!this.barOpen()) return;
     if (!this.host.nativeElement.contains(event.target as Node)) this.barOpen.set(false);
+  }
+
+
+  /**
+   * Opens the reaction picker as a desktop right-click context menu, anchored
+   * at the cursor. Skipped on touch/coarse pointers (long-press covers those),
+   * on tombstones, and when the target owns a native menu (text fields, links),
+   * so composing and link context menus stay intact.
+   * @param event Contextmenu (right-click) event on the row.
+   */
+  protected onContextMenu(event: MouseEvent): void {
+    if (!this.layoutService.isHoverCapable() || this.isDeleted() || !this.messagePath()) return;
+    if (this.isNativeMenuTarget(event.target)) return;
+    event.preventDefault();
+    this.pointAnchor.set(anchorAtPoint(event.clientX, event.clientY));
+    this.reactionPickerOpen.set(true);
+  }
+
+
+  /**
+   * Whether the right-click landed on an element owning a native context menu
+   * (an input, textarea, editable region or a link) that must be preserved.
+   * @param target Element the right-click landed on.
+   */
+  private isNativeMenuTarget(target: EventTarget | null): boolean {
+    return target instanceof Element && target.closest(NATIVE_MENU_SELECTOR) !== null;
+  }
+
+
+  /**
+   * Closes the reaction picker and drops any right-click point anchor, so a
+   * later open via the action-bar button re-anchors to the bubble.
+   */
+  protected closeReactionPicker(): void {
+    this.reactionPickerOpen.set(false);
+    this.pointAnchor.set(null);
   }
 
 
