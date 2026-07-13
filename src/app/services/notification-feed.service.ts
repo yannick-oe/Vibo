@@ -90,6 +90,11 @@ export class NotificationFeedService {
 
   private readonly entriesState = signal<NotificationEntry[]>([]);
 
+  private readonly loadedState = signal(false);
+
+  /** Whether the notifications stream has delivered its first snapshot. */
+  readonly loaded = this.loadedState.asReadonly();
+
   /** Coalesced feed (one group per kind and message), newest first. */
   readonly groups: Signal<NotificationGroup[]> = computed(() =>
     groupNotifications(this.entriesState()),
@@ -211,6 +216,7 @@ export class NotificationFeedService {
    * @param entries Feed entries ordered newest first.
    */
   private handle(entries: NotificationEntry[]): void {
+    this.loadedState.set(true);
     this.entriesState.set(entries);
     for (const entry of [...entries].reverse()) this.process(entry);
   }

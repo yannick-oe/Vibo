@@ -25,12 +25,14 @@ import { FriendshipService } from '../../../services/friendship.service';
 import { PresenceService } from '../../../services/presence.service';
 import { SearchService, UserHit } from '../../../services/search.service';
 import { UserService } from '../../../services/user.service';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { FriendRowComponent } from '../friend-row/friend-row.component';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const MIN_TERM_LENGTH = 2;
 const USER_SCOPE_PREFIX = '@';
 const SORT_LOCALE = 'de';
+const FRIENDS_SKELETON_COUNT = 5;
 
 /** Identifier of a friends-view tab. */
 export type FriendsTab = 'all' | 'requests';
@@ -41,7 +43,7 @@ export type FriendsTab = 'all' | 'requests';
  */
 @Component({
   selector: 'app-friends-view',
-  imports: [FriendRowComponent, ReactiveFormsModule],
+  imports: [FriendRowComponent, ReactiveFormsModule, SkeletonComponent],
   templateUrl: './friends-view.component.html',
   styleUrl: './friends-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -104,6 +106,11 @@ export class FriendsViewComponent implements AfterViewInit {
   protected readonly hasRequests = computed(
     () => this.incoming().length + this.outgoing().length > 0,
   );
+
+  /** Whether the friendship stream has delivered its first snapshot. */
+  protected readonly loaded = this.friendshipService.loaded;
+
+  protected readonly friendsSkeletonCount = FRIENDS_SKELETON_COUNT;
 
 
   /**

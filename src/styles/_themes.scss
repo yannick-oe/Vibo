@@ -49,6 +49,8 @@
   --input-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 12%);
   --text-on-aurora: #54546e;
   --msg-deleted-text: #54546e;
+  --skeleton-base: color-mix(in srgb, var(--color-lines) 28%, var(--color-white));
+  --skeleton-sheen: rgba(255, 255, 255, 0.6);
   --link-color: var(--color-primary);
   --link-on-aurora: #373ecb;
   --btn-disabled-bg: color-mix(in srgb, var(--color-lines) 25%, var(--color-white));
@@ -120,6 +122,8 @@
   --input-sheen: var(--glass-sheen);
   --text-on-aurora: var(--color-text-gray);
   --msg-deleted-text: var(--color-text-gray);
+  --skeleton-base: color-mix(in srgb, var(--color-lines) 20%, var(--color-white));
+  --skeleton-sheen: rgba(255, 255, 255, 0.08);
   --link-color: var(--color-primary-hover);
   --link-on-aurora: var(--color-primary);
   --btn-disabled-bg: var(--color-text-gray);

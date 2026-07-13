@@ -50,7 +50,12 @@
 
   <div class="picker__scroll">
     @if (loading()) {
-      <p class="picker__loading" role="status">Emojis werden geladen …</p>
+      <div class="picker__grid" role="status" aria-busy="true" aria-label="Emojis werden geladen">
+        <span class="sr-only">Emojis werden geladen …</span>
+        @for (cell of loadingCells; track $index) {
+          <span class="picker__skeleton-cell" aria-hidden="true"></span>
+        }
+      </div>
     } @else if (searching()) {
       <div class="picker__grid" role="listbox" aria-label="Suchergebnisse">
         @for (entry of results(); track entry.u) {

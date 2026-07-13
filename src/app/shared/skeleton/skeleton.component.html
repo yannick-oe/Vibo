@@ -1,0 +1,24 @@
+<span class="sr-only">{{ loadingLabel() }} …</span>
+
+@for (row of rows(); track $index) {
+  @switch (variant()) {
+    @case ('message') {
+      <div class="skeleton__message" aria-hidden="true">
+        <span class="skeleton__block skeleton__avatar skeleton__avatar--message"></span>
+        <span class="skeleton__body">
+          <span class="skeleton__block skeleton__line skeleton__line--meta"></span>
+          <span class="skeleton__block skeleton__bubble"></span>
+        </span>
+      </div>
+    }
+    @default {
+      <div class="skeleton__row" aria-hidden="true">
+        <span class="skeleton__block skeleton__avatar"></span>
+        <span class="skeleton__lines">
+          <span class="skeleton__block skeleton__line skeleton__line--name"></span>
+          <span class="skeleton__block skeleton__line skeleton__line--sub"></span>
+        </span>
+      </div>
+    }
+  }
+}

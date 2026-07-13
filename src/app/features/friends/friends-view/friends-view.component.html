@@ -75,7 +75,9 @@
       </button>
     </div>
 
-    @if (activeTab() === 'all') {
+    @if (!loaded()) {
+      <app-skeleton class="friends__skeleton" variant="list-row" [count]="friendsSkeletonCount" />
+    } @else if (activeTab() === 'all') {
       <div id="friends-panel-all" class="friends__panel" role="tabpanel" aria-labelledby="friends-tab-all">
         @if (hasFriends()) {
           @if (onlineFriends().length > 0) {

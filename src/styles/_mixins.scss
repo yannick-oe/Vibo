@@ -268,3 +268,40 @@
     }
   }
 }
+
+// Loading-skeleton shimmer: a low-contrast base fill (`--skeleton-base`) swept
+// by a translucent sheen (`--skeleton-sheen`) that slides across on a GPU-only
+// transform, no layout writes. Reduced motion drops the sweep to a static
+// block. Pair with `skeleton-shimmer-keyframes` at the stylesheet root.
+@mixin skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--skeleton-base);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(90deg, transparent, var(--skeleton-sheen), transparent);
+    transform: translateX(-100%);
+    animation: skeleton-shimmer v.$skeleton-shimmer-duration v.$ease-standard infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      display: none;
+    }
+  }
+}
+
+@mixin skeleton-shimmer-keyframes {
+  @keyframes skeleton-shimmer {
+    from {
+      transform: translateX(-100%);
+    }
+
+    to {
+      transform: translateX(100%);
+    }
+  }
+}

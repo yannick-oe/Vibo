@@ -22,6 +22,9 @@
     <div class="notification-center__panel" aria-live="polite">
       <h2 class="notification-center__title" id="notification-center-title" tabindex="-1">Benachrichtigungen</h2>
 
+      @if (!feedLoaded()) {
+        <app-skeleton variant="notification" [count]="notifSkeletonCount" />
+      } @else {
       @if (requests().length > 0) {
         <h3 class="notification-center__group">Freundschaftsanfragen</h3>
         <ul class="notification-center__list">
@@ -131,6 +134,7 @@
 
       @if (isEmpty()) {
         <p class="notification-center__empty">Keine neuen Benachrichtigungen.</p>
+      }
       }
     </div>
   </app-dialog-shell>

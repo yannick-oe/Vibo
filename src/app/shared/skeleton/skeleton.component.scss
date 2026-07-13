@@ -1,0 +1,114 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+// Mirrors $row-min-height (friend-row) / $touch-target (notification): the
+// minimum accessible row height the placeholders reserve.
+$row-min-height: 44px;
+$meta-line-width: 160px;
+$bubble-width: 280px;
+$name-line-width: 40%;
+$sub-line-width: 28%;
+$meta-line-max: 40vw;
+$bubble-max: 60vw;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+}
+
+.skeleton__block {
+  @include m.skeleton-shimmer;
+
+  border-radius: v.$radius-sm;
+}
+
+// ─── List row / notification row ───────────────────────────────────────────
+.skeleton__row {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm-md');
+  min-height: $row-min-height;
+  padding: v.space('xs') v.space('sm');
+}
+
+:host(.skeleton--notification) .skeleton__row {
+  gap: v.space('sm');
+}
+
+.skeleton__avatar {
+  flex-shrink: 0;
+  width: v.$avatar-md;
+  height: v.$avatar-md;
+  border-radius: v.$radius-round;
+}
+
+:host(.skeleton--notification) .skeleton__avatar {
+  width: v.$avatar-sm;
+  height: v.$avatar-sm;
+}
+
+.skeleton__lines {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: v.space('xs');
+  min-width: 0;
+}
+
+.skeleton__line {
+  height: calc(#{v.font-size('min')} * #{v.$line-height-base});
+}
+
+.skeleton__line--name {
+  width: $name-line-width;
+  height: calc(#{v.font-size('body')} * #{v.$line-height-base});
+}
+
+.skeleton__line--sub {
+  width: $sub-line-width;
+}
+
+// ─── Chat message row ──────────────────────────────────────────────────────
+.skeleton__message {
+  display: flex;
+  align-items: flex-start;
+  gap: v.space('lg');
+  padding: v.space('sm') 0;
+}
+
+.skeleton__avatar--message {
+  width: v.$avatar-message;
+  height: v.$avatar-message;
+}
+
+.skeleton__body {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('sm');
+  min-width: 0;
+}
+
+.skeleton__line--meta {
+  width: $meta-line-width;
+  max-width: $meta-line-max;
+  height: calc(#{v.font-size('body')} * #{v.$line-height-base});
+}
+
+.skeleton__bubble {
+  width: $bubble-width;
+  max-width: $bubble-max;
+  height: calc(#{v.font-size('body')} * #{v.$line-height-base} * 2 + #{v.space('md')});
+  border-radius: 0 v.$radius-md v.$radius-md v.$radius-md;
+}
+
+@include m.respond-md {
+  .skeleton__message {
+    gap: v.space('md');
+  }
+
+  .skeleton__avatar--message {
+    width: v.$avatar-md;
+    height: v.$avatar-md;
+  }
+}

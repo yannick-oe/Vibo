@@ -25,6 +25,7 @@ import { emojiAsset } from '../emoji-catalog';
 
 const RECENTS_TAB = -1;
 const FIRST_CATEGORY_TAB = 0;
+const LOADING_CELL_COUNT = 24;
 
 /**
  * Presentational picker. In a reaction context it leads with the „Große
@@ -60,6 +61,8 @@ export class EmojiPickerComponent {
   protected readonly activeTab = signal(FIRST_CATEGORY_TAB);
 
   protected readonly bigEmojis = BIG_REACTION_EMOJIS;
+
+  protected readonly loadingCells = Array.from({ length: LOADING_CELL_COUNT });
 
   protected readonly assetFor = emojiAsset;
 

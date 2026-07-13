@@ -10,6 +10,7 @@ import {
   computed,
   inject,
   runInInjectionContext,
+  signal,
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -26,7 +27,7 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { Observable, catchError, of, switchMap } from 'rxjs';
+import { Observable, catchError, of, switchMap, tap } from 'rxjs';
 
 import {
   FriendshipDoc,
@@ -52,9 +53,14 @@ export class FriendshipService {
 
   private readonly injector = inject(EnvironmentInjector);
 
+  private readonly loadedState = signal(false);
+
   readonly friendships = toSignal(this.streamFriendships(), {
     initialValue: [] as FriendshipDoc[],
   });
+
+  /** Whether the friendship stream has delivered its first snapshot. */
+  readonly loaded = this.loadedState.asReadonly();
 
   /** Uids of all accepted friends of the signed-in user. */
   readonly friendUids = computed(() => this.collectFriendUids());
@@ -271,6 +277,7 @@ export class FriendshipService {
     );
     return (collectionData(friendshipsQuery) as Observable<FriendshipDoc[]>).pipe(
       catchError(() => of([])),
+      tap(() => this.loadedState.set(true)),
     );
   }
 

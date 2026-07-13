@@ -210,7 +210,14 @@ $picker-max-height: 26rem;
   height: v.$icon-md;
 }
 
-.picker__loading,
+.picker__skeleton-cell {
+  @include m.skeleton-shimmer;
+
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: v.$radius-sm;
+}
+
 .picker__empty {
   padding: v.space('lg');
   font-size: v.font-size('body');

@@ -1,56 +1,60 @@
 <div class="message-list" #scrollContainer (scroll)="onScroll()">
-  @if (window().atStart()) {
-    @if (messages().length > 0) {
-      <div class="message-list__edge message-list__edge--start" role="status">
-        <span class="message-list__start-text">{{ startMarker() }}</span>
+  @if (!window().loaded() && messages().length === 0) {
+    <app-skeleton class="message-list__skeleton" variant="message" [count]="messageSkeletonCount" />
+  } @else {
+    @if (window().atStart()) {
+      @if (messages().length > 0) {
+        <div class="message-list__edge message-list__edge--start" role="status">
+          <span class="message-list__start-text">{{ startMarker() }}</span>
+        </div>
+      }
+    } @else {
+      <div class="message-list__edge" #sentinel role="status">
+        <span
+          class="message-list__spinner"
+          [class.message-list__spinner--on]="window().loadingOlder()"
+          aria-hidden="true"
+        ></span>
+        @if (window().loadingOlder()) {
+          <span class="sr-only">Ältere Nachrichten werden geladen</span>
+        }
       </div>
     }
-  } @else {
-    <div class="message-list__edge" #sentinel role="status">
-      <span
-        class="message-list__spinner"
-        [class.message-list__spinner--on]="window().loadingOlder()"
-        aria-hidden="true"
-      ></span>
-      @if (window().loadingOlder()) {
-        <span class="sr-only">Ältere Nachrichten werden geladen</span>
-      }
-    </div>
-  }
-  @for (group of groups(); track group.key) {
-    <div class="message-list__separator" role="separator">
-      <span class="message-list__separator-label">{{ group.label }}</span>
-      @if (boundaryId() === group.messages[0].id) {
-        <span class="message-list__new-chip">{{ newLabel }}</span>
-      }
-    </div>
-    <ul class="message-list__day">
-      @for (message of group.messages; track message.id) {
-        @if (message.id === boundaryId() && message.id !== group.messages[0].id) {
-          <li class="message-list__new-separator" role="separator">
-            <span class="message-list__new-chip">{{ newLabel }}</span>
-          </li>
+    @for (group of groups(); track group.key) {
+      <div class="message-list__separator" role="separator">
+        <span class="message-list__separator-label">{{ group.label }}</span>
+        @if (boundaryId() === group.messages[0].id) {
+          <span class="message-list__new-chip">{{ newLabel }}</span>
         }
-        <li
-          app-message-item
-          [entry]="message"
-          [isThreadable]="true"
-          [isThreadOpen]="message.id === openThreadId()"
-          [isReplyable]="true"
-          [messagePath]="messagePathFor(message)"
-          [replyOriginal]="originalOf(message)"
-          [reactionLimit]="reactionLimit()"
-          [showReceipt]="true"
-          [reads]="reads()"
-          [otherUids]="otherUids()"
-          [isSelfConversation]="isSelfConversation()"
-          [enterAnimate]="entrance.shouldEnter(message)"
-          (openThread)="threadRequested.emit(message)"
-          (replyRequested)="replyRequested.emit(message)"
-          (openAuthor)="authorSelected.emit($event)"
-        ></li>
-      }
-    </ul>
+      </div>
+      <ul class="message-list__day">
+        @for (message of group.messages; track message.id) {
+          @if (message.id === boundaryId() && message.id !== group.messages[0].id) {
+            <li class="message-list__new-separator" role="separator">
+              <span class="message-list__new-chip">{{ newLabel }}</span>
+            </li>
+          }
+          <li
+            app-message-item
+            [entry]="message"
+            [isThreadable]="true"
+            [isThreadOpen]="message.id === openThreadId()"
+            [isReplyable]="true"
+            [messagePath]="messagePathFor(message)"
+            [replyOriginal]="originalOf(message)"
+            [reactionLimit]="reactionLimit()"
+            [showReceipt]="true"
+            [reads]="reads()"
+            [otherUids]="otherUids()"
+            [isSelfConversation]="isSelfConversation()"
+            [enterAnimate]="entrance.shouldEnter(message)"
+            (openThread)="threadRequested.emit(message)"
+            (replyRequested)="replyRequested.emit(message)"
+            (openAuthor)="authorSelected.emit($event)"
+          ></li>
+        }
+      </ul>
+    }
   }
 </div>
 

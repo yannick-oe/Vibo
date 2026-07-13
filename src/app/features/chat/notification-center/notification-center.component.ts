@@ -35,6 +35,7 @@ import {
   anchorBelow,
 } from '../../../shared/dialog-shell/dialog-shell.component';
 import { FriendActionComponent } from '../../../shared/friend-action/friend-action.component';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { UnreadBadgeComponent } from '../../../shared/unread-badge/unread-badge.component';
 
 const BADGE_MAX = 9;
@@ -42,6 +43,7 @@ const BADGE_OVERFLOW_LABEL = '9+';
 const BELL_LABEL_IDLE = 'Benachrichtigungen';
 const UNKNOWN_NAME = 'Unbekannt';
 const SORT_LOCALE = 'de';
+const NOTIF_SKELETON_COUNT = 4;
 
 /** One unread conversation rendered in the panel. */
 interface UnreadRow {
@@ -73,6 +75,7 @@ interface ActivityRow {
     AvatarFallbackDirective,
     DialogShellComponent,
     FriendActionComponent,
+    SkeletonComponent,
     UnreadBadgeComponent,
   ],
   templateUrl: './notification-center.component.html',
@@ -124,6 +127,11 @@ export class NotificationCenterComponent {
   });
 
   protected readonly isEmpty = computed(() => this.badgeValue() === 0);
+
+  /** Whether the notifications stream has delivered its first snapshot. */
+  protected readonly feedLoaded = this.feedService.loaded;
+
+  protected readonly notifSkeletonCount = NOTIF_SKELETON_COUNT;
 
 
   /**

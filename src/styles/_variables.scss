@@ -255,3 +255,6 @@ $aurora-drift-duration: 90s;
 // Shared "bubble inflate" for trigger-opened menus/popovers (see menu-inflate mixin).
 $menu-inflate-duration: 500ms;
 $menu-inflate-ease: $ease-spring;
+
+// Loading-skeleton sheen sweep (see skeleton-shimmer mixin).
+$skeleton-shimmer-duration: 1400ms;

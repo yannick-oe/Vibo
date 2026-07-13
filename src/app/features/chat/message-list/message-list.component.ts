@@ -27,6 +27,7 @@ import { MessageFocusService } from '../../../services/message-focus.service';
 import { ReducedMotionService } from '../../../services/reduced-motion.service';
 import { ToastService } from '../../../services/toast.service';
 import { ScrollToLatestFabComponent } from '../../../shared/scroll-to-latest-fab/scroll-to-latest-fab.component';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { BigReactionTracker } from '../big-reaction-tracker';
 import { MessageEntranceTracker } from '../message-entrance';
 import { MessageGroup, groupMessagesByDay } from '../message-grouping';
@@ -41,6 +42,7 @@ const DESKTOP_REACTION_LIMIT = 20;
 const MOBILE_REACTION_LIMIT = 7;
 const MAX_FOCUS_PAGES = 5;
 const FOCUS_TOO_OLD = 'Diese Nachricht liegt weiter zurück und konnte nicht geladen werden.';
+const MESSAGE_SKELETON_COUNT = 6;
 
 /**
  * Scrollable message list per Figma frames 06/09: German date separators and
@@ -51,7 +53,7 @@ const FOCUS_TOO_OLD = 'Diese Nachricht liegt weiter zurück und konnte nicht gel
  */
 @Component({
   selector: 'app-message-list',
-  imports: [MessageItemComponent, ScrollToLatestFabComponent],
+  imports: [MessageItemComponent, ScrollToLatestFabComponent, SkeletonComponent],
   templateUrl: './message-list.component.html',
   styleUrl: './message-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -136,6 +138,8 @@ export class MessageListComponent {
   protected readonly boundaryId = computed(() => this.deriveBoundaryId());
 
   protected readonly newLabel = NEW_DIVIDER_LABEL;
+
+  protected readonly messageSkeletonCount = MESSAGE_SKELETON_COUNT;
 
   protected readonly entrance = new MessageEntranceTracker();
 

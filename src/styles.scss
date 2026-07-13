@@ -1,10 +1,15 @@
 @use 'styles/variables' as v;
+@use 'styles/mixins' as m;
 @use 'styles/themes';
 @use 'styles/reset';
 @use 'styles/typography';
 @use 'styles/layout';
 @use 'styles/buttons';
 @use 'styles/forms';
+
+// Shared loading-skeleton shimmer keyframes, defined once at the root so every
+// component that includes the `skeleton-shimmer` mixin reuses the same sweep.
+@include m.skeleton-shimmer-keyframes;
 
 // ─── Route view transitions ─────────────────────────────────────────────────
 // Router cross-fade (withViewTransitions — feature-detected; reduced motion is
