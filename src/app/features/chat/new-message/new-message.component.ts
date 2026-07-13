@@ -17,6 +17,7 @@ import { Location } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
+import { AuthService } from '../../../services/auth.service';
 import { DirectMessageService } from '../../../services/direct-message.service';
 import { Channel } from '../../../models/channel.model';
 import { ChannelService } from '../../../services/channel.service';
@@ -67,6 +68,8 @@ interface Recipient {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NewMessageComponent implements AfterViewInit {
+  private readonly authService = inject(AuthService);
+
   private readonly channelService = inject(ChannelService);
 
   private readonly userService = inject(UserService);
@@ -190,10 +193,26 @@ export class NewMessageComponent implements AfterViewInit {
    */
   private async deliver(recipient: Recipient, text: string): Promise<void> {
     if (recipient.kind === 'channel') {
-      await this.messageService.sendChannelMessageAsJoiner(recipient.id, text);
+      await this.messageService.sendChannelMessageAsJoiner(
+        recipient.id,
+        text,
+        !this.isMemberOf(recipient.id),
+      );
       return;
     }
     await this.directMessageService.send(recipient.id, text);
+  }
+
+
+  /**
+   * Whether the signed-in user is already a member of a channel; first-time
+   * senders additionally announce their join with a system message.
+   * @param channelId Channel to check.
+   */
+  private isMemberOf(channelId: string): boolean {
+    const uid = this.authService.currentUser()?.uid ?? '';
+    const channel = this.allChannels().find(item => item.id === channelId);
+    return channel?.memberIds.includes(uid) ?? false;
   }
 
 

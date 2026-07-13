@@ -34,6 +34,11 @@
               <span class="message-list__new-chip">{{ newLabel }}</span>
             </li>
           }
+          @if (message.kind === 'system') {
+            <li class="message-list__system-row">
+              <app-system-message [entry]="message" [messagePath]="messagePathFor(message)" />
+            </li>
+          } @else {
           <li
             app-message-item
             [entry]="message"
@@ -52,6 +57,7 @@
             (replyRequested)="replyRequested.emit(message)"
             (openAuthor)="authorSelected.emit($event)"
           ></li>
+          }
         }
       </ul>
     }

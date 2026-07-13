@@ -23,7 +23,7 @@ import { GifResult } from '../models/gif.model';
 import { Message, MessageDoc, ReactionMap, Reply, ReplyDoc, ReplyRef } from '../models/message.model';
 import { ConversationWindow } from './conversation-window';
 import { applyReaction } from './message-reactions';
-import { buildGifMessage, buildGifReply, buildMessage, buildReply } from './message-build';
+import { buildGifMessage, buildGifReply, buildJoinMessage, buildMessage, buildReply } from './message-build';
 import { AuthService } from './auth.service';
 import { SoundService } from './sound.service';
 import { ToastService } from './toast.service';
@@ -156,19 +156,54 @@ export class MessageService {
    * is idempotent for existing members.
    * @param channelId Firestore id of the target channel.
    * @param text Trimmed message text.
+   * @param announceJoin Whether this send makes the sender a member (also writes the join pill).
    */
-  async sendChannelMessageAsJoiner(channelId: string, text: string): Promise<void> {
+  async sendChannelMessageAsJoiner(channelId: string, text: string, announceJoin = false): Promise<void> {
     const uid = this.authService.requireUid();
-    const message = buildMessage(uid, text);
     this.soundService.play('send');
+    await this.withErrorSound(() =>
+      runInInjectionContext(this.injector, () =>
+        this.commitJoinerBatch(channelId, uid, text, announceJoin),
+      ),
+    );
+  }
+
+
+  /**
+   * Commits the join-on-send batch: for a first-time sender the join system
+   * message, then the chat message, the membership append and the
+   * last-message bump on the channel doc — one atomic write.
+   * @param channelId Target channel id.
+   * @param uid Sending user's uid.
+   * @param text Trimmed message text.
+   * @param announceJoin Whether the sender joins with this send (writes the join pill).
+   */
+  private commitJoinerBatch(channelId: string, uid: string, text: string, announceJoin: boolean): Promise<void> {
+    const messages = collection(this.firestore, channelMessagesPath(channelId));
+    const batch = writeBatch(this.firestore);
+    if (announceJoin) batch.set(doc(messages), buildJoinMessage(uid));
+    batch.set(doc(messages), buildMessage(uid, text));
+    batch.update(doc(this.firestore, `channels/${channelId}`), {
+      memberIds: arrayUnion(uid),
+      ...this.lastMessagePatch(),
+    });
+    return batch.commit();
+  }
+
+
+  /**
+   * Writes the signed-in user's channel-join system message and bumps the
+   * channel's last-message denormalization; deliberately silent (joining is
+   * not a chat send, so no send sound plays).
+   * @param channelId Id of the joined channel.
+   */
+  async sendJoinMessage(channelId: string): Promise<void> {
+    const uid = this.authService.requireUid();
     await this.withErrorSound(() =>
       runInInjectionContext(this.injector, () => {
         const batch = writeBatch(this.firestore);
-        batch.set(doc(collection(this.firestore, channelMessagesPath(channelId))), message);
-        batch.update(doc(this.firestore, `channels/${channelId}`), {
-          memberIds: arrayUnion(uid),
-          ...this.lastMessagePatch(),
-        });
+        batch.set(doc(collection(this.firestore, channelMessagesPath(channelId))), buildJoinMessage(uid));
+        batch.update(doc(this.firestore, `channels/${channelId}`), this.lastMessagePatch());
         return batch.commit();
       }),
     );

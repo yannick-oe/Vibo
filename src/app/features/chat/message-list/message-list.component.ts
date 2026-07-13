@@ -30,6 +30,7 @@ import { ScrollToLatestFabComponent } from '../../../shared/scroll-to-latest-fab
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { BigReactionTracker } from '../big-reaction-tracker';
 import { MessageEntranceTracker } from '../message-entrance';
+import { SystemMessageComponent } from '../system-message/system-message.component';
 import { MessageGroup, groupMessagesByDay } from '../message-grouping';
 import { MessagePager } from '../message-pager';
 import { ScrollFabTracker } from '../scroll-fab-tracker';
@@ -53,7 +54,7 @@ const MESSAGE_SKELETON_COUNT = 6;
  */
 @Component({
   selector: 'app-message-list',
-  imports: [MessageItemComponent, ScrollToLatestFabComponent, SkeletonComponent],
+  imports: [MessageItemComponent, ScrollToLatestFabComponent, SkeletonComponent, SystemMessageComponent],
   templateUrl: './message-list.component.html',
   styleUrl: './message-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -72,6 +73,8 @@ export class MessageListComponent {
   readonly otherUids = input<string[]>([]);
 
   readonly isSelfConversation = input(false);
+
+  readonly actionsDisabled = input(false);
 
   readonly unreadSince = input<Timestamp | null>(null);
 
@@ -149,10 +152,13 @@ export class MessageListComponent {
 
 
   /**
-   * Builds the Firestore document path of a message for row actions.
+   * Builds the Firestore document path of a message for row actions; null
+   * while actions are disabled (blocked conversations), which inertly
+   * disables every mutation affordance of the row.
    * @param message Message of the rendered row.
    */
   protected messagePathFor(message: Message): string | null {
+    if (this.actionsDisabled()) return null;
     const collectionPath = this.collectionPath();
     return collectionPath ? `${collectionPath}/${message.id}` : null;
   }

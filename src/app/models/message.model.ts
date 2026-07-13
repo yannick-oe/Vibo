@@ -91,6 +91,10 @@ export interface ReplyDoc {
  * here so thread previews need no reply reads.
  */
 export interface MessageDoc extends ReplyDoc {
+  /** Message kind; 'system' marks authorless status pills. Absent on chat messages. */
+  kind?: 'system';
+  /** System-message subtype; currently only channel joins. */
+  subtype?: 'join';
   /** Denormalized number of replies in the replies subcollection. */
   replyCount: number;
   /** Denormalized time of the latest reply; null while no replies exist. */

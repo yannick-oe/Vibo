@@ -16,9 +16,11 @@ import { FirebaseError } from 'firebase/app';
 
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
+import { MessageService } from '../../../services/message.service';
 import { RegistrationFormData, RegistrationService } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { AVATAR_OPTIONS } from '../../../shared/avatar-options';
+import { DEFAULT_CHANNEL_ID } from '../../../shared/channels.constants';
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { AvatarActivatorDirective } from '../../../shared/avatar/avatar-activator.directive';
 
@@ -45,6 +47,8 @@ export class AvatarPickerComponent implements AfterViewInit {
   private readonly authService = inject(AuthService);
 
   private readonly channelService = inject(ChannelService);
+
+  private readonly messageService = inject(MessageService);
 
   private readonly registration = inject(RegistrationService);
 
@@ -119,6 +123,7 @@ export class AvatarPickerComponent implements AfterViewInit {
       const uid = await this.authService.register(data, this.registration.avatarPath());
       await this.channelService.ensureDefaultChannelExists();
       await this.channelService.joinDefaultChannel(uid);
+      await this.messageService.sendJoinMessage(DEFAULT_CHANNEL_ID);
       this.finishSuccessfully();
     } catch (error: unknown) {
       this.handleSignupError(error);

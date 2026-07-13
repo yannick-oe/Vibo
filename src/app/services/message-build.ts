@@ -57,3 +57,13 @@ export function buildMessage(uid: string, text: string, replyTo?: ReplyRef): Mes
 export function buildGifMessage(uid: string, gif: GifResult, replyTo?: ReplyRef): MessageDoc {
   return { ...buildMessage(uid, '', replyTo), ...gifFields(gif) };
 }
+
+
+/**
+ * Builds the channel-join system message the joining user writes about
+ * themselves; renders as the centered, authorless join pill.
+ * @param uid Uid of the joining user.
+ */
+export function buildJoinMessage(uid: string): MessageDoc {
+  return { ...buildMessage(uid, ''), kind: 'system', subtype: 'join' };
+}
