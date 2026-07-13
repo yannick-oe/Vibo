@@ -60,7 +60,7 @@ export class SheetDragController {
   private readonly cardHeight = signal(0);
 
   readonly sheetTransform: Signal<string | null> = computed(() => {
-    const offset = this.dragOffset() ?? this.idleOffset();
+    const offset = this.dragOffset();
     return offset === null ? null : `translateY(${offset}px)`;
   });
 
@@ -245,8 +245,8 @@ export class SheetDragController {
 
 
   /**
-   * The rest offset the sheet idles at: the current detent's offset for
-   * active detent sheets, none otherwise (single-rest sheets lie at 0).
+   * The current detent's rest offset in px (none for single-rest sheets),
+   * feeding settle targets and the scrim model; the idle rest is CSS-owned.
    */
   private idleOffset(): number | null {
     if (!this.detentsActive()) return null;

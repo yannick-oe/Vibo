@@ -255,17 +255,20 @@
     }
   }
 
-  // Detent sheets land on their half-detent rest offset (set by the shell as
-  // a CSS variable from the measured card height) instead of translateY(0).
-  // Until the shell has bound the variable the token-derived fallback keeps
-  // the end frame at the half detent — never taller than the target rest.
+  // Detent sheets land on the CSS-owned half rest: a percentage of the
+  // card's own height derived from the detent tokens, so the end frame is
+  // correct from the very first style resolution — identical to the idle
+  // rest of .dialog-shell__card--detents and to detentRestOffset() in
+  // sheet-physics.ts, with no measurement involved. Include this mixin ONLY
+  // at the global stylesheet root (styles.scss) — see the note there on the
+  // encapsulation shim's position-dependent keyframe-reference rewriting.
   @keyframes sheet-slide-up-detent {
     from {
       transform: translateY(100%);
     }
 
     to {
-      transform: translateY(var(--sheet-detent-offset, #{v.$sheet-detent-offset-fallback}));
+      transform: translateY(v.$sheet-detent-half-rest-percent);
     }
   }
 }

@@ -78,17 +78,35 @@ a documented deviation); reduced motion respected; §14 clean.
   halfOffset) · SWIPE_DISMISS_FRACTION`. At half, an upward content drag with the grid at scroll
   top expands to tall (at tall it scrolls the grid — iOS-sheet convention); the scrim stays opaque
   down to the half offset and fades only on the dismiss stretch below it.
-- **Entrance lands on the half detent without a jump.** Detent sheets animate a dedicated
-  `sheet-slide-up-detent` keyframe whose end frame is the shell-provided `--sheet-detent-offset`
-  custom property, and the shell keeps a matching inline transform, so the fill-forwards end state
-  and the idle rest agree; `prefers-reduced-motion` shows the sheet directly at the half offset.
-  The original "measured pre-paint" assumption did **not** hold on device (frames rendered before
-  the measurement targeted `translateY(0)` = tall → fullscreen flash, then a snap to half); the
-  same-day fix pack gates the entrance instead: a `--detent-pending` class parks the card at
-  `translateY(100%)` (no animation) until the shell has bound the measured offset, and the keyframe
-  end frame falls back to the token-derived `$sheet-detent-offset-fallback` (`(85 − 45)dvh`, from
-  the detent constants mirrored in `_variables.scss`) so even an unmeasured frame could never
-  target above half. At no frame does the sheet render taller than its target detent.
+- **Entrance lands on the half detent without a jump — the rest position is CSS-owned (third
+  iteration, same day).** Root cause of the persistent tall flash, found in the compiled bundle:
+  Angular's emulated-encapsulation shim (ShadowCss) renames component-local `@keyframes` but its
+  reference rewriting misses `animation`/`animation-name` declarations that **open their rule**
+  (`{animation-name:` in compressed output — the `(?:^|\s+|;)` guard skips `{`), so the detent
+  card's `animation-name: sheet-slide-up-detent` pointed at a name that no longer existed after
+  scoping. The detent entrance keyframe therefore **never ran in the delivered app**, both prior
+  keyframe-end guarantees (measured `--sheet-detent-offset`, 40dvh fallback) were dead code, and
+  the card's position rested solely on the JS-bound inline transform — every frame painted before
+  that binding (delayed up to ~1 s when the cold emoji-metadata fetch and first grid render block
+  the main thread) showed `transform: none` = the tall position. Fixed by construction:
+  (1) the sheet keyframes are defined **globally** in styles.scss (see the warning comment there —
+  never define component-local keyframes referenced from position-sensitive declarations);
+  (2) the idle half rest is a **static CSS declaration** on `.dialog-shell__card--detents`:
+  `translateY($sheet-detent-half-rest-percent)` — the same `(TALL − HALF)/TALL` ratio as
+  `detentRestOffset()` expressed as a percentage of the card's own box, so it is correct from the
+  first style resolution, needs no measurement, and covers max-height-capped short viewports with
+  the identical expression; a `--detent-tall` class switches the rest to `translateY(0)` (only
+  reachable after a drag, when `--dragged` has already removed the entrance fill). The drag
+  controller no longer binds an idle inline transform — inline px transforms exist only while
+  dragging/settling, and the settle target px equals the CSS percentage of the measured box, so
+  the handoff back to the class rest is seamless. The entrance itself is a shell-gated
+  `--detent-entering` class added two animation frames after first render (`--detent-pending`
+  parks the card at `translateY(100%)` until then — belt-and-braces; correctness no longer depends
+  on the gate); its end frame is the same token expression as the idle rest.
+  `prefers-reduced-motion` skips gate and animation — the card renders at the CSS rest from the
+  first frame. Verified frame-by-frame in headless Chrome against the compiled rules: a card that
+  receives no JS at all rests at the half offset from the first sample; no frame renders taller
+  than half.
 - **Half detent keeps all content reachable** (same-day fix pack). At half the 85 dvh card is
   translated ~40 dvh down, so the picker's bottom 40 dvh sat below the viewport and the grid could
   not scroll to its last rows. The picker now mirrors the current rest offset as its own bottom

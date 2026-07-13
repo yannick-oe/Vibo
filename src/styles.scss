@@ -11,6 +11,15 @@
 // component that includes the `skeleton-shimmer` mixin reuses the same sweep.
 @include m.skeleton-shimmer-keyframes;
 
+// Bottom-sheet entrance keyframes, deliberately GLOBAL (never inside a
+// component stylesheet): Angular's emulated-encapsulation shim renames
+// component-local @keyframes but its reference rewriting misses
+// animation/animation-name declarations that open a rule (`{animation:` in
+// compressed output — the `(?:^|\s+|;)` guard in ShadowCss), which silently
+// breaks the animation depending on declaration position. Globally defined
+// names are never rewritten and resolve deterministically.
+@include m.sheet-keyframes;
+
 // ─── Route view transitions ─────────────────────────────────────────────────
 // Router cross-fade (withViewTransitions — feature-detected; reduced motion is
 // skipped in the router callback). Only the main content (.shell__chat, named

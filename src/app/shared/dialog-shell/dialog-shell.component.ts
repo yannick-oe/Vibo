@@ -97,9 +97,22 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
     dismiss: () => this.closed.emit(),
   });
 
-  protected readonly detentPending = computed(
-    () => this.detents() && this.isSheetMode() && this.drag.detentOffsetStyle() === null,
+  private readonly entranceReleased = signal(false);
+
+  private readonly animatesDetentEntrance = computed(
+    () =>
+      this.detents() && this.isSheetMode() && !this.reducedMotion.prefersReducedMotion(),
   );
+
+  protected readonly detentPending = computed(
+    () => this.animatesDetentEntrance() && !this.entranceReleased(),
+  );
+
+  protected readonly detentEntering = computed(
+    () => this.animatesDetentEntrance() && this.entranceReleased(),
+  );
+
+  protected readonly detentTall = computed(() => this.drag.currentDetent() === 'tall');
 
   private suppressesScrollbars = false;
 
@@ -108,8 +121,8 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
    * Locks background scrolling (suppressing background scrollbars under a
    * visible scrim), resolves the anchor's vertical side (outside sheet mode
    * only — the sheet never follows an anchor), focuses the first focusable
-   * element once the dialog is rendered and attaches the drag controller's
-   * native listeners.
+   * element once the dialog is rendered, attaches the drag controller's
+   * native listeners and schedules the gated detent entrance.
    */
   ngAfterViewInit(): void {
     this.suppressesScrollbars = this.isSheetMode() || this.scrim() === 'visible';
@@ -120,6 +133,21 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
     }
     focusableElementsIn(this.card().nativeElement)[0]?.focus();
     this.drag.attach();
+    this.releaseEntranceAfterPaint();
+  }
+
+
+  /**
+   * Releases the detent entrance gate two animation frames after the first
+   * render: the first frame paints the parked card with the measured offset
+   * bound, the second starts the entrance keyframe toward the CSS-owned
+   * half rest. Correctness never depends on this sequencing — the idle rest
+   * is a static CSS expression — the gate only keeps the entrance run clean.
+   */
+  private releaseEntranceAfterPaint(): void {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => this.entranceReleased.set(true)),
+    );
   }
 
 

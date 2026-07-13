@@ -44,6 +44,9 @@ export const GRABBER_SELECTOR = '.dialog-shell__grabber';
  * The offset in pixels a detent sheet is translated down from the tall rest
  * position: zero at tall, a fixed fraction of the measured card height at
  * half, so the visible part shrinks from TALL_DETENT_DVH to HALF_DETENT_DVH.
+ * Mirrored in CSS by $sheet-detent-half-rest-percent (_variables.scss): the
+ * same (TALL − HALF) / TALL ratio as a translateY percentage of the card
+ * box, which owns the idle rest — both sides must stay equal.
  * @param detent Target detent.
  * @param cardHeight Measured card height in pixels.
  */

@@ -205,11 +205,17 @@ $sheet-detent-half-dvh: 45;
 $emoji-sheet-tall-height: #{$sheet-detent-tall-dvh}dvh;
 $emoji-sheet-tall-height-fallback: #{$sheet-detent-tall-dvh}vh;
 
-// First-frame fallback for the shell-measured --sheet-detent-offset custom
-// property: with a tall-detent-high card the half rest sits (tall − half)dvh
-// below the tall rest, so entrance frames rendered before the measurement
-// already target the half detent (the measurement then corrects capped
-// short-viewport cases).
+// Half rest as a fraction of the card's own height. translateY percentages
+// resolve against the element box, so this single expression is the correct
+// half rest for full-height AND max-height-capped cards with no JS involved.
+// Must stay equal to detentRestOffset()'s ratio in sheet-physics.ts:
+// (TALL − HALF) / TALL of the measured card height.
+$sheet-detent-half-rest-percent: math.div(($sheet-detent-tall-dvh - $sheet-detent-half-dvh) * 100%, $sheet-detent-tall-dvh);
+
+// CSS default of the shell-measured --sheet-detent-offset custom property
+// (consumed as a length by the picker's detent-aware bottom padding): the
+// uncapped half offset in viewport units. The shell overrides it with the
+// measured pixel value, which only differs on max-height-capped viewports.
 $sheet-detent-offset-fallback: #{$sheet-detent-tall-dvh - $sheet-detent-half-dvh}dvh;
 
 // Velocity-matched sheet settle: fallback duration (used when the drag

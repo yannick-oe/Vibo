@@ -114,8 +114,6 @@ $sheet-settle-ease: v.$sheet-settle-ease;
 
 @include m.menu-inflate-keyframes;
 
-@include m.sheet-keyframes;
-
 .dialog-shell__grabber {
   display: none;
 }
@@ -162,24 +160,44 @@ $sheet-settle-ease: v.$sheet-settle-ease;
     }
   }
 
-  // Detent sheets slide up to the half rest offset instead of translateY(0);
-  // the shell keeps the matching inline transform, so the fill-forwards end
-  // frame and the idle rest agree and the entrance never jumps. The card
-  // never scrolls itself — the projected picker owns the single scroll
-  // region, so no card scrollbar can extend below the viewport at half.
+  // Detent sheets: the half rest is OWNED BY CSS — a percentage of the
+  // card's own height from the shared detent tokens — so the correct rest
+  // exists from the very first style resolution, independent of any JS
+  // measurement or change-detection timing. The controller only writes
+  // inline pixel transforms while dragging/settling (inline beats this
+  // class rule) and detentRestOffset() computes the identical ratio in px.
+  // The base entrance is disabled here: scoped @keyframes must only be
+  // referenced through the `animation` SHORTHAND (Angular's emulated-
+  // encapsulation shim does not rewrite the `animation-name` longhand — a
+  // longhand reference points at a name that no longer exists after
+  // scoping), so the detent entrance runs via the shell-gated
+  // --detent-entering class below. The card never scrolls itself — the
+  // projected picker owns the single scroll region.
   .dialog-shell__card--detents {
-    animation-name: sheet-slide-up-detent;
+    --sheet-detent-offset: #{v.$sheet-detent-offset-fallback};
+    transform: translateY(v.$sheet-detent-half-rest-percent);
+    animation: none;
     overflow: hidden;
   }
 
-  // Until the shell has measured the card and bound --sheet-detent-offset,
-  // the entrance would target a stale rest; park the card fully off-screen
-  // for those first frames and start the entrance only once the measured
-  // offset is bound (with reduced motion the card then appears directly at
-  // the half detent — no flash in either mode).
+  .dialog-shell__card--detents.dialog-shell__card--detent-tall {
+    transform: translateY(0);
+  }
+
+  // Belt-and-braces gate: while the shell sequences the entrance (bind the
+  // measured offset → let it paint → release), the card parks fully
+  // off-screen. Worst case without the gate is still correct — the idle
+  // rest above never targets taller than half.
   .dialog-shell__card--detents.dialog-shell__card--detent-pending {
     animation: none;
     transform: translateY(100%);
+  }
+
+  // The gated entrance: added by the shell one frame after the parked card
+  // painted. End frame and idle rest are the same token expression, so the
+  // fill-forwards end state and the rest agree exactly.
+  .dialog-shell__card--detents.dialog-shell__card--detent-entering {
+    animation: sheet-slide-up-detent v.$transition-slow both;
   }
 
   .dialog-shell__card--search .dialog-shell__grabber {
@@ -231,7 +249,8 @@ $sheet-settle-ease: v.$sheet-settle-ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dialog-shell__card {
+  .dialog-shell__card,
+  .dialog-shell__card--detents.dialog-shell__card--detent-entering {
     animation: none;
   }
 
