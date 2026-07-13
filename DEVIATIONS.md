@@ -3,6 +3,35 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Loading skeletons + desktop right-click context menu (2026-07-13)
+Roadmap V2 Phase 3 final, items D & E. No Figma design for either — both are additive; tokens only, CLS 0, reduced motion respected, §14 clean (no new listeners — the two loaded flags ride existing streams).
+
+- **Loading skeletons with shimmer (no Figma).** A shared presentational
+  [skeleton.component](src/app/shared/skeleton/skeleton.component.ts) renders `count` placeholder rows whose
+  reserved heights mirror the real rows exactly (avatar sizes / line heights via the same tokens), so the swap
+  to real content is CLS 0. The shimmer is a GPU-only sweep (`transform: translateX(-100% → 100%)`, no layout
+  writes) via the `skeleton-shimmer` mixin; **reduced motion drops the sweep to a static block**. New
+  low-contrast token pair **`--skeleton-base` / `--skeleton-sheen`** in [_themes.scss](src/styles/_themes.scss)
+  (both themes). Skeleton blocks are decorative (`aria-hidden`); the container is a busy status region
+  (`aria-busy` + a visually-hidden German loading label), so the low contrast raises no WCAG text-contrast
+  concern. Applied at four load points: message-window initial load (replaces the former blank state; gated on
+  `!window().loaded() && messages().length === 0`, and a fresh window is created per channel/DM switch so it
+  shows on every open until the first snapshot), the friends view (until the friendship stream's first
+  snapshot), the notification panel (until the feed's first snapshot — a cold-start fallback; the feed listener
+  runs from app boot so it is rarely visible after warm-up), and the emoji picker's catalogue-loading state
+  (restyled from a text line to a shimmer grid).
+- **Desktop right-click opens the message context menu — convention, no Figma gesture.** On hover-capable
+  pointers (`LayoutService.isHoverCapable`, `(hover: hover) and (pointer: fine)`), right-clicking a message row
+  opens the reaction picker overlay anchored at the cursor via the new
+  **`anchorAtPoint(x, y)`** ([dialog-anchor.ts](src/app/shared/dialog-shell/dialog-anchor.ts)) — the same
+  transparent-scrim + inflate + Esc/outside-click overlay the action bar opens, flipped near viewport edges
+  (vertical via `placeVertically`, horizontal by picking the nearer edge). The native menu is preserved when
+  the target owns one (`input, textarea, [contenteditable], a[href]`) so composing and links are untouched.
+  The point anchor is cleared on close, so a later open via the action-bar button re-anchors to the bubble.
+  **Long-press (touch) and keyboard paths are unchanged**; this is the desktop analogue of the existing
+  long-press bar. (The picker sheet's deferred second detent — item F — is **not** in this batch; see the
+  2026-07-10 "single detent, not two" note, which still stands.)
+
 ## Feel & Motion completion — recency sort + FLIP, edit-picker migration, edit-in-view (2026-07-12)
 Roadmap V2 Phase 3 completion, items A–C. Reduced motion respected throughout; §14 clean.
 
