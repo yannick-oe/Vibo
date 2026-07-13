@@ -25,6 +25,7 @@ import { MessageService } from '../../../services/message.service';
 import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { RecentEmojiService } from '../../../services/recent-emoji.service';
 import { DEFAULT_AVATAR_PATH } from '../../../services/registration.service';
+import { SoundService } from '../../../services/sound.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import {
@@ -133,6 +134,8 @@ export class MessageItemComponent {
   private readonly messageFocusService = inject(MessageFocusService);
 
   private readonly layoutService = inject(LayoutService);
+
+  private readonly soundService = inject(SoundService);
 
   private readonly toastService = inject(ToastService);
 
@@ -339,6 +342,7 @@ export class MessageItemComponent {
     const uid = this.authService.currentUser()?.uid ?? '';
     const isAdding = !(reactions[emoji] ?? []).includes(uid);
     if (isAdding) {
+      this.soundService.play('reaction');
       this.recentEmojiService.record(emoji);
       this.bigReactionService.onReactionAdded(emoji, messagePath);
       this.notificationFanout.reactionAdded(messagePath, this.entry(), emoji);
@@ -367,6 +371,7 @@ export class MessageItemComponent {
     this.barOpen.set(false);
     const messagePath = this.messagePath();
     if (!messagePath) return;
+    this.soundService.play('delete');
     const animates = !prefersReducedMotion();
     this.isHiding.set(animates);
     if (animates) await delay(DELETE_POP_MS);
@@ -382,6 +387,7 @@ export class MessageItemComponent {
     this.barOpen.set(false);
     const messagePath = this.messagePath();
     if (!messagePath) return;
+    this.soundService.play('delete');
     await runMessageAction(this.toastService, () => this.messageService.deleteForAll(messagePath));
   }
 }

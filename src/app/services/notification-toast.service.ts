@@ -2,13 +2,14 @@
  * @file Shared state of the single notification toast near the top of the
  * screen: sender, context, an optional action line with an optional emoji and
  * a preview, plus the open action executed on click. Owns the auto-dismiss
- * timer and the notification sound; fed by the incoming-message notifier and
- * the activity feed, rendered by the toast component.
+ * timer and triggers the receive sound; fed by the incoming-message notifier
+ * and the activity feed, rendered by the toast component.
  */
-import { Injectable, Signal, signal } from '@angular/core';
+import { Injectable, Signal, inject, signal } from '@angular/core';
+
+import { SoundService } from './sound.service';
 
 const AUTO_DISMISS_MS = 5000;
-const NOTIFICATION_SOUND_PATH = 'sounds/chat-notification.mp3';
 
 /** Emoji rendered inside a toast: character plus resolved Twemoji metadata. */
 export interface NotificationToastEmoji {
@@ -39,7 +40,7 @@ export interface NotificationToastData {
 export class NotificationToastService {
   private dismissTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private readonly sound = new Audio(NOTIFICATION_SOUND_PATH);
+  private readonly soundService = inject(SoundService);
 
   private readonly toastState = signal<NotificationToastData | null>(null);
 
@@ -49,13 +50,14 @@ export class NotificationToastService {
 
   /**
    * Shows a toast (replacing any active one), restarts the auto-dismiss
-   * timer and plays the notification sound.
+   * timer and plays the receive sound via the central sound service (its
+   * per-kind throttle guards against notification bursts).
    * @param toast Fully built toast payload.
    */
   show(toast: NotificationToastData): void {
     this.toastState.set(toast);
     this.restartTimer();
-    this.playSound();
+    this.soundService.play('receive');
   }
 
 
@@ -85,15 +87,5 @@ export class NotificationToastService {
   private restartTimer(): void {
     if (this.dismissTimer) clearTimeout(this.dismissTimer);
     this.dismissTimer = setTimeout(() => this.toastState.set(null), AUTO_DISMISS_MS);
-  }
-
-
-  /**
-   * Plays the chat notification sound, restarting it if already playing;
-   * browser autoplay rejections are swallowed.
-   */
-  private playSound(): void {
-    this.sound.currentTime = 0;
-    this.sound.play().catch(() => undefined);
   }
 }

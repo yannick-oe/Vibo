@@ -110,6 +110,59 @@
           Log out
         </button>
       </div>
+      <div class="topbar__menu-sounds" role="group" aria-labelledby="topbar-sounds-title">
+        <h3 class="topbar__menu-sounds-title" id="topbar-sounds-title">Sounds</h3>
+        <button
+          class="topbar__sound-switch"
+          type="button"
+          role="switch"
+          [attr.aria-checked]="soundEnabled()"
+          (click)="toggleSoundEnabled()"
+        >
+          <span class="topbar__sound-switch-label">Soundeffekte</span>
+          <span class="topbar__switch-track" aria-hidden="true">
+            <span class="topbar__switch-thumb"></span>
+          </span>
+        </button>
+        <div class="topbar__sound-volume">
+          <label class="topbar__sound-volume-label" for="topbar-sound-volume">Lautstärke</label>
+          <input
+            class="topbar__sound-volume-slider"
+            id="topbar-sound-volume"
+            type="range"
+            min="0"
+            max="100"
+            step="10"
+            [value]="volumePercent()"
+            [attr.aria-valuetext]="volumePercent() + ' %'"
+            [disabled]="!soundEnabled()"
+            (input)="onVolumeInput($event)"
+            (pointerdown)="$event.stopPropagation()"
+          />
+          <button
+            class="topbar__sound-preview"
+            type="button"
+            aria-label="Sound testen"
+            [disabled]="!soundEnabled()"
+            (click)="previewSound()"
+          >
+            Testen
+          </button>
+        </div>
+        <button
+          class="topbar__sound-switch"
+          type="button"
+          role="switch"
+          [attr.aria-checked]="swipeSoundEnabled()"
+          [disabled]="!soundEnabled()"
+          (click)="toggleSwipeSound()"
+        >
+          <span class="topbar__sound-switch-label">Wisch-Sound der Seitenleiste</span>
+          <span class="topbar__switch-track" aria-hidden="true">
+            <span class="topbar__switch-thumb"></span>
+          </span>
+        </button>
+      </div>
       <nav class="topbar__menu-legal" aria-label="Rechtliches">
         <a class="topbar__menu-legal-link" routerLink="/impressum" (click)="close()">Impressum</a>
         <a class="topbar__menu-legal-link" routerLink="/datenschutz" (click)="close()">Datenschutz</a>

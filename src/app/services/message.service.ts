@@ -25,10 +25,10 @@ import { ConversationWindow } from './conversation-window';
 import { applyReaction } from './message-reactions';
 import { buildGifMessage, buildGifReply, buildMessage, buildReply } from './message-build';
 import { AuthService } from './auth.service';
+import { SoundService } from './sound.service';
 import { ToastService } from './toast.service';
 
 const MESSAGES_LOAD_ERROR = 'Nachrichten konnten nicht geladen werden.';
-const NOTIFICATION_SOUND_PATH = 'sounds/chat-notification.mp3';
 const MESSAGES_SEGMENT = '/messages';
 
 
@@ -72,9 +72,9 @@ export class MessageService {
 
   private readonly toastService = inject(ToastService);
 
-  private readonly injector = inject(EnvironmentInjector);
+  private readonly soundService = inject(SoundService);
 
-  private readonly notificationSound = new Audio(NOTIFICATION_SOUND_PATH);
+  private readonly injector = inject(EnvironmentInjector);
 
 
   /**
@@ -118,20 +118,23 @@ export class MessageService {
 
   /**
    * Writes a built message and stamps the conversation's last-message metadata
-   * in one batch, then plays the notification sound.
+   * in one batch. The send sound plays optimistically at the start (the user's
+   * action, never a snapshot echo); a rejected commit adds the error sound.
    * @param collectionPath Firestore path of the target messages collection.
    * @param message Fully built message document.
    * @returns The created message's Firestore id.
    */
   private async commitMessage(collectionPath: string, message: MessageDoc): Promise<string> {
-    const ref = await runInInjectionContext(this.injector, () => {
-      const messageRef = doc(collection(this.firestore, collectionPath));
-      const batch = writeBatch(this.firestore);
-      batch.set(messageRef, message);
-      batch.update(doc(this.firestore, conversationDocPath(collectionPath)), this.lastMessagePatch());
-      return batch.commit().then(() => messageRef);
-    });
-    this.playNotificationSound();
+    this.soundService.play('send');
+    const ref = await this.withErrorSound(() =>
+      runInInjectionContext(this.injector, () => {
+        const messageRef = doc(collection(this.firestore, collectionPath));
+        const batch = writeBatch(this.firestore);
+        batch.set(messageRef, message);
+        batch.update(doc(this.firestore, conversationDocPath(collectionPath)), this.lastMessagePatch());
+        return batch.commit().then(() => messageRef);
+      }),
+    );
     return ref.id;
   }
 
@@ -157,16 +160,18 @@ export class MessageService {
   async sendChannelMessageAsJoiner(channelId: string, text: string): Promise<void> {
     const uid = this.authService.requireUid();
     const message = buildMessage(uid, text);
-    await runInInjectionContext(this.injector, () => {
-      const batch = writeBatch(this.firestore);
-      batch.set(doc(collection(this.firestore, channelMessagesPath(channelId))), message);
-      batch.update(doc(this.firestore, `channels/${channelId}`), {
-        memberIds: arrayUnion(uid),
-        ...this.lastMessagePatch(),
-      });
-      return batch.commit();
-    });
-    this.playNotificationSound();
+    this.soundService.play('send');
+    await this.withErrorSound(() =>
+      runInInjectionContext(this.injector, () => {
+        const batch = writeBatch(this.firestore);
+        batch.set(doc(collection(this.firestore, channelMessagesPath(channelId))), message);
+        batch.update(doc(this.firestore, `channels/${channelId}`), {
+          memberIds: arrayUnion(uid),
+          ...this.lastMessagePatch(),
+        });
+        return batch.commit();
+      }),
+    );
   }
 
 
@@ -216,20 +221,23 @@ export class MessageService {
 
   /**
    * Writes a built reply and atomically bumps the parent's denormalized
-   * thread fields in one batch, then plays the notification sound.
+   * thread fields in one batch. The send sound plays optimistically at the
+   * start; a rejected commit adds the error sound.
    * @param messagePath Firestore path of the parent message document.
    * @param reply Fully built reply document.
    * @returns The created reply's Firestore id.
    */
   private async commitReply(messagePath: string, reply: ReplyDoc): Promise<string> {
-    const ref = await runInInjectionContext(this.injector, () => {
-      const replyRef = doc(collection(this.firestore, `${messagePath}/replies`));
-      const batch = writeBatch(this.firestore);
-      batch.set(replyRef, reply);
-      batch.update(doc(this.firestore, messagePath), this.replyBumpPatch());
-      return batch.commit().then(() => replyRef);
-    });
-    this.playNotificationSound();
+    this.soundService.play('send');
+    const ref = await this.withErrorSound(() =>
+      runInInjectionContext(this.injector, () => {
+        const replyRef = doc(collection(this.firestore, `${messagePath}/replies`));
+        const batch = writeBatch(this.firestore);
+        batch.set(replyRef, reply);
+        batch.update(doc(this.firestore, messagePath), this.replyBumpPatch());
+        return batch.commit().then(() => replyRef);
+      }),
+    );
     return ref.id;
   }
 
@@ -259,7 +267,9 @@ export class MessageService {
   async setReaction(messagePath: string, emoji: string, reactions: ReactionMap): Promise<void> {
     const uid = this.authService.requireUid();
     const ref = doc(this.firestore, messagePath);
-    await runInInjectionContext(this.injector, () => applyReaction(ref, reactions, emoji, uid));
+    await this.withErrorSound(() =>
+      runInInjectionContext(this.injector, () => applyReaction(ref, reactions, emoji, uid)),
+    );
   }
 
 
@@ -270,8 +280,10 @@ export class MessageService {
    * @param text Trimmed new message text.
    */
   editMessage(messagePath: string, text: string): Promise<void> {
-    return runInInjectionContext(this.injector, () =>
-      updateDoc(doc(this.firestore, messagePath), { text, editedAt: serverTimestamp() }),
+    return this.withErrorSound(() =>
+      runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, messagePath), { text, editedAt: serverTimestamp() }),
+      ),
     );
   }
 
@@ -283,8 +295,10 @@ export class MessageService {
    */
   hideForMe(messagePath: string): Promise<void> {
     const uid = this.authService.requireUid();
-    return runInInjectionContext(this.injector, () =>
-      updateDoc(doc(this.firestore, messagePath), { hiddenFor: arrayUnion(uid) }),
+    return this.withErrorSound(() =>
+      runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, messagePath), { hiddenFor: arrayUnion(uid) }),
+      ),
     );
   }
 
@@ -296,13 +310,15 @@ export class MessageService {
    */
   deleteForAll(messagePath: string): Promise<void> {
     const uid = this.authService.requireUid();
-    return runInInjectionContext(this.injector, () =>
-      updateDoc(doc(this.firestore, messagePath), {
-        deletedAt: serverTimestamp(),
-        deletedBy: uid,
-        text: '',
-        reactions: {},
-      }),
+    return this.withErrorSound(() =>
+      runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, messagePath), {
+          deletedAt: serverTimestamp(),
+          deletedBy: uid,
+          text: '',
+          reactions: {},
+        }),
+      ),
     );
   }
 
@@ -324,13 +340,18 @@ export class MessageService {
 
 
   /**
-   * Plays the chat notification sound, restarting it if already playing.
-   * Rejections are swallowed because browsers block autoplay until the
-   * first user gesture.
+   * Runs a message mutation and plays the error sound when it rejects; the
+   * rejection is rethrown so the callers' existing error handlers (toasts,
+   * optimistic-UI rollbacks) stay the single source of user feedback.
+   * @param operation Asynchronous Firestore mutation.
    */
-  private playNotificationSound(): void {
-    this.notificationSound.currentTime = 0;
-    this.notificationSound.play().catch(() => undefined);
+  private async withErrorSound<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      this.soundService.play('error');
+      throw error;
+    }
   }
 
 

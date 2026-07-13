@@ -155,6 +155,7 @@
     size="menu"
     scrim="transparent"
     [anchor]="pickerAnchor()"
+    [detents]="true"
     labelledBy="msg-reaction-title"
     (closed)="closeReactionPicker()"
   >
@@ -172,6 +173,7 @@
     size="menu"
     scrim="transparent"
     [anchor]="editPickerAnchor()"
+    [detents]="true"
     labelledBy="msg-edit-title"
     (closed)="edit.pickerOpen.set(false)"
   >

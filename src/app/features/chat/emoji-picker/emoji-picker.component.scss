@@ -24,16 +24,11 @@ $picker-max-height: 26rem;
 @include m.respond-md {
   .picker {
     width: 100%;
-    height: v.$emoji-sheet-height-fallback;
-    height: v.$emoji-sheet-height;
+    height: v.$emoji-sheet-tall-height-fallback;
+    height: v.$emoji-sheet-tall-height;
     max-height: none;
     padding: v.space('sm-md') 0 0;
     box-shadow: none;
-  }
-
-  .picker--reaction {
-    height: v.$emoji-sheet-height-reaction-fallback;
-    height: v.$emoji-sheet-height-reaction;
   }
 }
 

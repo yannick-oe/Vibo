@@ -1,0 +1,161 @@
+// Styles of the "Sounds" settings section inside the topbar profile menu:
+// section heading, the switch rows (master toggle + swipe opt-in), the
+// labelled volume slider and the preview button. Split out of
+// topbar.component.scss to keep both files within the 400-LOC limit.
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$sound-control-min-height: 44px;
+$switch-track-width: 40px;
+$switch-track-height: 22px;
+$switch-thumb-size: 16px;
+$switch-thumb-inset: 3px;
+$switch-thumb-travel: $switch-track-width - $switch-thumb-size - 2 * $switch-thumb-inset;
+$volume-slider-min-width: 96px;
+$disabled-control-opacity: 0.5;
+
+.topbar__menu-sounds {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+  padding: v.space('sm-md') v.space('lg') v.space('xs');
+  margin-top: v.space('xs');
+  border-top: 1px solid v.color('lines');
+}
+
+.topbar__menu-sounds-title {
+  margin: 0;
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-bold;
+  color: v.color('text-gray');
+  text-transform: uppercase;
+  letter-spacing: v.$letter-spacing-wide;
+}
+
+.topbar__sound-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: v.space('sm');
+  width: 100%;
+  min-height: $sound-control-min-height;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: v.$font-base;
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-medium;
+  color: v.color('black');
+  text-align: left;
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &:disabled {
+    opacity: $disabled-control-opacity;
+    cursor: default;
+  }
+}
+
+.topbar__sound-switch-label {
+  min-width: 0;
+}
+
+.topbar__switch-track {
+  position: relative;
+  flex-shrink: 0;
+  width: $switch-track-width;
+  height: $switch-track-height;
+  border-radius: v.$radius-pill;
+  background-color: v.color('text-gray');
+  transition: background-color v.$transition-fast;
+}
+
+.topbar__sound-switch[aria-checked='true'] .topbar__switch-track {
+  background-color: v.color('primary');
+}
+
+.topbar__switch-thumb {
+  position: absolute;
+  top: $switch-thumb-inset;
+  left: $switch-thumb-inset;
+  width: $switch-thumb-size;
+  height: $switch-thumb-size;
+  border-radius: v.$radius-round;
+  background-color: v.color('white');
+  transition: transform v.$transition-fast;
+}
+
+.topbar__sound-switch[aria-checked='true'] .topbar__switch-thumb {
+  transform: translateX($switch-thumb-travel);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar__switch-track,
+  .topbar__switch-thumb {
+    transition: none;
+  }
+}
+
+.topbar__sound-volume {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  min-height: $sound-control-min-height;
+}
+
+.topbar__sound-volume-label {
+  flex-shrink: 0;
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-medium;
+  color: v.color('black');
+}
+
+.topbar__sound-volume-slider {
+  flex: 1;
+  min-width: $volume-slider-min-width;
+  min-height: $sound-control-min-height;
+  accent-color: v.color('primary');
+  cursor: pointer;
+  touch-action: none;
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &:disabled {
+    opacity: $disabled-control-opacity;
+    cursor: default;
+  }
+}
+
+.topbar__sound-preview {
+  flex-shrink: 0;
+  min-height: v.$btn-height-sm;
+  padding: v.space('xs') v.space('sm-md');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+  font-family: v.$font-base;
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('black');
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover:not(:disabled) {
+    background-color: v.color('bg');
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &:disabled {
+    opacity: $disabled-control-opacity;
+    cursor: default;
+  }
+}

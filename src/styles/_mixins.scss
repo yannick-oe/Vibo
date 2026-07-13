@@ -239,6 +239,18 @@
       transform: translateY(0);
     }
   }
+
+  // Detent sheets land on their half-detent rest offset (set by the shell as
+  // a CSS variable from the measured card height) instead of translateY(0).
+  @keyframes sheet-slide-up-detent {
+    from {
+      transform: translateY(100%);
+    }
+
+    to {
+      transform: translateY(var(--sheet-detent-offset, 0px));
+    }
+  }
 }
 
 // Shared "bubble inflate" entrance for trigger-opened menus/popovers: a

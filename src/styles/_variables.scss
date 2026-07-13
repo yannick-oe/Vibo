@@ -196,10 +196,12 @@ $z-tooltip: 600;
 $sidebar-width: 366px;
 $thread-panel-width: 480px;
 $emoji-picker-width: 360px;
-$emoji-sheet-height: 55dvh;
-$emoji-sheet-height-fallback: 55vh;
-$emoji-sheet-height-reaction: 62dvh;
-$emoji-sheet-height-reaction-fallback: 62vh;
+
+// Picker sheet card height = the tall detent. Keep in sync with
+// TALL_DETENT_DVH in sheet-physics.ts; the sheet opens translated down to
+// its half detent (HALF_DETENT_DVH) and expands to this height on drag-up.
+$emoji-sheet-tall-height: 85dvh;
+$emoji-sheet-tall-height-fallback: 85vh;
 
 $dialog-widths: (
   'default':     872px,
