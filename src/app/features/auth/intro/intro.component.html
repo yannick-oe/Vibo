@@ -3,7 +3,7 @@
     <div #logo class="intro__logo-container" 
          [class.intro--step1]="step() >= 1" 
          [class.intro--step2]="step() >= 2">
-      <img class="intro__logo" src="logos/logo.svg" alt="" />
+      <img class="intro__logo" src="logos/logo.svg" alt="" fetchpriority="high" />
       <span class="intro__text">{{ appName }}</span>
     </div>
   </div>
