@@ -117,6 +117,7 @@ $partner-status-max: 240px;
   padding: v.space('lg') v.space('xl-xxl');
   overflow-y: auto;
   @include m.scrollbar-thin;
+  @include m.scrollbar-suppressed-under-overlay;
 }
 
 .dm__empty-avatar {

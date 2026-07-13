@@ -1,8 +1,8 @@
 @use 'variables' as v;
 @use 'mixins' as m;
 
-$sheet-settle-fallback-duration: 250ms;
-$sheet-settle-ease: cubic-bezier(0.35, 0.35, 0.15, 1);
+$sheet-settle-fallback-duration: v.$sheet-settle-fallback-duration;
+$sheet-settle-ease: v.$sheet-settle-ease;
 
 .dialog-shell {
   position: fixed;
@@ -164,9 +164,22 @@ $sheet-settle-ease: cubic-bezier(0.35, 0.35, 0.15, 1);
 
   // Detent sheets slide up to the half rest offset instead of translateY(0);
   // the shell keeps the matching inline transform, so the fill-forwards end
-  // frame and the idle rest agree and the entrance never jumps.
+  // frame and the idle rest agree and the entrance never jumps. The card
+  // never scrolls itself — the projected picker owns the single scroll
+  // region, so no card scrollbar can extend below the viewport at half.
   .dialog-shell__card--detents {
     animation-name: sheet-slide-up-detent;
+    overflow: hidden;
+  }
+
+  // Until the shell has measured the card and bound --sheet-detent-offset,
+  // the entrance would target a stale rest; park the card fully off-screen
+  // for those first frames and start the entrance only once the measured
+  // offset is bound (with reduced motion the card then appears directly at
+  // the half detent — no flash in either mode).
+  .dialog-shell__card--detents.dialog-shell__card--detent-pending {
+    animation: none;
+    transform: translateY(100%);
   }
 
   .dialog-shell__card--search .dialog-shell__grabber {

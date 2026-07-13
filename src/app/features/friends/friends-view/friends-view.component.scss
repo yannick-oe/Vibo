@@ -12,6 +12,16 @@ $empty-min-height: 160px;
   @include m.scrollbar-thin;
 }
 
+// The scroller is the host itself, so the suppression mixin's nested `&`
+// form cannot apply — same paint-transparent rule, host-context directly.
+:host-context(html.scrollbars-suppressed) {
+  scrollbar-color: transparent transparent;
+
+  &::-webkit-scrollbar-thumb {
+    background-color: transparent;
+  }
+}
+
 .friends {
   display: flex;
   flex-direction: column;

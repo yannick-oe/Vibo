@@ -13,6 +13,7 @@
   overflow-y: auto;
   padding: v.space('lg') v.space('xl-xxl');
   @include m.scrollbar-thin;
+  @include m.scrollbar-suppressed-under-overlay;
 }
 
 .message-list__fab {

@@ -97,15 +97,23 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
     dismiss: () => this.closed.emit(),
   });
 
+  protected readonly detentPending = computed(
+    () => this.detents() && this.isSheetMode() && this.drag.detentOffsetStyle() === null,
+  );
+
+  private suppressesScrollbars = false;
+
 
   /**
-   * Locks background scrolling, resolves the anchor's vertical side (outside
-   * sheet mode only — the sheet never follows an anchor), focuses the first
-   * focusable element once the dialog is rendered and attaches the drag
-   * controller's native listeners.
+   * Locks background scrolling (suppressing background scrollbars under a
+   * visible scrim), resolves the anchor's vertical side (outside sheet mode
+   * only — the sheet never follows an anchor), focuses the first focusable
+   * element once the dialog is rendered and attaches the drag controller's
+   * native listeners.
    */
   ngAfterViewInit(): void {
-    this.scrollLock.lock();
+    this.suppressesScrollbars = this.isSheetMode() || this.scrim() === 'visible';
+    this.scrollLock.lock(this.suppressesScrollbars);
     const anchor = this.anchor();
     if (anchor && !this.isSheetMode()) {
       this.placedAnchor.set(placeVertically(anchor, this.card().nativeElement.offsetHeight));
@@ -120,7 +128,7 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
    * focus.
    */
   ngOnDestroy(): void {
-    this.scrollLock.unlock();
+    this.scrollLock.unlock(this.suppressesScrollbars);
     this.drag.detach();
     this.restoreFocus();
   }

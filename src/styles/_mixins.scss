@@ -155,6 +155,21 @@
   }
 }
 
+// Paints the scrollbar fully transparent while a scrimmed overlay is open —
+// the ScrollLockService stamps the class on <html>, keep the name in sync.
+// Only the paint disappears; the gutter geometry is untouched, so locking
+// and unlocking never shifts layout. Apply to background scrollers that sit
+// beneath modal sheets/dialogs.
+@mixin scrollbar-suppressed-under-overlay {
+  :host-context(html.scrollbars-suppressed) & {
+    scrollbar-color: transparent transparent;
+
+    &::-webkit-scrollbar-thumb {
+      background-color: transparent;
+    }
+  }
+}
+
 // ─── Frosted Glass ────────────────────────────────────────────────────────────
 
 @mixin glass(
@@ -242,13 +257,15 @@
 
   // Detent sheets land on their half-detent rest offset (set by the shell as
   // a CSS variable from the measured card height) instead of translateY(0).
+  // Until the shell has bound the variable the token-derived fallback keeps
+  // the end frame at the half detent — never taller than the target rest.
   @keyframes sheet-slide-up-detent {
     from {
       transform: translateY(100%);
     }
 
     to {
-      transform: translateY(var(--sheet-detent-offset, 0px));
+      transform: translateY(var(--sheet-detent-offset, #{v.$sheet-detent-offset-fallback}));
     }
   }
 }

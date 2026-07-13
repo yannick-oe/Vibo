@@ -53,6 +53,7 @@
   overflow-y: auto;
   padding: v.space('lg');
   @include m.scrollbar-thin;
+  @include m.scrollbar-suppressed-under-overlay;
 }
 
 .thread__fab {

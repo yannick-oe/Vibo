@@ -9,6 +9,7 @@
   padding: v.space('lg');
   overflow-y: auto;
   @include m.scrollbar-thin;
+  @include m.scrollbar-suppressed-under-overlay;
 }
 
 .workspace__head {

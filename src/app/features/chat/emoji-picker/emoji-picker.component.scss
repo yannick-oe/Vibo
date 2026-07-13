@@ -21,14 +21,38 @@ $picker-max-height: 26rem;
   box-shadow: v.$shadow-lg;
 }
 
+// Sheet mode: the host is the card's flex item at the tall-detent height and
+// may shrink when the card's viewport max-height cap bites, so the card never
+// grows a scroller of its own. The picker's bottom padding mirrors the
+// current detent offset — at half the content region ends at the visible
+// fold (every grid row and the scrollbar stay reachable on screen), at tall
+// the offset is 0 and the padding collapses. The padding change is eased in
+// sync with the sheet settle, so the grid does not jump on detent snaps.
 @include m.respond-md {
-  .picker {
-    width: 100%;
+  :host {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     height: v.$emoji-sheet-tall-height-fallback;
     height: v.$emoji-sheet-tall-height;
+  }
+
+  .picker {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    height: auto;
     max-height: none;
-    padding: v.space('sm-md') 0 0;
+    padding: v.space('sm-md') 0 var(--sheet-detent-offset, 0px);
     box-shadow: none;
+    transition: padding-bottom var(--sheet-settle-ms, #{v.$sheet-settle-fallback-duration})
+      v.$sheet-settle-ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .picker {
+      transition: none;
+    }
   }
 }
 
