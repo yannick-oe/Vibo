@@ -24,6 +24,7 @@ import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dia
 import { MobileSearchViewComponent } from '../../search/mobile-search-view/mobile-search-view.component';
 import { UnreadBadgeComponent } from '../../../shared/unread-badge/unread-badge.component';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
+import { FlipListDirective } from '../../../shared/flip-list.directive';
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
 
 const GUEST_NAME = 'Gast';
@@ -48,6 +49,7 @@ interface SelfEntry {
   selector: 'app-workspace-menu',
   imports: [
     AvatarFallbackDirective,
+    FlipListDirective,
     MobileSearchViewComponent,
     ProfileDialogComponent,
     RouterLink,
@@ -197,15 +199,35 @@ export class WorkspaceMenuComponent {
 
   /**
    * Returns the partners of the signed-in user's existing conversations,
-   * sorted alphabetically. Friends without a conversation live in the
+   * sorted by most recent activity (name tiebreak) so a new message bumps the
+   * conversation to the top. Friends without a conversation live in the
    * dedicated friends view, keeping the selection state unambiguous.
    */
   private sortOthers(): UserDoc[] {
     const selfUid = this.authService.currentUser()?.uid;
     const partners = this.directMessageService.conversationPartnerUids();
+    const recency = this.directMessageService.recencyByPartner();
     return this.userService
       .users()
       .filter(user => user.uid !== selfUid && partners.has(user.uid))
-      .sort((a, b) => a.name.localeCompare(b.name, SORT_LOCALE));
+      .sort((a, b) => byRecency(a, b, recency, SORT_LOCALE));
   }
+}
+
+
+/**
+ * Compares two partners for the direct-message list: most recent activity
+ * first, then name as a stable tiebreak.
+ * @param a First partner.
+ * @param b Second partner.
+ * @param recency Last-activity millis per partner uid.
+ * @param locale Collation locale for the name tiebreak.
+ */
+function byRecency(
+  a: UserDoc,
+  b: UserDoc,
+  recency: ReadonlyMap<string, number>,
+  locale: string,
+): number {
+  return (recency.get(b.uid) ?? 0) - (recency.get(a.uid) ?? 0) || a.name.localeCompare(b.name, locale);
 }

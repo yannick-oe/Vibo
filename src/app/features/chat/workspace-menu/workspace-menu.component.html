@@ -61,9 +61,9 @@
     </div>
 
     <div class="workspace__collapsible" [class.workspace__collapsible--open]="isChannelsOpen()">
-      <ul class="workspace__list" id="workspace-channels">
+      <ul class="workspace__list" id="workspace-channels" [appFlipList]="channels()">
         @for (channel of channels(); track channel.id) {
-          <li>
+          <li [attr.data-flip-id]="channel.id">
             <a
               class="workspace__item"
               [routerLink]="['/app/channel', channel.id]"
@@ -128,9 +128,9 @@
     </div>
 
     <div class="workspace__collapsible" [class.workspace__collapsible--open]="isDirectOpen()">
-      <ul class="workspace__list" id="workspace-direct">
+      <ul class="workspace__list" id="workspace-direct" [appFlipList]="others()">
         @if (self(); as selfEntry) {
-          <li>
+          <li [attr.data-flip-id]="selfEntry.uid">
             <a
               class="workspace__item"
               [routerLink]="['/app/dm', selfEntry.uid]"
@@ -151,7 +151,7 @@
           </li>
         }
         @for (user of others(); track user.uid) {
-          <li>
+          <li [attr.data-flip-id]="user.uid">
             <a
               class="workspace__item"
               [routerLink]="['/app/dm', user.uid]"

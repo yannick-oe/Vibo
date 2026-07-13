@@ -14,6 +14,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
   DocumentReference,
   Firestore,
+  Timestamp,
   collection,
   collectionData,
   doc,
@@ -64,6 +65,9 @@ export class DirectMessageService {
 
   /** Partner uids of every conversation that already exists. */
   readonly conversationPartnerUids = computed(() => this.collectPartnerUids());
+
+  /** Last-activity millis per conversation partner, for recency sorting. */
+  readonly recencyByPartner = computed(() => this.collectRecency());
 
 
   /**
@@ -225,6 +229,22 @@ export class DirectMessageService {
       .filter(uid => uid !== me);
     return new Set(partners);
   }
+
+
+  /**
+   * Maps each conversation partner to the conversation's last-activity time,
+   * reusing the existing conversations stream (no extra listener).
+   */
+  private collectRecency(): ReadonlyMap<string, number> {
+    const me = this.authService.currentUser()?.uid;
+    const recency = new Map<string, number>();
+    if (!me) return recency;
+    for (const conversation of this.conversations()) {
+      const partner = conversation.participantIds.find(uid => uid !== me) ?? me;
+      recency.set(partner, recencyMillis(conversation));
+    }
+    return recency;
+  }
 }
 
 
@@ -235,4 +255,15 @@ export class DirectMessageService {
  */
 function sortedParticipants(uidA: string, uidB: string): [string, string] {
   return [uidA, uidB].sort() as [string, string];
+}
+
+
+/**
+ * Last-activity millis of a conversation: its denormalized lastMessageAt, or
+ * createdAt before the first message; 0 while a server sentinel is unresolved.
+ * @param conversation Direct-message conversation document.
+ */
+function recencyMillis(conversation: DirectMessageDoc): number {
+  const value = conversation.lastMessageAt ?? conversation.createdAt;
+  return value instanceof Timestamp ? value.toMillis() : 0;
 }
