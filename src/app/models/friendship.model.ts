@@ -7,15 +7,23 @@ import { FieldValue, Timestamp } from '@angular/fire/firestore';
 import { buildConversationId } from './direct-message.model';
 
 /** Lifecycle status of a friendship document. */
-export type FriendshipStatus = 'pending' | 'accepted';
+export type FriendshipStatus = 'pending' | 'accepted' | 'blocked';
 
 /** Relationship of the signed-in user to another user, for UI reuse. */
-export type RelationshipState = 'none' | 'pendingOutgoing' | 'pendingIncoming' | 'friends';
+export type RelationshipState =
+  | 'none'
+  | 'pendingOutgoing'
+  | 'pendingIncoming'
+  | 'friends'
+  | 'blockedByMe'
+  | 'blockedMe';
 
 /**
  * Firestore document stored at friendships/{friendshipId}. A pending doc is
  * an open friend request; accepting flips the status in place, declining,
- * withdrawing and unfriending delete the document.
+ * withdrawing and unfriending delete the document. Blocking flips a pending
+ * or accepted doc to 'blocked' (single-blocker model: blockedBy names the
+ * one actor, and only that user may unblock — back to 'accepted').
  */
 export interface FriendshipDoc {
   /** The two participant uids, sorted ascending (mirrors the doc id). */
@@ -24,6 +32,8 @@ export interface FriendshipDoc {
   requestedBy: string;
   /** Current lifecycle status. */
   status: FriendshipStatus;
+  /** Uid of the participant who blocked; present only while blocked. */
+  blockedBy?: string;
   /** Creation time; serverTimestamp() sentinel on write, Timestamp on read. */
   createdAt: Timestamp | FieldValue;
   /** Acceptance time; null while the request is pending. */

@@ -1,0 +1,20 @@
+<div class="system-message">
+  <p class="system-message__pill">
+    <span class="system-message__text">{{ joinText() }}</span>
+    <button
+      class="system-message__wave"
+      type="button"
+      [class.system-message__wave--active]="hasWaved()"
+      [attr.aria-pressed]="hasWaved()"
+      [attr.aria-label]="waveLabel()"
+      [disabled]="messagePath() === null"
+      (click)="wave()"
+    >
+      <img class="system-message__emoji" [src]="waveAsset" [alt]="waveEmoji" />
+      <span class="system-message__wave-text">Winken</span>
+      @if (waverCount() > 0) {
+        <span class="system-message__count">{{ waverCount() }}</span>
+      }
+    </button>
+  </p>
+</div>

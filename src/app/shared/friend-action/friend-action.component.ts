@@ -1,8 +1,9 @@
 /**
  * @file Shared friend-action control rendering the correct action set for
- * the relationship to a user: send, withdraw, accept/decline, or message
- * plus remove behind an overflow menu with a confirm step. Reused unchanged
- * by every surface (sidebar, search, profile dialog, notification center).
+ * the relationship to a user: send, withdraw, accept/decline (plus block),
+ * message plus remove/block behind an overflow menu with confirm steps, or
+ * unblock while the user is blocked. Reused unchanged by every surface
+ * (sidebar, search, profile dialog, notification center).
  * Optimistic UI comes from Firestore's latency compensation: local writes
  * flip the streamed relationship immediately and roll back automatically
  * when the server rejects — the catch then surfaces an error toast.
@@ -28,6 +29,9 @@ import { DialogShellComponent } from '../dialog-shell/dialog-shell.component';
 const ACTION_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es später erneut.';
 const DM_ROUTE = '/app/dm';
 const MESSAGE_LABEL_FALLBACK = 'Nachricht senden';
+
+/** Dangerous menu action awaiting its inline confirmation step. */
+type ConfirmAction = 'remove' | 'block';
 
 /**
  * Relationship-aware action buttons for one user; hidden for the own
@@ -79,7 +83,7 @@ export class FriendActionComponent {
 
   protected readonly isMenuOpen = signal(false);
 
-  protected readonly isConfirming = signal(false);
+  protected readonly confirmAction = signal<ConfirmAction | null>(null);
 
 
   /**
@@ -133,8 +137,19 @@ export class FriendActionComponent {
   protected openMenu(event: Event): void {
     const trigger = event.currentTarget;
     this.menuAnchor.set(trigger instanceof HTMLElement ? anchorBelow(trigger, 'right') : null);
-    this.isConfirming.set(false);
+    this.confirmAction.set(null);
     this.isMenuOpen.set(true);
+  }
+
+
+  /**
+   * Opens the menu directly in the block confirmation step (used by the
+   * standalone "Blockieren" button of the incoming-request state).
+   * @param event Click that opened the confirm.
+   */
+  protected openBlockConfirm(event: Event): void {
+    this.openMenu(event);
+    this.confirmAction.set('block');
   }
 
 
@@ -142,16 +157,24 @@ export class FriendActionComponent {
    * Switches the overflow menu to the remove confirmation step.
    */
   protected startRemove(): void {
-    this.isConfirming.set(true);
+    this.confirmAction.set('remove');
   }
 
 
   /**
-   * Closes the overflow menu and leaves the confirm step.
+   * Switches the overflow menu to the block confirmation step.
    */
-  protected cancelRemove(): void {
+  protected startBlock(): void {
+    this.confirmAction.set('block');
+  }
+
+
+  /**
+   * Closes the overflow menu and leaves any confirm step.
+   */
+  protected closeMenu(): void {
     this.isMenuOpen.set(false);
-    this.isConfirming.set(false);
+    this.confirmAction.set(null);
   }
 
 
@@ -159,8 +182,25 @@ export class FriendActionComponent {
    * Removes the friendship after the confirm step and closes the menu.
    */
   protected confirmRemove(): void {
-    this.cancelRemove();
+    this.closeMenu();
     void this.run(() => this.friendshipService.removeFriend(this.uid()));
+  }
+
+
+  /**
+   * Blocks the user after the confirm step and closes the menu.
+   */
+  protected confirmBlock(): void {
+    this.closeMenu();
+    void this.run(() => this.friendshipService.blockUser(this.uid()));
+  }
+
+
+  /**
+   * Unblocks a user the signed-in user has blocked (blocker only).
+   */
+  protected unblock(): void {
+    void this.run(() => this.friendshipService.unblockUser(this.uid()));
   }
 
 

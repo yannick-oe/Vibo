@@ -19,6 +19,7 @@ import {
   collection,
   collectionData,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   query,
@@ -39,6 +40,12 @@ import { environment } from '../../environments/environment';
 
 const FRIENDSHIPS_COLLECTION = 'friendships';
 const PARTICIPANTS_FIELD = 'participants';
+
+const BLOCKABLE_STATES: readonly RelationshipState[] = [
+  'friends',
+  'pendingIncoming',
+  'pendingOutgoing',
+];
 
 /**
  * Data access for friendships/{friendshipId}. All mutations are guarded by
@@ -70,6 +77,9 @@ export class FriendshipService {
 
   /** Uids of users the signed-in user has open requests to. */
   readonly pendingOutgoingUids = computed(() => this.pendingPartners(true));
+
+  /** Uids of users the signed-in user has blocked. */
+  readonly blockedUids = computed(() => this.collectBlockedUids());
 
 
   /**
@@ -147,6 +157,42 @@ export class FriendshipService {
 
 
   /**
+   * Blocks another user: flips the pending or accepted friendship to
+   * 'blocked' with the signed-in user as the single blocker.
+   * @param uid Uid of the user to block.
+   */
+  async blockUser(uid: string): Promise<void> {
+    if (!BLOCKABLE_STATES.includes(this.stateFor(uid))) return;
+    const me = this.authService.requireUid();
+    await this.inContext(() =>
+      updateDoc(this.friendshipRef(me, uid), {
+        status: 'blocked',
+        blockedBy: me,
+        respondedAt: serverTimestamp(),
+      }),
+    );
+  }
+
+
+  /**
+   * Unblocks a user the signed-in user has blocked, restoring the
+   * friendship to 'accepted' (blocker only).
+   * @param uid Uid of the blocked user.
+   */
+  async unblockUser(uid: string): Promise<void> {
+    if (this.stateFor(uid) !== 'blockedByMe') return;
+    const me = this.authService.requireUid();
+    await this.inContext(() =>
+      updateDoc(this.friendshipRef(me, uid), {
+        status: 'accepted',
+        blockedBy: deleteField(),
+        respondedAt: serverTimestamp(),
+      }),
+    );
+  }
+
+
+  /**
    * Seeds the accepted demo friendship between the signed-in guest and the
    * founder account so the public demo never shows an empty social state.
    * Best effort: missing configuration or a rules rejection never breaks
@@ -205,8 +251,23 @@ export class FriendshipService {
       f => f.participants.includes(uid) && f.participants.includes(me),
     );
     if (!match) return 'none';
+    if (match.status === 'blocked') return match.blockedBy === me ? 'blockedByMe' : 'blockedMe';
     if (match.status === 'accepted') return 'friends';
     return match.requestedBy === me ? 'pendingOutgoing' : 'pendingIncoming';
+  }
+
+
+  /**
+   * Collects the other participant of every friendship the signed-in user
+   * has blocked (never the relationships where the other side blocked).
+   */
+  private collectBlockedUids(): string[] {
+    const me = this.authService.currentUser()?.uid;
+    if (!me) return [];
+    return this.friendships()
+      .filter(f => f.status === 'blocked' && f.blockedBy === me)
+      .flatMap(f => f.participants)
+      .filter(uid => uid !== me);
   }
 
 

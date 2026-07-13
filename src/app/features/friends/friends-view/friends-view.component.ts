@@ -35,7 +35,9 @@ const SORT_LOCALE = 'de';
 const FRIENDS_SKELETON_COUNT = 5;
 
 /** Identifier of a friends-view tab. */
-export type FriendsTab = 'all' | 'requests';
+export type FriendsTab = 'all' | 'requests' | 'blocked';
+
+const TAB_ORDER: readonly FriendsTab[] = ['all', 'requests', 'blocked'];
 
 /**
  * Main-area friends view: the single home for the friend list, open
@@ -99,6 +101,10 @@ export class FriendsViewComponent implements AfterViewInit {
     this.usersFor(this.friendshipService.pendingOutgoingUids()),
   );
 
+  protected readonly blocked = computed(() =>
+    this.usersFor(this.friendshipService.blockedUids()),
+  );
+
   protected readonly incomingCount = computed(() => this.incoming().length);
 
   protected readonly hasFriends = computed(() => this.friends().length > 0);
@@ -139,17 +145,19 @@ export class FriendsViewComponent implements AfterViewInit {
 
 
   /**
-   * Arrow-key navigation between the two tabs; activation follows focus.
+   * Arrow-key navigation across the tabs (wrapping); activation follows
+   * focus.
    * @param event Keydown event on the tablist.
    */
   protected onTablistKeydown(event: Event): void {
     if (!(event instanceof KeyboardEvent)) return;
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
-    const next: FriendsTab = this.activeTab() === 'all' ? 'requests' : 'all';
+    const step = event.key === 'ArrowRight' ? 1 : -1;
+    const index = TAB_ORDER.indexOf(this.activeTab());
+    const next = TAB_ORDER[(index + step + TAB_ORDER.length) % TAB_ORDER.length];
     this.activeTab.set(next);
-    const tab = document.getElementById(`friends-tab-${next}`);
-    tab?.focus();
+    document.getElementById(`friends-tab-${next}`)?.focus();
   }
 
 

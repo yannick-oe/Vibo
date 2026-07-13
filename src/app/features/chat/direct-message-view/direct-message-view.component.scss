@@ -161,6 +161,30 @@ $partner-status-max: 240px;
 .dm__composer {
   padding: 0 v.space('xl-xxl') v.space('lg');
 }
+
+// Blocked-conversation notice replacing the composer: reserves the
+// single-line composer field height so the swap causes no layout shift.
+.dm__blocked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: v.space('sm-md');
+  min-height: v.$input-height;
+  padding: v.space('sm') v.space('md');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-md;
+  background-color: v.color('bg');
+}
+
+.dm__blocked-text {
+  margin: 0;
+  font-size: v.font-size('body');
+  color: v.color('black');
+}
+
+.dm__blocked-action {
+  flex-shrink: 0;
+}
 @include m.respond-md {
   .dm__head {
     padding: v.space('sm-md') v.space('md');

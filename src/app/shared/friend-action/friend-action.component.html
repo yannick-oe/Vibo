@@ -38,7 +38,26 @@
         >
           Ablehnen
         </button>
+        <button
+          class="btn btn-secondary friend-action__btn friend-action__btn--danger"
+          type="button"
+          [disabled]="isBusy()"
+          (click)="openBlockConfirm($event)"
+        >
+          Blockieren
+        </button>
       }
+      @case ('blockedByMe') {
+        <button
+          class="btn btn-secondary friend-action__btn"
+          type="button"
+          [disabled]="isBusy()"
+          (click)="unblock()"
+        >
+          Entsperren
+        </button>
+      }
+      @case ('blockedMe') {}
       @case ('friends') {
         @if (compact()) {
           <button
@@ -68,46 +87,72 @@
             <span class="friend-action__hint" aria-hidden="true">Weitere Aktionen</span>
           }
         </button>
-        @if (isMenuOpen()) {
-          <app-dialog-shell
-            size="menu"
-            scrim="transparent"
-            [anchor]="menuAnchor()"
-            labelledBy="friend-action-menu-title"
-            (closed)="cancelRemove()"
-          >
-            <span class="sr-only" id="friend-action-menu-title">Weitere Freundschaftsaktionen</span>
-            <div class="friend-action__menu" role="menu">
-              @if (!isConfirming()) {
-                <button
-                  class="friend-action__menu-item friend-action__menu-item--danger"
-                  type="button"
-                  role="menuitem"
-                  [disabled]="isBusy()"
-                  (click)="startRemove()"
-                >
-                  Freund entfernen
-                </button>
-              } @else {
-                <p class="friend-action__confirm-text">Freund wirklich entfernen?</p>
-                <div class="friend-action__confirm-actions">
-                  <button
-                    class="friend-action__menu-item friend-action__menu-item--danger"
-                    type="button"
-                    [disabled]="isBusy()"
-                    (click)="confirmRemove()"
-                  >
-                    Entfernen
-                  </button>
-                  <button class="friend-action__menu-item" type="button" (click)="cancelRemove()">
-                    Abbrechen
-                  </button>
-                </div>
-              }
-            </div>
-          </app-dialog-shell>
-        }
       }
+    }
+    @if (isMenuOpen()) {
+      <app-dialog-shell
+        size="menu"
+        scrim="transparent"
+        [anchor]="menuAnchor()"
+        labelledBy="friend-action-menu-title"
+        (closed)="closeMenu()"
+      >
+        <span class="sr-only" id="friend-action-menu-title">Weitere Freundschaftsaktionen</span>
+        <div class="friend-action__menu" role="menu">
+          @if (confirmAction() === null) {
+            <button
+              class="friend-action__menu-item friend-action__menu-item--danger"
+              type="button"
+              role="menuitem"
+              [disabled]="isBusy()"
+              (click)="startRemove()"
+            >
+              Freund entfernen
+            </button>
+            <button
+              class="friend-action__menu-item friend-action__menu-item--danger"
+              type="button"
+              role="menuitem"
+              [disabled]="isBusy()"
+              (click)="startBlock()"
+            >
+              Blockieren
+            </button>
+          } @else if (confirmAction() === 'remove') {
+            <p class="friend-action__confirm-text">Freund wirklich entfernen?</p>
+            <div class="friend-action__confirm-actions">
+              <button
+                class="friend-action__menu-item friend-action__menu-item--danger"
+                type="button"
+                [disabled]="isBusy()"
+                (click)="confirmRemove()"
+              >
+                Entfernen
+              </button>
+              <button class="friend-action__menu-item" type="button" (click)="closeMenu()">
+                Abbrechen
+              </button>
+            </div>
+          } @else {
+            <p class="friend-action__confirm-text">
+              Wirklich blockieren? Ihr könnt euch danach keine Nachrichten mehr senden.
+            </p>
+            <div class="friend-action__confirm-actions">
+              <button
+                class="friend-action__menu-item friend-action__menu-item--danger"
+                type="button"
+                [disabled]="isBusy()"
+                (click)="confirmBlock()"
+              >
+                Blockieren
+              </button>
+              <button class="friend-action__menu-item" type="button" (click)="closeMenu()">
+                Abbrechen
+              </button>
+            </div>
+          }
+        </div>
+      </app-dialog-shell>
     }
   </div>
 }

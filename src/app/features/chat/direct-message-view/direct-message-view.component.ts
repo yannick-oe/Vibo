@@ -21,6 +21,7 @@ import { Message, ReplyRef } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
 import { ConversationWindow } from '../../../services/conversation-window';
 import { DirectMessageService } from '../../../services/direct-message.service';
+import { FriendshipService } from '../../../services/friendship.service';
 import { MessageService, conversationDocPath } from '../../../services/message.service';
 import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { PresenceService } from '../../../services/presence.service';
@@ -43,6 +44,10 @@ import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.c
 import { extendWindowToBoundary } from '../unread-window';
 
 const SEND_ERROR = 'Die Nachricht konnte nicht gesendet werden.';
+const UNBLOCK_ERROR = 'Entsperren hat nicht geklappt. Bitte versuche es erneut.';
+
+/** Blocking state of the conversation from the signed-in user's view. */
+export type DmBlockState = 'none' | 'byMe' | 'me';
 const UNKNOWN_PARTNER = 'Unbekannt';
 const SELF_SUFFIX = ' (Du)';
 const DM_START_MARKER = 'Das ist der Anfang eurer Unterhaltung';
@@ -74,6 +79,8 @@ export class DirectMessageViewComponent {
   readonly uid = input.required<string>();
 
   private readonly directMessageService = inject(DirectMessageService);
+
+  private readonly friendshipService = inject(FriendshipService);
 
   private readonly messageService = inject(MessageService);
 
@@ -117,6 +124,12 @@ export class DirectMessageViewComponent {
 
   private readonly partnerDoc = computed(() =>
     this.userService.users().find(user => user.uid === this.uid()),
+  );
+
+  protected readonly blockState = computed<DmBlockState>(() => this.resolveBlockState());
+
+  protected readonly partnerHandle = computed(
+    () => this.partnerDoc()?.username ?? this.partnerName(),
   );
 
   protected readonly partnerName = computed(() => this.partnerDoc()?.name ?? UNKNOWN_PARTNER);
@@ -354,5 +367,27 @@ export class DirectMessageViewComponent {
     this.replyTarget.set(null);
     void this.captureUnreadBoundary();
     requestAnimationFrame(() => this.composer()?.focusInput());
+  }
+
+  /**
+   * Resolves the blocking state of this conversation from the live
+   * relationship: who blocked decides which composer notice renders.
+   */
+  private resolveBlockState(): DmBlockState {
+    const state = this.friendshipService.relationshipState(this.uid())();
+    if (state === 'blockedByMe') return 'byMe';
+    return state === 'blockedMe' ? 'me' : 'none';
+  }
+
+
+  /**
+   * Unblocks the conversation partner from the blocker-side composer notice.
+   */
+  protected async unblockPartner(): Promise<void> {
+    try {
+      await this.friendshipService.unblockUser(this.uid());
+    } catch {
+      this.toastService.show(UNBLOCK_ERROR);
+    }
   }
 }

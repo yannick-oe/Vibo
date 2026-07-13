@@ -21,6 +21,10 @@ $menu-min-width: 220px;
   min-height: $touch-target;
 }
 
+.friend-action__btn--danger {
+  color: v.color('error-text');
+}
+
 .friend-action__more,
 .friend-action__quick {
   position: relative;

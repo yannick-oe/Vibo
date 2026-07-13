@@ -55,12 +55,22 @@ service cloud.firestore {
         && request.resource.data.replyTo.previewText.size() <= 150;
     }
 
+    // System messages (currently only the channel-join pill) are authored
+    // by the joining user themselves, carry no text and never quote.
+    function validSystemShape() {
+      return request.resource.data.kind == 'system'
+        && request.resource.data.subtype == 'join'
+        && request.resource.data.text == ''
+        && !('replyTo' in request.resource.data);
+    }
+
     // createdAt is pinned to the server clock (or earlier) so the
     // 15-minute edit window below cannot be extended by future-dating.
     function validMessageCreate() {
       return request.resource.data.authorId == request.auth.uid
         && request.resource.data.createdAt <= request.time
-        && (!('replyTo' in request.resource.data) || validReplyTo());
+        && (!('replyTo' in request.resource.data) || validReplyTo())
+        && (!('kind' in request.resource.data) || validSystemShape());
     }
 
     function editsOwnTextInWindow() {
@@ -370,6 +380,14 @@ service cloud.firestore {
       return signedIn() && request.auth.uid in conversationId.split('_');
     }
 
+    // Whether the conversation pair is currently blocked (the friendship
+    // doc shares the conversation id). Blocking freezes the conversation
+    // for BOTH participants: no new messages, replies or typing markers.
+    function isBlockedConversation(conversationId) {
+      return exists(/databases/$(database)/documents/friendships/$(conversationId))
+        && get(/databases/$(database)/documents/friendships/$(conversationId)).data.status == 'blocked';
+    }
+
     // Friendship graph. Doc id = both uids sorted and joined with "_" —
     // identical to the conversation-id convention, so a conversation id
     // doubles as its friendship lookup for the DM gating below.
@@ -422,17 +440,47 @@ service cloud.firestore {
         && (isPendingRequest() || isDemoSeed());
 
       // Accept: only the recipient flips the pending doc to accepted.
+      function acceptsRequest() {
+        return request.auth.uid != resource.data.requestedBy
+          && resource.data.status == 'pending'
+          && affectedKeys().hasOnly(['status', 'respondedAt'])
+          && request.resource.data.status == 'accepted'
+          && request.resource.data.respondedAt == request.time;
+      }
+
+      // Block: either participant flips a pending or accepted doc to
+      // 'blocked' naming themselves as the single blocker. An already
+      // blocked doc cannot be blocked again (single-blocker model).
+      function blocksRelationship() {
+        return resource.data.status in ['pending', 'accepted']
+          && affectedKeys().hasOnly(['status', 'blockedBy', 'respondedAt'])
+          && request.resource.data.status == 'blocked'
+          && request.resource.data.blockedBy == request.auth.uid
+          && request.resource.data.respondedAt == request.time;
+      }
+
+      // Unblock: only the blocker restores the relationship to accepted
+      // and removes the blockedBy marker.
+      function unblocksRelationship() {
+        return resource.data.status == 'blocked'
+          && resource.data.blockedBy == request.auth.uid
+          && affectedKeys().hasOnly(['status', 'blockedBy', 'respondedAt'])
+          && request.resource.data.status == 'accepted'
+          && !('blockedBy' in request.resource.data)
+          && request.resource.data.respondedAt == request.time;
+      }
+
       allow update: if signedIn()
         && request.auth.uid in resource.data.participants
-        && request.auth.uid != resource.data.requestedBy
-        && resource.data.status == 'pending'
-        && affectedKeys().hasOnly(['status', 'respondedAt'])
-        && request.resource.data.status == 'accepted'
-        && request.resource.data.respondedAt == request.time;
+        && (acceptsRequest() || blocksRelationship() || unblocksRelationship());
 
       // Withdraw (requester, pending), decline (recipient, pending) and
-      // unfriend (either side, accepted) are all participant deletes.
-      allow delete: if signedIn() && request.auth.uid in resource.data.participants;
+      // unfriend (either side, accepted) are all participant deletes; a
+      // blocked doc may only be deleted by the blocker, so the blocked
+      // user cannot escape the block by deleting the relationship.
+      allow delete: if signedIn()
+        && request.auth.uid in resource.data.participants
+        && (resource.data.status != 'blocked' || resource.data.blockedBy == request.auth.uid);
     }
 
     match /directMessages/{conversationId} {
@@ -466,13 +514,17 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read, delete: if isParticipant(conversationId);
-        allow create: if isParticipant(conversationId) && validMessageCreate();
+        allow create: if isParticipant(conversationId)
+          && validMessageCreate()
+          && !isBlockedConversation(conversationId);
         allow update: if isParticipant(conversationId)
           && (allowedMessageUpdate() || bumpsReplyCounters());
 
         match /replies/{replyId} {
           allow read, delete: if isParticipant(conversationId);
-          allow create: if isParticipant(conversationId) && validMessageCreate();
+          allow create: if isParticipant(conversationId)
+            && validMessageCreate()
+            && !isBlockedConversation(conversationId);
           allow update: if isParticipant(conversationId) && allowedMessageUpdate();
         }
       }
@@ -491,7 +543,9 @@ service cloud.firestore {
       // may only delete a marker that carries it.
       match /typing/{sessionId} {
         allow read: if isParticipant(conversationId);
-        allow create, update: if isParticipant(conversationId) && typingDocValid();
+        allow create, update: if isParticipant(conversationId)
+          && typingDocValid()
+          && !isBlockedConversation(conversationId);
         allow delete: if isParticipant(conversationId) && (resource == null || resource.data.uid == request.auth.uid);
       }
     }

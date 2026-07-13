@@ -3,6 +3,38 @@
 This file records deliberate, reviewed deviations from the checklist / coding
 standards, so they are not mistaken for defects in a future audit.
 
+## Phase 5: blocking + join system messages (2026-07-13)
+Roadmap V2 Phase 5, items 1–2 (item 3, invite links, is planned but not yet implemented). No
+Figma frames — behavioral conventions follow Discord/WhatsApp patterns. German UI, rules-enforced
+where affordable on Spark.
+
+- **Single-blocker model (deliberate demo simplification).** A friendship doc carries at most ONE
+  blocker (`status: 'blocked'`, `blockedBy: uid`). If the second participant also wants to block,
+  the rules deny the write (`blocksRelationship()` requires status pending/accepted) and their
+  client simply shows the already-blocked state — mutual/two-sided blocking is not modeled.
+  Unblocking (blocker only) restores `'accepted'` even when the relationship was `'pending'`
+  before the block. A blocked doc can only be deleted by the blocker, so the blocked user cannot
+  escape by unfriending.
+- **Reactions in blocked DMs are client-disabled, not rules-enforced (trade-off).** Enforcing
+  reaction updates against the friendship doc would add a `get()` to EVERY message update in every
+  DM (reactions are by far the most frequent update) — too costly for the value on Spark. Message
+  and reply CREATES and typing heartbeats ARE rules-enforced against the blocked state (one extra
+  lookup per create is acceptable); reaction UI, typing UI and the composer are disabled on both
+  sides client-side (the message list passes `messagePath: null`, which inertly disables every row
+  affordance). DM history and the sidebar entry stay readable by design.
+- **Notification fan-out between a blocked pair is suppressed sender-side** (the fan-out service
+  checks the live relationship) — consistent with the existing sender-side fan-out trust model;
+  a malicious client could still write notification docs (same trust level as sending a message).
+- **Join system messages** (`kind: 'system'`, `subtype: 'join'`) are written by the joining user
+  at every self-join point: registration default-channel join and first-time join-on-send (in the
+  same atomic batch as the membership append). Members added by others via "Mitglieder hinzufügen"
+  get NO join pill (they did not act themselves). The pill is authorless, centered, inert (no
+  hover/long-press/right-click actions, no replies/threads/editing, excluded from mentions and
+  notification fan-out) and bumps unread/lastMessageAt like any message. The 👋 wave button
+  toggles the tapper's 👋 reaction through the shared reaction pipeline (reactions-only rules
+  branch, own-action reaction sound) but deliberately without notification fan-out — a dedicated
+  minimal path instead of the message-row react() funnel, which always fans out.
+
 ## Lighthouse closeout (2026-07-13)
 Measured with Lighthouse CLI 12.8.2 (headless Chrome) against the production build served
 locally: **desktop 99/100/100/100, mobile 72–78/100/100/100** (Performance/Accessibility/Best

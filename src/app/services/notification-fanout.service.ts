@@ -14,6 +14,7 @@ import { ChatEntry, Message } from '../models/message.model';
 import { NotificationDoc, NotificationKind } from '../models/notification.model';
 import { AuthService } from './auth.service';
 import { ChannelService } from './channel.service';
+import { FriendshipService } from './friendship.service';
 import { UserService } from './user.service';
 import { previewOf } from './notification.util';
 import {
@@ -36,6 +37,8 @@ export class NotificationFanoutService {
   private readonly authService = inject(AuthService);
 
   private readonly channelService = inject(ChannelService);
+
+  private readonly friendshipService = inject(FriendshipService);
 
   private readonly userService = inject(UserService);
 
@@ -152,16 +155,29 @@ export class NotificationFanoutService {
    * Whether a recipient may receive the notification: channel events require
    * current membership, direct-message events require the recipient to be a
    * participant of the conversation (proven from its deterministic id) — so a
-   * mention of a non-participant in a DM is never written.
+   * mention of a non-participant in a DM is never written. A blocked pair is
+   * never notified in either direction.
    * @param recipientUid Uid of the notified user.
    * @param target Parsed conversation target of the activity.
    */
   private isReachable(recipientUid: string, target: NotificationTarget): boolean {
+    if (this.isBlockedPair(recipientUid)) return false;
     if (target.channelId === null) {
       return target.conversationId?.split('_').includes(recipientUid) ?? false;
     }
     const channel = this.channelService.channels().find(item => item.id === target.channelId);
     return channel === undefined || channel.memberIds.includes(recipientUid);
+  }
+
+
+  /**
+   * Whether the friendship between the acting user and a recipient is
+   * blocked (by either side).
+   * @param recipientUid Uid of the notified user.
+   */
+  private isBlockedPair(recipientUid: string): boolean {
+    const state = this.friendshipService.relationshipState(recipientUid)();
+    return state === 'blockedByMe' || state === 'blockedMe';
   }
 }
 

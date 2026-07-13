@@ -57,6 +57,7 @@
           [resetKey]="uid()"
           [openThreadId]="openThreadMessageId()"
           [collectionPath]="messagesCollectionPath()"
+          [actionsDisabled]="blockState() !== 'none'"
           [reads]="reads()"
           [otherUids]="otherUids()"
           [isSelfConversation]="isSelf()"
@@ -70,17 +71,34 @@
     </div>
   }
 
-  <app-typing-indicator [conversationPath]="conversationPath()" />
+  @if (blockState() === 'none') {
+    <app-typing-indicator [conversationPath]="conversationPath()" />
+  }
 
   <div class="dm__composer">
-    <app-message-input
-      [placeholder]="composerPlaceholder()"
-      [conversationPath]="conversationPath()"
-      [replyContext]="replyContext()"
-      (send)="sendMessage($event)"
-      (sendGif)="sendGif($event)"
-      (cancelReply)="cancelReply()"
-    />
+    @if (blockState() === 'none') {
+      <app-message-input
+        [placeholder]="composerPlaceholder()"
+        [conversationPath]="conversationPath()"
+        [replyContext]="replyContext()"
+        (send)="sendMessage($event)"
+        (sendGif)="sendGif($event)"
+        (cancelReply)="cancelReply()"
+      />
+    } @else {
+      <div class="dm__blocked" role="status">
+        @if (blockState() === 'byMe') {
+          <p class="dm__blocked-text">Du hast &#64;{{ partnerHandle() }} blockiert.</p>
+          <button class="btn btn-secondary dm__blocked-action" type="button" (click)="unblockPartner()">
+            Entsperren
+          </button>
+        } @else {
+          <p class="dm__blocked-text">
+            Du kannst &#64;{{ partnerHandle() }} derzeit keine Nachrichten senden.
+          </p>
+        }
+      </div>
+    }
   </div>
 </section>
 

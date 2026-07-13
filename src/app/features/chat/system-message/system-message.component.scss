@@ -1,0 +1,78 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$wave-emoji-size: 16px;
+$wave-min-height: 32px;
+
+:host {
+  display: block;
+}
+
+.system-message {
+  display: flex;
+  justify-content: center;
+  padding: v.space('xs') 0;
+}
+
+.system-message__pill {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: v.space('sm');
+  margin: 0;
+  padding: v.space('xs') v.space('md');
+  border-radius: v.$radius-pill;
+  background-color: v.color('bg');
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  text-align: center;
+}
+
+.system-message__wave {
+  display: inline-flex;
+  align-items: center;
+  gap: v.space('xs');
+  min-height: $wave-min-height;
+  padding: 0 v.space('sm-md');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-pill;
+  background-color: v.color('white');
+  cursor: pointer;
+  font-family: v.$font-base;
+  font-size: v.font-size('min');
+  color: v.color('black');
+  transition: border-color v.$transition-fast, background-color v.$transition-fast;
+
+  &:hover:not(:disabled) {
+    border-color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.system-message__wave--active {
+  border-color: v.color('primary');
+  color: v.color('primary');
+}
+
+.system-message__emoji {
+  width: $wave-emoji-size;
+  height: $wave-emoji-size;
+}
+
+.system-message__count {
+  font-weight: v.$font-weight-semibold;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .system-message__wave {
+    transition: none;
+  }
+}

@@ -73,6 +73,19 @@
           </span>
         }
       </button>
+      <button
+        id="friends-tab-blocked"
+        class="friends__tab"
+        type="button"
+        role="tab"
+        aria-controls="friends-panel-blocked"
+        [attr.aria-selected]="activeTab() === 'blocked'"
+        [attr.tabindex]="activeTab() === 'blocked' ? 0 : -1"
+        [class.friends__tab--active]="activeTab() === 'blocked'"
+        (click)="selectTab('blocked')"
+      >
+        Blockiert
+      </button>
     </div>
 
     @if (!loaded()) {
@@ -114,6 +127,33 @@
           <div class="friends__empty">
             <p>Noch keine Freunde — finde Leute über die Suche.</p>
             <button class="btn btn-primary" type="button" (click)="focusSearch()">Nutzer suchen</button>
+          </div>
+        }
+      </div>
+    } @else if (activeTab() === 'blocked') {
+      <div
+        id="friends-panel-blocked"
+        class="friends__panel"
+        role="tabpanel"
+        aria-labelledby="friends-tab-blocked"
+      >
+        @if (blocked().length > 0) {
+          <h2 class="friends__group">Blockiert — {{ blocked().length }}</h2>
+          <ul class="friends__list">
+            @for (user of blocked(); track user.uid) {
+              <li>
+                <app-friend-row
+                  [uid]="user.uid"
+                  [name]="user.name"
+                  [username]="user.username ?? ''"
+                  [avatarPath]="user.avatarPath"
+                />
+              </li>
+            }
+          </ul>
+        } @else {
+          <div class="friends__empty">
+            <p>Du hast niemanden blockiert.</p>
           </div>
         }
       </div>
