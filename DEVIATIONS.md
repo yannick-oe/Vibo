@@ -12,29 +12,43 @@ is removed together with its two `new Audio` call sites — the disliked send so
   one lazily created AudioContext, unlocked on the first user gesture (document-level
   `pointerdown`/`keydown`, listeners removed once running); a play request before the unlock is
   **dropped silently, never queued** — no autoplay console errors. Chain: oscillator/noise → per-step
-  envelope gain (8 ms soft attack, exponential decay) → master gain (volume) → destination. Per-kind
-  minimum-interval throttles prevent machine-gunning. Settings as signals, persisted to
-  localStorage (`vibo:soundEnabled` default on, `vibo:soundVolume` default 0.6,
-  `vibo:swipeSoundEnabled` default off).
-- **Palette** (each ≤ ~180 ms, low gains, calm/cosmic): send = two-note upward triangle blip
-  520→780 Hz; receive = bell-like sine 880 Hz with quiet 1760 Hz shimmer falling to 660 Hz; delete =
-  low sine thud gliding 150→70 Hz; reaction = tiny sine pop 340→560 Hz; error = soft triangle
-  double-tone 311→233 Hz; swipe = band-passed noise whoosh sweeping 500→1400 Hz (opt-in only).
+  envelope gain (soft attack, exponential decay, linear close to true zero so no step ends with a
+  click) → per-sound bus → master gain (volume) → destination. Melodic sounds additionally send at a
+  low wet level (`reverbSend`, 0.2) into a **lazily built synthesized reverb**: a `ConvolverNode`
+  whose impulse response is generated in code (0.4 s stereo noise burst, exponential decay, 0.12 s
+  time constant) — still no audio assets. Per-kind minimum-interval throttles prevent
+  machine-gunning. Settings as signals, persisted to localStorage (`vibo:soundEnabled` default on,
+  `vibo:soundVolume` default 0.6, `vibo:swipeSoundEnabled` default off).
+- **Palette** (low gains, warm/calm; melodic kinds reverb-wet, delete/error dry — same-day fix pack
+  redesigned send/reaction from the original blips, which felt like dull plops on device): send = a
+  gentle "done" chime, two soft ascending sine notes a perfect fourth apart (G4 392 Hz → C5
+  523.25 Hz) with quiet octave partials, 12 ms attacks, ~350 ms total; receive = bell-like sine
+  880 Hz with quiet 1760 Hz shimmer falling to 660 Hz; delete = low sine thud gliding 150→70 Hz;
+  reaction = one warm kalimba-like pluck (E5 659.25 Hz + fast-decaying E6 partial, ~180 ms, quieter
+  than send); error = soft triangle double-tone 311→233 Hz; swipe/swipeClose = band-passed noise
+  whoosh sweeping 500→1400 Hz on open and reversed on close (opt-in only).
 - **Trigger points** (always the user's own action or the toast — never a snapshot echo): sends play
   optimistically at the start of `MessageService.commitMessage`/`commitReply`/
   `sendChannelMessageAsJoiner` (covers channel/DM/thread/GIF/new-message); the notification toast
   plays `receive` through the service (its existing gating stays); delete-for-me/for-all play
   `delete` post-confirmation; adding a reaction plays `reaction` (own adds only); rejected message
   mutations play `error` inside `MessageService.withErrorSound` — riding the **existing** failure
-  handlers (toasts) without new UX. **The `swipe` kind is defined and gated but currently unwired:
-  the codebase has no sidebar swipe gesture** (the workspace column toggles via button); the sound
-  and its opt-in are ready for when such a gesture lands.
+  handlers (toasts) without new UX. **The sidebar sound is wired to the workspace-column toggle
+  button** (same-day fix pack; there is no swipe gesture to attach to): `swipe` rising on open,
+  `swipeClose` falling on close, both behind the „Sound der Seitenleiste" opt-in (internal kind
+  names keep the `swipe` stem — renaming would ripple through the persisted setting key).
 - **Settings UI** in the topbar profile menu (`topbar-sounds.scss`): „Sounds" group with the
-  „Soundeffekte" master switch (`role="switch"`), a labelled „Lautstärke" slider (0–100 in steps of
-  10, `aria-valuetext`, `accent-color` styling, sheet-drag-safe via `pointerdown` stop +
-  `touch-action: none`), a „Testen" preview button playing the send sound at the current volume, and
-  the swipe opt-in switch. Dependent controls disable while the master toggle is off; touch targets
-  ≥ 44 px; token-only colors AA in both themes; reduced motion drops the switch transitions.
+  „Soundeffekte" master switch (`role="switch"`), a labelled „Lautstärke" slider and a „Testen"
+  preview button playing the send sound at the current volume, and the sidebar-sound opt-in switch.
+  The slider is **fully custom-styled for both engines** (same-day fix pack; relying on
+  `accent-color` left the track invisible on the frosted menu):
+  `::-webkit-slider-runnable-track`/`-thumb` and `::-moz-range-track`/`-progress`/`-thumb`, a
+  token-colored track with a filled portion driven by the `--volume-fill` custom property bound
+  from the input value, `step="1"` for 1:1 pointer tracking, a short fill transition that only
+  eases keyboard steps (`:active` disables it while dragging), volume applied live on `input`,
+  sheet-drag-safe via `pointerdown` stop + `touch-action: none`, `aria-valuetext` kept. Dependent
+  controls disable while the master toggle is off; touch targets ≥ 44 px; token-only colors AA in
+  both themes; reduced motion drops the switch and fill transitions.
 
 ## Picker sheet: two detents + anchor-independent placement (2026-07-13)
 Roadmap V2 Phase 3, item F. Supersedes the 2026-07-10 „single detent, not two" note — the sheet
@@ -66,9 +80,37 @@ a documented deviation); reduced motion respected; §14 clean.
   down to the half offset and fades only on the dismiss stretch below it.
 - **Entrance lands on the half detent without a jump.** Detent sheets animate a dedicated
   `sheet-slide-up-detent` keyframe whose end frame is the shell-provided `--sheet-detent-offset`
-  custom property (measured pre-paint), and the shell keeps a matching inline transform, so the
-  fill-forwards end state and the idle rest agree; `prefers-reduced-motion` shows the sheet directly
-  at the half offset.
+  custom property, and the shell keeps a matching inline transform, so the fill-forwards end state
+  and the idle rest agree; `prefers-reduced-motion` shows the sheet directly at the half offset.
+  The original "measured pre-paint" assumption did **not** hold on device (frames rendered before
+  the measurement targeted `translateY(0)` = tall → fullscreen flash, then a snap to half); the
+  same-day fix pack gates the entrance instead: a `--detent-pending` class parks the card at
+  `translateY(100%)` (no animation) until the shell has bound the measured offset, and the keyframe
+  end frame falls back to the token-derived `$sheet-detent-offset-fallback` (`(85 − 45)dvh`, from
+  the detent constants mirrored in `_variables.scss`) so even an unmeasured frame could never
+  target above half. At no frame does the sheet render taller than its target detent.
+- **Half detent keeps all content reachable** (same-day fix pack). At half the 85 dvh card is
+  translated ~40 dvh down, so the picker's bottom 40 dvh sat below the viewport and the grid could
+  not scroll to its last rows. The picker now mirrors the current rest offset as its own bottom
+  padding (`padding-bottom: var(--sheet-detent-offset, 0px)`, eased in sync with the sheet settle
+  via `--sheet-settle-ms`, instant under reduced motion): at half the scroll region ends exactly at
+  the visible fold — every emoji row and the scrollbar stay on screen — and at tall the padding
+  collapses to zero, so there is no dead scroll space. Because the box shrink and the card
+  translation are equal and opposite, detent snaps do not jump the grid.
+- **The detent card never scrolls itself** (same-day fix pack). The picker host is the card's flex
+  item at the tall-detent height and may shrink (`min-height: 0`) when the card's viewport
+  max-height cap bites on short viewports, and the detent card is `overflow: hidden` — previously
+  the 85 dvh picker + grabber + card padding could exceed the cap and grow a **card-level**
+  scrollbar at the right edge of the picker whose track extended 40 dvh below the viewport (the
+  observed "ghost" scrollbar). The projected picker owns the single scroll region.
+- **Background scrollbars are suppressed under scrimmed overlays** (same-day fix pack). The
+  `ScrollLockService` pins the body but never affected inner scrollers, so the chat's styled
+  scrollbar stayed painted behind the frosted sheet. Visible-scrim overlays (all mobile sheets,
+  desktop dialogs with scrim) now also stamp `html.scrollbars-suppressed`; the
+  `scrollbar-suppressed-under-overlay` mixin paints the underlying scrollers' bars transparent
+  (message list, thread panel, workspace column, DM empty state, friends view). Only the paint
+  changes — the gutter geometry stays, so locking/unlocking causes zero layout shift. Desktop
+  transparent-scrim popovers (action menus, desktop pickers) do not suppress.
 - **Drag-controller extraction (pure refactor).** The pointer/drag/settle machine moved out of
   `dialog-shell.component.ts` (399 → 156 LOC) into `sheet-drag.controller.ts` next to
   `sheet-physics.ts`; the shell binds the controller's signals. This created the LOC headroom the

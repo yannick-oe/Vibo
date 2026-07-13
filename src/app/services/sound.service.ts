@@ -2,8 +2,10 @@
  * @file Central UI-sound engine: one lazily created AudioContext (unlocked
  * on the first user gesture per browser autoplay policy — requests arriving
  * before the unlock are dropped silently, never queued), a master volume
- * gain, per-kind replay throttles and the settings signals (master toggle,
- * volume, swipe opt-in) persisted to localStorage.
+ * gain, a lazily built synthesized reverb (generated impulse response, no
+ * audio assets) melodic sounds send into at a low wet level, per-kind
+ * replay throttles and the settings signals (master toggle, volume, sidebar
+ * sound opt-in) persisted to localStorage.
  */
 import { Injectable, Signal, signal } from '@angular/core';
 
@@ -19,8 +21,15 @@ const DEFAULT_SWIPE_SOUND_ENABLED = false;
 
 const ENVELOPE_ATTACK_SECONDS = 0.008;
 const ENVELOPE_FLOOR_GAIN = 0.0001;
+const ENVELOPE_CLOSE_SECONDS = 0.02;
 const NOISE_BUFFER_SECONDS = 0.2;
 const NOISE_FILTER_Q = 1.5;
+
+const REVERB_IR_SECONDS = 0.4;
+const REVERB_IR_DECAY_SECONDS = 0.12;
+const REVERB_IR_CHANNELS = 2;
+
+const SWIPE_GATED_KINDS: readonly SoundKind[] = ['swipe', 'swipeClose'];
 
 const UNLOCK_EVENT_TYPES: readonly string[] = ['pointerdown', 'keydown'];
 
@@ -50,7 +59,7 @@ export class SoundService {
   /** Master volume in the range 0–1. */
   readonly soundVolume: Signal<number> = this.soundVolumeState.asReadonly();
 
-  /** Whether the opt-in sidebar swipe sound plays. */
+  /** Whether the opt-in sidebar toggle sound plays. */
   readonly swipeSoundEnabled: Signal<boolean> = this.swipeSoundEnabledState.asReadonly();
 
   private context: AudioContext | null = null;
@@ -58,6 +67,8 @@ export class SoundService {
   private masterGain: GainNode | null = null;
 
   private cachedNoiseBuffer: AudioBuffer | null = null;
+
+  private cachedReverb: ConvolverNode | null = null;
 
   private readonly lastPlayedAt = new Map<SoundKind, number>();
 
@@ -74,14 +85,14 @@ export class SoundService {
 
 
   /**
-   * Plays a palette sound, honoring the master toggle, the swipe opt-in,
-   * the per-kind throttle and the autoplay unlock; blocked requests are
-   * dropped silently.
+   * Plays a palette sound, honoring the master toggle, the sidebar-sound
+   * opt-in (both swipe directions), the per-kind throttle and the autoplay
+   * unlock; blocked requests are dropped silently.
    * @param kind Palette sound to play.
    */
   play(kind: SoundKind): void {
     if (!this.soundEnabledState()) return;
-    if (kind === 'swipe' && !this.swipeSoundEnabledState()) return;
+    if (SWIPE_GATED_KINDS.includes(kind) && !this.swipeSoundEnabledState()) return;
     const context = this.runningContext();
     if (!context || this.isThrottled(kind)) return;
     this.lastPlayedAt.set(kind, performance.now());
@@ -113,8 +124,8 @@ export class SoundService {
 
 
   /**
-   * Enables or disables the opt-in sidebar swipe sound and persists it.
-   * @param enabled New swipe opt-in state.
+   * Enables or disables the opt-in sidebar toggle sound and persists it.
+   * @param enabled New sidebar-sound opt-in state.
    */
   setSwipeSoundEnabled(enabled: boolean): void {
     this.swipeSoundEnabledState.set(enabled);
@@ -170,16 +181,36 @@ export class SoundService {
 
 
   /**
-   * Schedules all steps of a sound definition into the master gain.
+   * Schedules all steps of a sound definition into its output bus (dry
+   * master plus, when the definition requests it, the wet reverb send).
    * @param context Running AudioContext.
    * @param definition Palette recipe to render.
    */
   private schedule(context: AudioContext, definition: SoundDefinition): void {
     const master = this.masterGain;
     if (!master) return;
+    const bus = this.voiceBus(context, master, definition.reverbSend);
     const start = context.currentTime;
-    for (const tone of definition.tones) this.scheduleTone(context, master, tone, start);
-    if (definition.noise) this.scheduleNoise(context, master, definition.noise, start);
+    for (const tone of definition.tones) this.scheduleTone(context, bus, tone, start);
+    if (definition.noise) this.scheduleNoise(context, bus, definition.noise, start);
+  }
+
+
+  /**
+   * Builds the output bus of one sound: a unity gain into the dry master
+   * plus, at the definition's wet level, a send into the shared reverb.
+   * @param context Running AudioContext.
+   * @param master Master volume gain.
+   * @param reverbSend Optional wet send level (0–1); absent keeps the sound dry.
+   */
+  private voiceBus(context: AudioContext, master: GainNode, reverbSend?: number): GainNode {
+    const bus = new GainNode(context);
+    bus.connect(master);
+    if (reverbSend) {
+      const send = new GainNode(context, { gain: reverbSend });
+      bus.connect(send).connect(this.reverb(context, master));
+    }
+    return bus;
   }
 
 
@@ -187,19 +218,20 @@ export class SoundService {
    * Renders one oscillator step: waveform and note per the palette, an
    * optional exponential pitch glide and the shared soft envelope.
    * @param context Running AudioContext.
-   * @param output Node the step feeds into (the master gain).
+   * @param output Node the step feeds into (the sound's bus).
    * @param tone Palette tone step.
    * @param start Context time the sound begins at.
    */
   private scheduleTone(context: AudioContext, output: AudioNode, tone: ToneStep, start: number): void {
     const at = start + tone.atSeconds;
     const end = at + tone.durationSeconds;
+    const attack = tone.attackSeconds ?? ENVELOPE_ATTACK_SECONDS;
     const oscillator = new OscillatorNode(context, { type: tone.wave, frequency: tone.startHz });
     oscillator.frequency.setValueAtTime(tone.startHz, at);
     if (tone.endHz !== undefined) oscillator.frequency.exponentialRampToValueAtTime(tone.endHz, end);
-    oscillator.connect(this.envelope(context, output, tone.peakGain, at, end));
+    oscillator.connect(this.envelope(context, output, tone.peakGain, at, end, attack));
     oscillator.start(at);
-    oscillator.stop(end);
+    oscillator.stop(end + ENVELOPE_CLOSE_SECONDS);
   }
 
 
@@ -208,7 +240,7 @@ export class SoundService {
    * band-pass whose center glides between the palette frequencies, shaped
    * by the shared envelope.
    * @param context Running AudioContext.
-   * @param output Node the sweep feeds into (the master gain).
+   * @param output Node the sweep feeds into (the sound's bus).
    * @param noise Palette noise step.
    * @param start Context time the sound begins at.
    */
@@ -223,28 +255,72 @@ export class SoundService {
     });
     filter.frequency.setValueAtTime(noise.filterStartHz, at);
     filter.frequency.exponentialRampToValueAtTime(noise.filterEndHz, end);
-    source.connect(filter).connect(this.envelope(context, output, noise.peakGain, at, end));
+    source.connect(filter).connect(this.envelope(context, output, noise.peakGain, at, end, ENVELOPE_ATTACK_SECONDS));
     source.start(at);
-    source.stop(end);
+    source.stop(end + ENVELOPE_CLOSE_SECONDS);
   }
 
 
   /**
-   * Builds the shared per-step envelope: near-instant soft attack to the
-   * step's peak, then an exponential decay to silence at the step end.
+   * Builds the shared per-step envelope: a soft linear attack to the step's
+   * peak, an exponential decay toward silence at the step end and a final
+   * linear close to true zero so no step ever ends with a click.
    * @param context Running AudioContext.
-   * @param output Node the envelope feeds into (the master gain).
+   * @param output Node the envelope feeds into (the sound's bus).
    * @param peak Peak gain of the step.
    * @param at Context time the step starts at.
    * @param end Context time the step ends at.
+   * @param attack Attack length of the step in seconds.
    */
-  private envelope(context: AudioContext, output: AudioNode, peak: number, at: number, end: number): GainNode {
+  private envelope(
+    context: AudioContext,
+    output: AudioNode,
+    peak: number,
+    at: number,
+    end: number,
+    attack: number,
+  ): GainNode {
     const gain = new GainNode(context, { gain: 0 });
     gain.gain.setValueAtTime(0, at);
-    gain.gain.linearRampToValueAtTime(peak, at + ENVELOPE_ATTACK_SECONDS);
+    gain.gain.linearRampToValueAtTime(peak, at + attack);
     gain.gain.exponentialRampToValueAtTime(ENVELOPE_FLOOR_GAIN, end);
+    gain.gain.linearRampToValueAtTime(0, end + ENVELOPE_CLOSE_SECONDS);
     gain.connect(output);
     return gain;
+  }
+
+
+  /**
+   * The lazily created shared reverb: a ConvolverNode over the generated
+   * impulse response, returning into the master gain at unity.
+   * @param context Running AudioContext.
+   * @param master Master volume gain the wet signal returns into.
+   */
+  private reverb(context: AudioContext, master: GainNode): ConvolverNode {
+    if (this.cachedReverb) return this.cachedReverb;
+    const convolver = new ConvolverNode(context, { buffer: this.impulseResponse(context) });
+    convolver.connect(master);
+    this.cachedReverb = convolver;
+    return convolver;
+  }
+
+
+  /**
+   * Generates the reverb impulse response in code: a short stereo noise
+   * burst with an exponential decay — a small synthesized room, no asset.
+   * @param context Running AudioContext.
+   */
+  private impulseResponse(context: AudioContext): AudioBuffer {
+    const length = Math.floor(context.sampleRate * REVERB_IR_SECONDS);
+    const decaySamples = context.sampleRate * REVERB_IR_DECAY_SECONDS;
+    const buffer = context.createBuffer(REVERB_IR_CHANNELS, length, context.sampleRate);
+    for (let channel = 0; channel < REVERB_IR_CHANNELS; channel++) {
+      const data = buffer.getChannelData(channel);
+      for (let index = 0; index < length; index++) {
+        data[index] = (Math.random() * 2 - 1) * Math.exp(-index / decaySamples);
+      }
+    }
+    return buffer;
   }
 
 

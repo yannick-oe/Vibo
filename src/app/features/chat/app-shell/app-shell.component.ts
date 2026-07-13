@@ -19,6 +19,7 @@ import { ChannelCreateService } from '../../../services/channel-create.service';
 import { CommandPaletteService } from '../../../services/command-palette.service';
 import { LayoutService } from '../../../services/layout.service';
 import { ProfileOverlayService } from '../../../services/profile-overlay.service';
+import { SoundService } from '../../../services/sound.service';
 import { ThreadService } from '../../../services/thread.service';
 import { NotificationToastComponent } from '../../../shared/notification-toast/notification-toast.component';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
@@ -79,6 +80,8 @@ export class AppShellComponent implements OnDestroy {
 
   private readonly layoutService = inject(LayoutService);
 
+  private readonly soundService = inject(SoundService);
+
   private readonly router = inject(Router);
 
   private readonly currentUrl = toSignal(
@@ -137,11 +140,13 @@ export class AppShellComponent implements OnDestroy {
 
 
   /**
-   * Toggles the workspace column and persists the new state.
+   * Toggles the workspace column, persists the new state and plays the
+   * opt-in sidebar sound (rising whoosh on open, falling on close).
    */
   protected toggleWorkspace(): void {
     this.isWorkspaceOpen.update(open => !open);
     storeWorkspaceOpen(this.isWorkspaceOpen());
+    this.soundService.play(this.isWorkspaceOpen() ? 'swipe' : 'swipeClose');
   }
 }
 

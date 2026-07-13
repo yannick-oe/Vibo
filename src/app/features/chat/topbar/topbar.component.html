@@ -132,8 +132,9 @@
             type="range"
             min="0"
             max="100"
-            step="10"
+            step="1"
             [value]="volumePercent()"
+            [style.--volume-fill]="volumeFillStyle()"
             [attr.aria-valuetext]="volumePercent() + ' %'"
             [disabled]="!soundEnabled()"
             (input)="onVolumeInput($event)"
@@ -157,7 +158,7 @@
           [disabled]="!soundEnabled()"
           (click)="toggleSwipeSound()"
         >
-          <span class="topbar__sound-switch-label">Wisch-Sound der Seitenleiste</span>
+          <span class="topbar__sound-switch-label">Sound der Seitenleiste</span>
           <span class="topbar__switch-track" aria-hidden="true">
             <span class="topbar__switch-thumb"></span>
           </span>

@@ -103,6 +103,8 @@ export class TopbarComponent {
     Math.round(this.soundService.soundVolume() * VOLUME_PERCENT_MAX),
   );
 
+  protected readonly volumeFillStyle = computed(() => `${this.volumePercent()}%`);
+
   protected readonly isMobile = this.layoutService.isMobile;
 
   protected readonly showBack = computed(
@@ -177,7 +179,7 @@ export class TopbarComponent {
 
 
   /**
-   * Toggles the opt-in sidebar swipe sound.
+   * Toggles the opt-in sidebar toggle sound.
    */
   protected toggleSwipeSound(): void {
     this.soundService.setSwipeSoundEnabled(!this.swipeSoundEnabled());
