@@ -1,8 +1,14 @@
 /**
  * @file Generic modal shell: scrim, focus trap, close behaviors and focus
- * restore for projected dialog content. In the mobile bottom-sheet mode the
- * anchor is ignored entirely — the sheet pins to the viewport bottom and its
- * rest position derives only from the sheet model — and the card supports
+ * restore for projected dialog content. On open the shell hoists its host
+ * element to document.body: the overlay is position: fixed, and an ancestor
+ * with a backdrop-filter or transform (any glass dialog card) would otherwise
+ * become its containing block, so a shell nested inside another dialog would
+ * interpret its viewport anchor coordinates relative to that card and vanish
+ * into its overflow clip. Escape closes only the top-most open shell, so
+ * nested dialogs unwind one level at a time. In the mobile bottom-sheet mode
+ * the anchor is ignored entirely — the sheet pins to the viewport bottom and
+ * its rest position derives only from the sheet model — and the card supports
  * pointer-driven swipe gestures via the extracted drag controller:
  * swipe-to-dismiss on every sheet, plus half/tall detent snapping on sheets
  * flagged with `detents` (the pickers). Gestures are an addition to, never a
@@ -31,6 +37,9 @@ import { SheetDragController } from './sheet-drag.controller';
 
 const FOCUS_FALLBACK_SELECTOR = 'h1[tabindex="-1"]';
 
+/** Open shells in opening order; only the last one reacts to Escape. */
+const OPEN_SHELLS: DialogShellComponent[] = [];
+
 export { anchorBelow } from './dialog-anchor';
 export type { DialogAnchor, DialogSize } from './dialog-anchor';
 
@@ -49,7 +58,7 @@ export type { DialogAnchor, DialogSize } from './dialog-anchor';
   styleUrl: './dialog-shell.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    '(document:keydown.escape)': 'closed.emit()',
+    '(document:keydown.escape)': 'onEscape()',
   },
 })
 export class DialogShellComponent implements AfterViewInit, OnDestroy {
@@ -70,6 +79,8 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
   private readonly placedAnchor = signal<DialogAnchor | null>(null);
 
   private readonly card = viewChild.required<ElementRef<HTMLElement>>('card');
+
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly layoutService = inject(LayoutService);
 
@@ -118,13 +129,17 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Locks background scrolling (suppressing background scrollbars under a
-   * visible scrim), resolves the anchor's vertical side (outside sheet mode
-   * only — the sheet never follows an anchor), focuses the first focusable
-   * element once the dialog is rendered, attaches the drag controller's
-   * native listeners and schedules the gated detent entrance.
+   * Hoists the overlay to document.body (escaping any filtered/transformed
+   * ancestor that would hijack its fixed positioning), registers on the
+   * open-shell stack, locks background scrolling (suppressing background
+   * scrollbars under a visible scrim), resolves the anchor's vertical side
+   * (outside sheet mode only — the sheet never follows an anchor), focuses
+   * the first focusable element once the dialog is rendered, attaches the
+   * drag controller's native listeners and schedules the detent entrance.
    */
   ngAfterViewInit(): void {
+    document.body.appendChild(this.host.nativeElement);
+    OPEN_SHELLS.push(this);
     this.suppressesScrollbars = this.isSheetMode() || this.scrim() === 'visible';
     this.scrollLock.lock(this.suppressesScrollbars);
     const anchor = this.anchor();
@@ -152,13 +167,25 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Releases the scroll lock, detaches the drag controller and restores
-   * focus.
+   * Deregisters from the open-shell stack, releases the scroll lock,
+   * detaches the drag controller and restores focus.
    */
   ngOnDestroy(): void {
+    const stackIndex = OPEN_SHELLS.indexOf(this);
+    if (stackIndex >= 0) OPEN_SHELLS.splice(stackIndex, 1);
     this.scrollLock.unlock(this.suppressesScrollbars);
     this.drag.detach();
     this.restoreFocus();
+  }
+
+
+  /**
+   * Closes the dialog on Escape, but only while it is the top-most open
+   * shell, so a nested dialog (e.g. a menu inside the profile dialog)
+   * closes alone and keeps its parent open.
+   */
+  protected onEscape(): void {
+    if (OPEN_SHELLS.at(-1) === this) this.closed.emit();
   }
 
 

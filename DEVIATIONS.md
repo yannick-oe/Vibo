@@ -1468,3 +1468,82 @@ Refinement of the activity-notification bell; no Figma frames, strictly token-ba
   mobile bottom sheet the existing sheet physics already defer to inner scroll
   (`hasScrolledContent`) while the grabber still drags to dismiss, so the list scrolls
   without fighting the sheet. Per-row dismiss X and „Alle löschen" are unchanged.
+
+## Phase 5 fixes + invite links + Phase 6 navigation & presence (2026-07-14)
+Bug fixes from on-device testing of the Phase-5 work, the planned invite links (Phase 5 item 3)
+and Phase 6 (quick switcher, channel topic, auto-away). No Figma frames — German UI, strictly
+token-based, rules-enforced where affordable on Spark.
+
+- **Dialog shells hoist themselves to `document.body` (root-cause fix).** The overlay is
+  `position: fixed`, but an ancestor with a `backdrop-filter` (every glass dialog card) becomes
+  the containing block for fixed descendants, so a dialog-shell nested inside another dialog
+  (the friend-action overflow menu inside the profile dialog) interpreted its viewport anchor
+  coordinates relative to that card and vanished into its overflow clip — the observed "empty,
+  scrollable" menu. The shell now appends its host element to `document.body` on open (safe:
+  Angular's DOM renderer removes nodes via `node.remove()`), which fixes every current and
+  future nested dialog by construction. Escape closes only the top-most open shell (module-level
+  open-shell stack), so nested dialogs unwind one level at a time and focus returns to the inner
+  trigger.
+- **No friend-action ⋮ menu without a relationship.** The overflow trigger renders only in the
+  accepted-friends state; its menu body is an exhaustive switch whose every branch renders
+  content (actions, confirm step, or the guest note), so an empty menu is impossible by
+  construction. Blocking without an existing friendship doc stays unsupported — the rules were
+  deliberately NOT widened to allow creating a `blocked` friendship from nothing; strangers only
+  get "Anfrage senden".
+- **Guests cannot remove/block friends.** The shared guest account would remove/block for every
+  concurrent guest (and could break the seeded demo friendship), so the destructive friendship
+  actions are hidden for guests; the ⋮ menu shows the explanatory note instead, consistent with
+  the invite restrictions below.
+- **Unfriended DMs freeze the composer client-side only.** After "Freund entfernen" the DM shows
+  a height-reserved notice in the composer slot (analog to the blocked notice); history stays
+  readable and reactions stay possible. Message creates on the grandfathered conversation are
+  NOT rules-blocked for non-friends (same §14 trade-off as blocked-DM reactions: an extra
+  friendship `get()` on every message create in every legacy DM is not worth it on Spark; new
+  conversations already require an accepted friendship at create time).
+- **One avatar presence mechanism.** The per-surface status dots (six copies with per-surface
+  offsets, plus a latent line-box-strut bug that pushed the DM-header dot below the avatar) are
+  consolidated into `app-presence-dot` + the `avatar-status-wrap` mixin: the wrap collapses to
+  exactly the avatar box (`inline-flex` removes the strut), the dot sizes itself relative to the
+  wrap (`min($presence-dot-ratio, $presence-dot-max)` — the ratio preserves the 14px sidebar
+  reference on 48px avatars, the cap the 16px topbar reference) and carries a visually-hidden
+  German state label (Online/Abwesend/Offline) — presence is never color-only anymore (three
+  surfaces previously had English `online`/`offline` sr-text, five had none). The topbar's own
+  dot was hardcoded green and is now live. The profile dialog's status row was static
+  (self "Aktiv", others "Abwesend") and now shows real presence with the same vocabulary.
+- **Invite tokens are UX/discovery, not a security boundary (accepted simplification).**
+  Channels are already open-join via join-on-send, so the accept path simply rides the existing
+  `joinsSelf()` membership rule; the unguessable Firestore auto-id is the sharing secret
+  (`get` for any signed-in user, `list` only for members of the queried channel). Invites expire
+  after `INVITE_TTL_DAYS = 7` (client-computed `expiresAt`, rules-checked on create, filtered on
+  read — an expired doc simply stops resolving); revoke = delete by the creator only. Guests can
+  neither create nor revoke invites ("Als Gast kannst du keine Einladungslinks erstellen.") and
+  cannot accept one (shared account); they see the preview with a disabled join. Logged-out
+  visitors go through the consume-once `PendingInviteService` (sessionStorage): login and
+  registration completion return to `/invite/{token}`.
+- **Quick switcher is desktop-only (scope decision).** Cmd/Ctrl+K requires a hardware keyboard;
+  the shortcut is gated on the hover-capable pointer check and mobile keeps the sidebar as its
+  switcher. Content per spec: accepted-friend DMs in conversation-recency order first, then
+  channels alphabetically (matching also the @username), then the pre-existing action rows
+  (theme toggle, profile) — kept because removing them would regress shipped behavior.
+- **Channel topic is creator-only.** `topic` (≤ `TOPIC_MAX_LENGTH = 120`) is editable only by
+  `createdBy` (rules-enforced as its own update disjunct so join-on-send and member edits keep
+  working); the default channel ('system') therefore has no editable topic. The chat header
+  reserves a fixed one-line slot under the channel name even while empty (CLS 0 when the first
+  topic appears), truncates with ellipsis and exposes the full text via `title` and the settings
+  dialog.
+- **Sound settings move into a dedicated „Einstellungen" dialog.** The profile menu grew past
+  its role as a quick-action list, so the Sounds block (master switch, volume slider + „Testen",
+  sidebar-sound opt-in) moved unchanged — same localStorage keys, same disabled-state and
+  slider behavior for both engines, same pointerdown/touch-action guards against sheet drags —
+  into a new settings dialog (`settings-dialog`, dialog-shell `settings` width preset, 500px
+  centered card on desktop / plain single-rest bottom sheet on mobile, no detents). The menu
+  gains an „Einstellungen" row (gear icon) between „Profil" and the theme toggle; it closes the
+  menu, focus lands in the dialog and returns to the profile trigger on close. The dialog is
+  structured as labelled sections so future settings groups can be added beside „Sounds".
+- **Auto-away writes on transitions only; guest presence is last-writer-wins (accepted).**
+  `users/{uid}.presence` ('online' | 'away') is written exactly on state changes: away on tab
+  hide or after `AWAY_AFTER_MS` = 5 min without activity (passive pointer/key/wheel/touch
+  listeners; timer re-arming throttled to `ACTIVITY_THROTTLE_MS` = 10 s), online again on the
+  first activity/visibility regain. Offline still derives from the stale `lastActive` heartbeat
+  and takes precedence. Concurrent guest sessions share one doc, so the last transition wins —
+  accepted for the demo account.
