@@ -8,6 +8,7 @@ import { FirebaseError } from 'firebase/app';
 
 import { AuthService } from '../../../services/auth.service';
 import { FriendshipService } from '../../../services/friendship.service';
+import { PendingInviteService } from '../../../services/pending-invite.service';
 import { PasswordInputComponent } from '../../../shared/password-input/password-input.component';
 import { IntroComponent } from '../intro/intro.component';
 
@@ -41,6 +42,8 @@ export class LoginComponent {
   private readonly authService = inject(AuthService);
 
   private readonly friendshipService = inject(FriendshipService);
+
+  private readonly pendingInvite = inject(PendingInviteService);
 
   private readonly formBuilder = inject(NonNullableFormBuilder);
 
@@ -124,12 +127,22 @@ export class LoginComponent {
     this.generalError.set('');
     try {
       await signIn();
-      this.router.navigate(['/app']);
+      this.router.navigate(this.postSignInTarget());
     } catch (error: unknown) {
       this.handleSignInError(error);
     } finally {
       this.isPending.set(false);
     }
+  }
+
+
+  /**
+   * Where to go after sign-in: back to a pending channel invite opened
+   * while signed out, otherwise into the app.
+   */
+  private postSignInTarget(): string[] {
+    const token = this.pendingInvite.consume();
+    return token ? ['/invite', token] : ['/app'];
   }
 
 

@@ -1,0 +1,46 @@
+<section class="auth-card auth-card--wide invite-card">
+  <h1 class="invite-card__title" tabindex="-1">Channel-Einladung</h1>
+
+  @switch (state()) {
+    @case ('checking') {
+      <p class="invite-card__text" role="status">Einladung wird geprüft …</p>
+    }
+    @case ('signedOut') {
+      <p class="invite-card__text">
+        Du wurdest zu einem Channel eingeladen. Melde dich an oder erstelle ein Konto, um
+        beizutreten.
+      </p>
+      <div class="invite-card__actions">
+        <a class="btn btn-primary" routerLink="/auth/login">Anmelden</a>
+        <a class="btn btn-secondary" routerLink="/auth/register">Konto erstellen</a>
+      </div>
+    }
+    @case ('invalid') {
+      <p class="invite-card__text">Dieser Einladungslink ist ungültig oder abgelaufen.</p>
+      <div class="invite-card__actions">
+        <a class="btn btn-primary" routerLink="/app">Zurück zur App</a>
+      </div>
+    }
+    @case ('ready') {
+      <p class="invite-card__text">
+        Du wurdest eingeladen, dem Channel
+        <strong class="invite-card__channel"># {{ channelName() }}</strong> beizutreten.
+      </p>
+      @if (isGuest()) {
+        <p class="invite-card__guest-note" id="invite-guest-note">{{ guestNote }}</p>
+      }
+      <div class="invite-card__actions">
+        <button
+          class="btn btn-primary"
+          type="button"
+          [disabled]="isJoining() || isGuest()"
+          [attr.aria-describedby]="isGuest() ? 'invite-guest-note' : null"
+          (click)="join()"
+        >
+          Beitreten
+        </button>
+        <a class="btn btn-secondary" routerLink="/app">Abbrechen</a>
+      </div>
+    }
+  }
+</section>

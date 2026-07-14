@@ -1,0 +1,40 @@
+@use 'variables' as v;
+
+:host {
+  display: contents;
+}
+
+.invite-card {
+  display: flex;
+  flex-direction: column;
+  gap: v.space-fluid('lg', 'xl-xxl');
+  text-align: center;
+}
+
+.invite-card__title {
+  color: v.color('primary');
+}
+
+.invite-card__text {
+  color: v.color('text-gray');
+}
+
+.invite-card__channel {
+  color: v.color('primary');
+  font-weight: bold;
+}
+
+.invite-card__guest-note {
+  padding: v.space('sm') v.space('md');
+  border-radius: v.$radius-md;
+  background-color: v.color('bg');
+  font-size: v.font-size('body');
+  color: v.color('text-gray');
+}
+
+.invite-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: v.space('md');
+}

@@ -42,9 +42,7 @@ $profile-min-width: 172px;
 }
 
 .friend-row__avatar-wrap {
-  position: relative;
-  flex-shrink: 0;
-  display: inline-flex;
+  @include m.avatar-status-wrap;
 }
 
 .friend-row__avatar {
@@ -52,18 +50,6 @@ $profile-min-width: 172px;
   height: $avatar-size;
   border-radius: v.$radius-round;
   object-fit: cover;
-}
-
-.friend-row__presence {
-  @include m.status-dot($size: v.$status-dot-md);
-
-  position: absolute;
-  right: 0;
-  bottom: 0;
-}
-
-.friend-row__presence--offline {
-  background-color: v.color('text-gray');
 }
 
 .friend-row__names {

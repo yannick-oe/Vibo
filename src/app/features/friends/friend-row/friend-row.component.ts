@@ -5,11 +5,11 @@
  */
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 
-import { PresenceService } from '../../../services/presence.service';
 import { ProfileOverlayService } from '../../../services/profile-overlay.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import { FriendActionComponent } from '../../../shared/friend-action/friend-action.component';
+import { PresenceDotComponent } from '../../../shared/presence-dot/presence-dot.component';
 
 /**
  * One user row in the friends view lists (friends, requests, search
@@ -21,7 +21,7 @@ import { FriendActionComponent } from '../../../shared/friend-action/friend-acti
  */
 @Component({
   selector: 'app-friend-row',
-  imports: [AvatarFallbackDirective, FriendActionComponent],
+  imports: [AvatarFallbackDirective, FriendActionComponent, PresenceDotComponent],
   templateUrl: './friend-row.component.html',
   styleUrl: './friend-row.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,8 +34,6 @@ export class FriendRowComponent {
   readonly username = input('');
 
   readonly avatarPath = input('');
-
-  protected readonly presenceService = inject(PresenceService);
 
   private readonly profileOverlay = inject(ProfileOverlayService);
 

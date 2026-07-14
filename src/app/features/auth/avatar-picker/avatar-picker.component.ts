@@ -17,6 +17,7 @@ import { FirebaseError } from 'firebase/app';
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
 import { MessageService } from '../../../services/message.service';
+import { PendingInviteService } from '../../../services/pending-invite.service';
 import { RegistrationFormData, RegistrationService } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { AVATAR_OPTIONS } from '../../../shared/avatar-options';
@@ -51,6 +52,8 @@ export class AvatarPickerComponent implements AfterViewInit {
   private readonly messageService = inject(MessageService);
 
   private readonly registration = inject(RegistrationService);
+
+  private readonly pendingInvite = inject(PendingInviteService);
 
   private readonly router = inject(Router);
 
@@ -132,15 +135,18 @@ export class AvatarPickerComponent implements AfterViewInit {
 
 
   /**
-   * Shows the success toast, then routes to the login page.
+   * Shows the success toast, then routes back to a pending channel invite
+   * (registration signs the user in, so the redeem page can offer the
+   * join directly) or to the login page.
    * TODO: redirect to the main app instead once it exists.
    */
   private finishSuccessfully(): void {
     this.isSuccess.set(true);
     this.toast.show(SUCCESS_TOAST_MESSAGE);
     setTimeout(() => {
+      const token = this.pendingInvite.consume();
       this.registration.reset();
-      this.router.navigate(['/auth/login']);
+      this.router.navigate(token ? ['/invite', token] : ['/auth/login']);
     }, SUCCESS_REDIRECT_DELAY_MS);
   }
 

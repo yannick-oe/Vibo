@@ -61,6 +61,13 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'invite/:token',
+        loadComponent: () =>
+          import('./features/invite/invite-redeem/invite-redeem.component').then(
+            m => m.InviteRedeemComponent,
+          ),
+      },
+      {
         path: 'impressum',
         loadComponent: () =>
           import('./features/legal/legal-notice/legal-notice.component').then(
