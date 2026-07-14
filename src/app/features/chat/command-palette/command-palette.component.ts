@@ -1,6 +1,7 @@
 /**
- * @file Cmd/Ctrl+K command palette: a combobox over the user's channels,
- * DMs and a small action set, with a roving-highlight listbox.
+ * @file Cmd/Ctrl+K quick switcher: a combobox over the user's
+ * accepted-friend DMs (recency order), channels (alphabetical) and a small
+ * action set, with a roving-highlight listbox.
  */
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
@@ -8,6 +9,8 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
 import { CommandPaletteService } from '../../../services/command-palette.service';
+import { DirectMessageService } from '../../../services/direct-message.service';
+import { FriendshipService } from '../../../services/friendship.service';
 import { ProfileOverlayService } from '../../../services/profile-overlay.service';
 import { ThemeService } from '../../../services/theme.service';
 import { UserService } from '../../../services/user.service';
@@ -46,6 +49,10 @@ export class CommandPaletteComponent {
 
   private readonly userService = inject(UserService);
 
+  private readonly friendshipService = inject(FriendshipService);
+
+  private readonly directMessageService = inject(DirectMessageService);
+
   private readonly authService = inject(AuthService);
 
   private readonly themeService = inject(ThemeService);
@@ -63,12 +70,21 @@ export class CommandPaletteComponent {
   private readonly selfUid = computed(() => this.authService.currentUser()?.uid ?? null);
 
   private readonly allItems = computed(() =>
-    buildPaletteItems(this.channelService.channels(), this.userService.users(), this.selfUid(), {
-      navigate: segments => void this.router.navigate(segments),
-      toggleTheme: () => this.themeService.toggle(),
-      openProfile: () => this.openProfile(),
-      isDark: this.themeService.isDark(),
-    }),
+    buildPaletteItems(
+      {
+        channels: this.channelService.channels(),
+        users: this.userService.users(),
+        selfUid: this.selfUid(),
+        friendUids: this.friendshipService.friendUids(),
+        recencyByPartner: this.directMessageService.recencyByPartner(),
+      },
+      {
+        navigate: segments => void this.router.navigate(segments),
+        toggleTheme: () => this.themeService.toggle(),
+        openProfile: () => this.openProfile(),
+        isDark: this.themeService.isDark(),
+      },
+    ),
   );
 
   protected readonly filtered = computed(() => filterPaletteItems(this.allItems(), this.query()));
