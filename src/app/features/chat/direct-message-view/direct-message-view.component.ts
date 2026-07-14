@@ -24,7 +24,6 @@ import { DirectMessageService } from '../../../services/direct-message.service';
 import { FriendshipService } from '../../../services/friendship.service';
 import { MessageService, conversationDocPath } from '../../../services/message.service';
 import { NotificationFanoutService } from '../../../services/notification-fanout.service';
-import { PresenceService } from '../../../services/presence.service';
 import { ReadEntry, ReadStateService } from '../../../services/read-state.service';
 import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
 import { ThreadService } from '../../../services/thread.service';
@@ -36,18 +35,17 @@ import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import { BadgeListComponent } from '../../../shared/badge-list/badge-list.component';
 import { displayBadges } from '../../../shared/badge-options';
+import { PresenceDotComponent } from '../../../shared/presence-dot/presence-dot.component';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MessageInputComponent, ReplyContext } from '../message-input/message-input.component';
 import { MessageListComponent } from '../message-list/message-list.component';
 import { buildReplyRef } from '../reply-ref';
+import { DmBlockState, blockStateOf, isUnfriendedState } from './dm-relationship';
 import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
 import { extendWindowToBoundary } from '../unread-window';
 
 const SEND_ERROR = 'Die Nachricht konnte nicht gesendet werden.';
 const UNBLOCK_ERROR = 'Entsperren hat nicht geklappt. Bitte versuche es erneut.';
-
-/** Blocking state of the conversation from the signed-in user's view. */
-export type DmBlockState = 'none' | 'byMe' | 'me';
 const UNKNOWN_PARTNER = 'Unbekannt';
 const SELF_SUFFIX = ' (Du)';
 const DM_START_MARKER = 'Das ist der Anfang eurer Unterhaltung';
@@ -70,6 +68,7 @@ const DM_START_MARKER = 'Das ist der Anfang eurer Unterhaltung';
     AvatarComponent,
     AvatarFallbackDirective,
     BadgeListComponent,
+    PresenceDotComponent,
   ],
   templateUrl: './direct-message-view.component.html',
   styleUrl: './direct-message-view.component.scss',
@@ -91,8 +90,6 @@ export class DirectMessageViewComponent {
   private readonly userService = inject(UserService);
 
   private readonly authService = inject(AuthService);
-
-  protected readonly presenceService = inject(PresenceService);
 
   private readonly toastService = inject(ToastService);
 
@@ -126,7 +123,18 @@ export class DirectMessageViewComponent {
     this.userService.users().find(user => user.uid === this.uid()),
   );
 
-  protected readonly blockState = computed<DmBlockState>(() => this.resolveBlockState());
+  protected readonly blockState = computed<DmBlockState>(() =>
+    blockStateOf(this.friendshipService.relationshipState(this.uid())()),
+  );
+
+  protected readonly isUnfriended = computed(
+    () =>
+      !this.isSelf() &&
+      isUnfriendedState(
+        this.friendshipService.relationshipState(this.uid())(),
+        this.friendshipService.loaded(),
+      ),
+  );
 
   protected readonly partnerHandle = computed(
     () => this.partnerDoc()?.username ?? this.partnerName(),
@@ -368,17 +376,6 @@ export class DirectMessageViewComponent {
     void this.captureUnreadBoundary();
     requestAnimationFrame(() => this.composer()?.focusInput());
   }
-
-  /**
-   * Resolves the blocking state of this conversation from the live
-   * relationship: who blocked decides which composer notice renders.
-   */
-  private resolveBlockState(): DmBlockState {
-    const state = this.friendshipService.relationshipState(this.uid())();
-    if (state === 'blockedByMe') return 'byMe';
-    return state === 'blockedMe' ? 'me' : 'none';
-  }
-
 
   /**
    * Unblocks the conversation partner from the blocker-side composer notice.

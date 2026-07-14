@@ -16,7 +16,7 @@
           surface="header"
           [isActive]="partnerAct.isActive()"
         />
-        <span class="dm__status" [class.dm__status--offline]="!presenceService.isOnline(uid())" aria-hidden="true"></span>
+        <app-presence-dot [uid]="uid()" />
       </span>
       <span class="dm__identity">
         <span class="dm__name-row">
@@ -71,12 +71,19 @@
     </div>
   }
 
-  @if (blockState() === 'none') {
+  @if (blockState() === 'none' && !isUnfriended()) {
     <app-typing-indicator [conversationPath]="conversationPath()" />
   }
 
   <div class="dm__composer">
-    @if (blockState() === 'none') {
+    @if (blockState() === 'none' && isUnfriended()) {
+      <div class="dm__blocked" role="status">
+        <p class="dm__blocked-text">
+          Ihr seid derzeit keine Freunde. Sende &#64;{{ partnerHandle() }} eine
+          Freundschaftsanfrage, um Nachrichten senden zu können.
+        </p>
+      </div>
+    } @else if (blockState() === 'none') {
       <app-message-input
         [placeholder]="composerPlaceholder()"
         [conversationPath]="conversationPath()"

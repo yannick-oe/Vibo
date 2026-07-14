@@ -45,8 +45,8 @@ $partner-status-max: 240px;
 }
 
 .dm__avatar-wrap {
-  position: relative;
-  flex-shrink: 0;
+  @include m.avatar-status-wrap;
+
   pointer-events: none;
 }
 
@@ -55,18 +55,6 @@ $partner-status-max: 240px;
   height: v.$avatar-list;
   border-radius: v.$radius-round;
   object-fit: cover;
-}
-
-.dm__status {
-  @include m.status-dot;
-
-  position: absolute;
-  right: 0;
-  bottom: 0;
-
-  &--offline {
-    background-color: v.color('text-gray');
-  }
 }
 
 .dm__identity {
