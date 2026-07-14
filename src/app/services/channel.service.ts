@@ -117,6 +117,20 @@ export class ChannelService {
 
 
   /**
+   * Reads one channel document once (channel docs are readable for any
+   * signed-in user), for surfaces outside the member stream such as the
+   * invite redeem page.
+   * @param channelId Channel document id.
+   */
+  async getChannelOnce(channelId: string): Promise<Channel | null> {
+    const reference = this.inContext(() => doc(this.firestore, `channels/${channelId}`));
+    const snapshot = await this.inContext(() => getDoc(reference));
+    if (!snapshot.exists()) return null;
+    return { ...(snapshot.data() as ChannelDoc), id: snapshot.id };
+  }
+
+
+  /**
    * Builds the seed document of the default channel: no creator, no members
    * and a denormalized nameLower so the duplicate-name query stays consistent.
    */
@@ -171,6 +185,21 @@ export class ChannelService {
     return this.inContext(() =>
       updateDoc(doc(this.firestore, `channels/${channelId}`), {
         description: description.trim(),
+      }),
+    );
+  }
+
+
+  /**
+   * Replaces a channel's one-line topic (creator only per rules); an empty
+   * topic is allowed and hides the header line.
+   * @param channelId Firestore id of the channel.
+   * @param topic New topic text, trimmed on save.
+   */
+  updateTopic(channelId: string, topic: string): Promise<void> {
+    return this.inContext(() =>
+      updateDoc(doc(this.firestore, `channels/${channelId}`), {
+        topic: topic.trim(),
       }),
     );
   }

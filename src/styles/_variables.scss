@@ -165,6 +165,13 @@ $icon-lg: 32px;
 // Unified presence/attention dot on list rows and the topbar avatar.
 $status-dot-md: 14px;
 
+// Shared avatar presence dot (app-presence-dot): scales with the avatar it
+// is anchored to. Ratio = the reference dot on the 48px sidebar list avatar;
+// the cap preserves the topbar reference size on large avatars.
+$presence-dot-ratio: math.div($status-dot-md, $avatar-list) * 100%;
+$presence-dot-max: 16px;
+$presence-dot-ring: 2px;
+
 // Inline emoji rendered inside message text, sized relative to the text.
 $emoji-inline-size: 1.25em;
 $emoji-inline-align: -0.2em;
@@ -228,6 +235,7 @@ $dialog-widths: (
   'members':     415px,
   'add-members': 514px,
   'profile':     500px,
+  'settings':    500px,
 );
 
 @function dialog-width($key) {

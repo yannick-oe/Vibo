@@ -54,11 +54,7 @@
             >
               <span class="search-bar__avatar-wrap">
                 <img class="search-bar__avatar" appAvatarFallback [src]="avatarSrc(hit)" alt="" aria-hidden="true" />
-                <span
-                  class="search-bar__status"
-                  [class.search-bar__status--offline]="!presenceService.isOnline(hit.uid)"
-                  aria-hidden="true"
-                ></span>
+                <app-presence-dot [uid]="hit.uid" />
               </span>
               <span class="search-bar__user-names">
                 <span class="search-bar__user-name">{{ hit.name }}</span>

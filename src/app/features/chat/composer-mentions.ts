@@ -45,23 +45,19 @@ export function buildChannelSuggestions(channels: Channel[], query: string): Sug
 }
 
 /**
- * Builds the "@" member suggestions, tagging each row with live presence.
+ * Builds the "@" member suggestions; each row carries its uid so the shared
+ * presence dot resolves the live state itself.
  * @param users Known users.
  * @param query Lowercased text typed after the trigger.
- * @param isOnline Presence lookup for a uid.
  */
-export function buildUserSuggestions(
-  users: UserDoc[],
-  query: string,
-  isOnline: (uid: string) => boolean,
-): Suggestion[] {
+export function buildUserSuggestions(users: UserDoc[], query: string): Suggestion[] {
   return users
     .filter(user => user.name.toLowerCase().includes(query))
     .map(user => ({
       id: user.uid,
       label: user.name,
       avatar: resolveAvatarPath(user.avatarPath),
-      online: isOnline(user.uid),
+      presenceUid: user.uid,
     }));
 }
 

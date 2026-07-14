@@ -13,12 +13,8 @@
         @if (suggestion.avatar) {
           <span class="suggestions__avatar-wrap">
             <img class="suggestions__avatar" appAvatarFallback [src]="suggestion.avatar" alt="" aria-hidden="true" />
-            @if (suggestion.online !== undefined) {
-              <span
-                class="suggestions__status"
-                [class.suggestions__status--offline]="!suggestion.online"
-                aria-hidden="true"
-              ></span>
+            @if (suggestion.presenceUid; as uid) {
+              <app-presence-dot [uid]="uid" />
             }
           </span>
         }
@@ -26,9 +22,6 @@
           <img class="suggestions__hash" src="app-icons/tag.svg" alt="" aria-hidden="true" />
         }
         {{ suggestion.label }}
-        @if (suggestion.online !== undefined) {
-          <span class="sr-only">{{ suggestion.online ? 'online' : 'offline' }}</span>
-        }
       </button>
     </li>
   }

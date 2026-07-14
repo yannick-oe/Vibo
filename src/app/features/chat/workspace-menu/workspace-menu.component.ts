@@ -17,7 +17,6 @@ import {
   conversationDocPath,
   directMessagesPath,
 } from '../../../services/message.service';
-import { PresenceService } from '../../../services/presence.service';
 import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
@@ -25,6 +24,7 @@ import { MobileSearchViewComponent } from '../../search/mobile-search-view/mobil
 import { UnreadBadgeComponent } from '../../../shared/unread-badge/unread-badge.component';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import { FlipListDirective } from '../../../shared/flip-list.directive';
+import { PresenceDotComponent } from '../../../shared/presence-dot/presence-dot.component';
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
 
 const GUEST_NAME = 'Gast';
@@ -51,6 +51,7 @@ interface SelfEntry {
     AvatarFallbackDirective,
     FlipListDirective,
     MobileSearchViewComponent,
+    PresenceDotComponent,
     ProfileDialogComponent,
     RouterLink,
     RouterLinkActive,
@@ -86,8 +87,6 @@ export class WorkspaceMenuComponent {
   protected readonly isSearchOpen = signal(false);
 
   protected readonly isMobile = inject(LayoutService).isMobile;
-
-  protected readonly presenceService = inject(PresenceService);
 
   protected readonly self = computed(() => this.buildSelfEntry());
 

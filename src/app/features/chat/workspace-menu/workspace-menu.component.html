@@ -140,11 +140,7 @@
             >
               <span class="workspace__avatar-wrap">
                 <img class="workspace__avatar" appAvatarFallback [src]="selfEntry.avatar" alt="" aria-hidden="true" />
-                <span
-                  class="workspace__status"
-                  [class.workspace__status--offline]="!presenceService.isOnline(selfEntry.uid)"
-                  aria-hidden="true"
-                ></span>
+                <app-presence-dot [uid]="selfEntry.uid" />
               </span>
               <span class="workspace__item-name">{{ selfEntry.name }}</span>
             </a>
@@ -161,11 +157,7 @@
             >
               <span class="workspace__avatar-wrap">
                 <img class="workspace__avatar" appAvatarFallback [src]="avatarSrc(user.avatarPath)" alt="" aria-hidden="true" />
-                <span
-                  class="workspace__status"
-                  [class.workspace__status--offline]="!presenceService.isOnline(user.uid)"
-                  aria-hidden="true"
-                ></span>
+                <app-presence-dot [uid]="user.uid" />
               </span>
               <span class="workspace__item-name">{{ user.name }}</span>
               @if (selfUid()) {

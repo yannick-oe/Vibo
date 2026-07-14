@@ -206,7 +206,17 @@
   height: $size;
   border-radius: v.$radius-round;
   background-color: $color;
-  border: 2px solid v.color('white');
+  border: v.$presence-dot-ring solid v.color('white');
+  flex-shrink: 0;
+}
+
+// Wrap around an avatar hosting the anchored presence dot (app-presence-dot):
+// collapses to exactly the avatar box — inline-flex removes the line-box
+// strut that would otherwise extend the wrap below the circle and push a
+// bottom-anchored dot off the avatar.
+@mixin avatar-status-wrap {
+  position: relative;
+  display: inline-flex;
   flex-shrink: 0;
 }
 

@@ -287,6 +287,17 @@ service cloud.firestore {
         return affectedKeys().hasOnly(['memberIds']) && appendsSelfToMembers();
       }
 
+      // Only the channel creator maintains the one-line topic; the length
+      // cap mirrors TOPIC_MAX_LENGTH. Kept as its own disjunct so it
+      // composes with joinsSelf()/memberEditsChannel() instead of widening
+      // them.
+      function creatorEditsTopic() {
+        return affectedKeys().hasOnly(['topic'])
+          && request.auth.uid == resource.data.createdBy
+          && request.resource.data.topic is string
+          && request.resource.data.topic.size() <= 120;
+      }
+
       // A member denormalizes the last message onto the channel doc.
       function memberSetsLastMessage() {
         return request.auth.uid in resource.data.memberIds
@@ -325,11 +336,12 @@ service cloud.firestore {
           || isDefaultChannelSeed());
 
       // Members edit name/description, add members and may remove
-      // themselves (leave); non-members may only add their own uid
-      // (join-on-send).
+      // themselves (leave); the creator maintains the topic; non-members
+      // may only add their own uid (join-on-send).
       allow update: if signedIn()
         && ((request.auth.uid in resource.data.memberIds && memberEditsChannel())
           || joinsSelf()
+          || creatorEditsTopic()
           || memberSetsLastMessage()
           || joinsAndSetsLastMessage());
 
@@ -369,6 +381,31 @@ service cloud.firestore {
         allow create, update: if isChannelMember(channelId) && typingDocValid();
         allow delete: if signedIn() && (resource == null || resource.data.uid == request.auth.uid);
       }
+    }
+
+    // Channel invite links at invites/{token}: the unguessable auto-id
+    // token IS the access proof, so any signed-in user may resolve one
+    // token (get); the management list is provable only against the
+    // queried channel's members. The join itself rides the channels
+    // joinsSelf() rule — the token is UX/discovery, not a security
+    // boundary, since channels are already open-join via join-on-send.
+    match /invites/{token} {
+      allow get: if signedIn();
+      allow list: if signedIn()
+        && request.auth.uid in channelMembers(resource.data.channelId);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['channelId', 'createdBy', 'createdAt', 'expiresAt'])
+        && request.resource.data.keys().hasAll(['channelId', 'createdBy', 'createdAt', 'expiresAt'])
+        && request.resource.data.channelId is string
+        && request.resource.data.channelId.size() >= 1
+        && request.resource.data.channelId.size() <= 128
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.auth.uid in channelMembers(request.resource.data.channelId);
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
     }
 
     // Conversation ids are deterministic — both participant uids sorted

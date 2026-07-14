@@ -18,7 +18,6 @@ import {
 import { GifResult } from '../../../models/gif.model';
 import { ChannelService } from '../../../services/channel.service';
 import { DraftService } from '../../../services/draft.service';
-import { PresenceService } from '../../../services/presence.service';
 import { TypingService } from '../../../services/typing.service';
 import { UserService } from '../../../services/user.service';
 import { ComposerDraft } from '../composer-draft';
@@ -86,8 +85,6 @@ export class MessageInputComponent {
   private readonly channelService = inject(ChannelService);
 
   private readonly draft = new ComposerDraft(inject(DraftService));
-
-  private readonly presenceService = inject(PresenceService);
 
   private readonly typingService = inject(TypingService);
 
@@ -389,6 +386,6 @@ export class MessageInputComponent {
     const query = mention.query.toLowerCase();
     return mention.type === '#'
       ? buildChannelSuggestions(this.channelService.channels(), query)
-      : buildUserSuggestions(this.userService.users(), query, uid => this.presenceService.isOnline(uid));
+      : buildUserSuggestions(this.userService.users(), query);
   }
 }

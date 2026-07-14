@@ -48,7 +48,7 @@
       <p class="profile__guest-note" [id]="guestNoteId">{{ guestNote }}</p>
     }
 
-    <p class="profile__status" [class.profile__status--away]="!isSelf()">
+    <p class="profile__status" [class.profile__status--away]="presenceState() !== 'online'">
       <span class="profile__status-dot" aria-hidden="true"></span>
       {{ statusLabel() }}
     </p>

@@ -134,9 +134,7 @@ $dropdown-max-height: 480px;
 }
 
 .search-bar__avatar-wrap {
-  position: relative;
-  flex-shrink: 0;
-  display: flex;
+  @include m.avatar-status-wrap;
 }
 
 .search-bar__avatar {
@@ -144,19 +142,6 @@ $dropdown-max-height: 480px;
   height: v.$avatar-sm;
   border-radius: v.$radius-round;
   object-fit: cover;
-}
-
-.search-bar__status {
-  @include m.status-dot;
-  width: 10px;
-  height: 10px;
-  position: absolute;
-  right: -2px;
-  bottom: -2px;
-
-  &--offline {
-    background-color: v.color('text-gray');
-  }
 }
 
 .search-bar__meta {
@@ -206,13 +191,6 @@ $dropdown-max-height: 480px;
   .search-bar__avatar {
     width: v.$avatar-list;
     height: v.$avatar-list;
-  }
-
-  .search-bar__status {
-    width: 14px;
-    height: 14px;
-    right: 0;
-    bottom: 0;
   }
 
   .search-bar__option {

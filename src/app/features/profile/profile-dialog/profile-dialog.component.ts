@@ -17,6 +17,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 import { AuthService } from '../../../services/auth.service';
+import { PresenceService, PresenceState } from '../../../services/presence.service';
 import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { ProfileDraft, UserService } from '../../../services/user.service';
@@ -40,8 +41,11 @@ import {
 
 const SAVE_ERROR = 'Das Profil konnte nicht gespeichert werden.';
 const UNKNOWN_USER = 'Unbekannt';
-const STATUS_ACTIVE = 'Aktiv';
-const STATUS_AWAY = 'Abwesend';
+const STATUS_LABELS: Record<PresenceState, string> = {
+  online: 'Aktiv',
+  away: 'Abwesend',
+  offline: 'Offline',
+};
 const PROFILE_VIEW_TITLE = 'Profil';
 const PROFILE_EDIT_TITLE = 'Dein Profil bearbeiten';
 const GUEST_PROFILE_TITLE = 'Dein Profil';
@@ -58,8 +62,9 @@ type ProfileMode = 'view' | 'edit';
  * Profile dialog per the Figma frames: the own profile ("Profil") offers
  * the "Bearbeiten" link switching to the edit card with name input and
  * avatar selection from the provided set; foreign profiles offer the
- * "Nachricht" button that opens the direct conversation. Presence stays
- * static (self "Aktiv", others "Abwesend") per the module 3 decision.
+ * "Nachricht" button that opens the direct conversation. The status row
+ * shows the user's live presence with the Figma vocabulary ("Aktiv" /
+ * "Abwesend").
  */
 @Component({
   selector: 'app-profile-dialog',
@@ -86,6 +91,8 @@ export class ProfileDialogComponent {
   private readonly userService = inject(UserService);
 
   private readonly authService = inject(AuthService);
+
+  private readonly presenceService = inject(PresenceService);
 
   private readonly toastService = inject(ToastService);
 
@@ -158,7 +165,9 @@ export class ProfileDialogComponent {
 
   protected readonly email = computed(() => this.user()?.email ?? null);
 
-  protected readonly statusLabel = computed(() => (this.isSelf() ? STATUS_ACTIVE : STATUS_AWAY));
+  protected readonly presenceState = computed(() => this.presenceService.stateFor(this.uid()));
+
+  protected readonly statusLabel = computed(() => STATUS_LABELS[this.presenceState()]);
 
   protected readonly userBanner = computed(() => this.user()?.banner ?? BANNER_NONE);
 

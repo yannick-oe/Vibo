@@ -20,7 +20,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { LayoutService } from '../../../services/layout.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
-import { PresenceService } from '../../../services/presence.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import {
   ChannelHit,
@@ -32,6 +31,7 @@ import {
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import { FriendActionComponent } from '../../../shared/friend-action/friend-action.component';
+import { PresenceDotComponent } from '../../../shared/presence-dot/presence-dot.component';
 
 const DEBOUNCE_MS = 250;
 const MIN_TERM_LENGTH = 2;
@@ -49,7 +49,7 @@ type SearchHit = ChannelHit | UserHit | MessageHit;
  */
 @Component({
   selector: 'app-search-bar',
-  imports: [AvatarFallbackDirective, FriendActionComponent, ReactiveFormsModule],
+  imports: [AvatarFallbackDirective, FriendActionComponent, PresenceDotComponent, ReactiveFormsModule],
   templateUrl: './search-bar.component.html',
   styleUrl: './search-bar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,8 +74,6 @@ export class SearchBarComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
 
   private readonly layoutService = inject(LayoutService);
-
-  protected readonly presenceService = inject(PresenceService);
 
   protected readonly placeholder = computed(() =>
     this.layoutService.isMobile() ? MOBILE_PLACEHOLDER : DESKTOP_PLACEHOLDER,

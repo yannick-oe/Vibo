@@ -4,6 +4,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { AvatarFallbackDirective } from '../avatar/avatar-fallback.directive';
+import { PresenceDotComponent } from '../presence-dot/presence-dot.component';
 
 /** One selectable suggestion row. */
 export interface Suggestion {
@@ -15,8 +16,8 @@ export interface Suggestion {
   readonly avatar?: string;
   /** Renders the channel hash icon instead of an avatar. */
   readonly isHash?: boolean;
-  /** Online presence of a user row; omitted for channel rows. */
-  readonly online?: boolean;
+  /** Uid whose live presence the row shows; omitted for channel rows. */
+  readonly presenceUid?: string;
 }
 
 /**
@@ -27,7 +28,7 @@ export interface Suggestion {
  */
 @Component({
   selector: 'app-suggestion-dropdown',
-  imports: [AvatarFallbackDirective],
+  imports: [AvatarFallbackDirective, PresenceDotComponent],
   templateUrl: './suggestion-dropdown.component.html',
   styleUrl: './suggestion-dropdown.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
