@@ -20,6 +20,16 @@
         >
           Anfrage zurückziehen
         </button>
+        @if (!isGuest()) {
+          <button
+            class="btn btn-secondary friend-action__btn friend-action__btn--danger"
+            type="button"
+            [disabled]="isBusy()"
+            (click)="openBlockConfirm($event)"
+          >
+            Blockieren
+          </button>
+        }
       }
       @case ('pendingIncoming') {
         <button
@@ -38,14 +48,16 @@
         >
           Ablehnen
         </button>
-        <button
-          class="btn btn-secondary friend-action__btn friend-action__btn--danger"
-          type="button"
-          [disabled]="isBusy()"
-          (click)="openBlockConfirm($event)"
-        >
-          Blockieren
-        </button>
+        @if (!isGuest()) {
+          <button
+            class="btn btn-secondary friend-action__btn friend-action__btn--danger"
+            type="button"
+            [disabled]="isBusy()"
+            (click)="openBlockConfirm($event)"
+          >
+            Blockieren
+          </button>
+        }
       }
       @case ('blockedByMe') {
         <button
@@ -99,57 +111,68 @@
       >
         <span class="sr-only" id="friend-action-menu-title">Weitere Freundschaftsaktionen</span>
         <div class="friend-action__menu" role="menu">
-          @if (confirmAction() === null) {
-            <button
-              class="friend-action__menu-item friend-action__menu-item--danger"
-              type="button"
-              role="menuitem"
-              [disabled]="isBusy()"
-              (click)="startRemove()"
-            >
-              Freund entfernen
-            </button>
-            <button
-              class="friend-action__menu-item friend-action__menu-item--danger"
-              type="button"
-              role="menuitem"
-              [disabled]="isBusy()"
-              (click)="startBlock()"
-            >
-              Blockieren
-            </button>
-          } @else if (confirmAction() === 'remove') {
-            <p class="friend-action__confirm-text">Freund wirklich entfernen?</p>
-            <div class="friend-action__confirm-actions">
-              <button
-                class="friend-action__menu-item friend-action__menu-item--danger"
-                type="button"
-                [disabled]="isBusy()"
-                (click)="confirmRemove()"
-              >
-                Entfernen
-              </button>
-              <button class="friend-action__menu-item" type="button" (click)="closeMenu()">
-                Abbrechen
-              </button>
-            </div>
-          } @else {
-            <p class="friend-action__confirm-text">
-              Wirklich blockieren? Ihr könnt euch danach keine Nachrichten mehr senden.
-            </p>
-            <div class="friend-action__confirm-actions">
-              <button
-                class="friend-action__menu-item friend-action__menu-item--danger"
-                type="button"
-                [disabled]="isBusy()"
-                (click)="confirmBlock()"
-              >
-                Blockieren
-              </button>
-              <button class="friend-action__menu-item" type="button" (click)="closeMenu()">
-                Abbrechen
-              </button>
-            </div>
+          @switch (confirmAction()) {
+            @case ('remove') {
+              <p class="friend-action__confirm-text">Freund wirklich entfernen?</p>
+              <div class="friend-action__confirm-actions">
+                <button
+                  class="friend-action__menu-item friend-action__menu-item--danger"
+                  type="button"
+                  [disabled]="isBusy()"
+                  (click)="confirmRemove()"
+                >
+                  Entfernen
+                </button>
+                <button class="friend-action__menu-item" type="button" (click)="closeMenu()">
+                  Abbrechen
+                </button>
+              </div>
+            }
+            @case ('block') {
+              <p class="friend-action__confirm-text">
+                Wirklich blockieren? Ihr könnt euch danach keine Nachrichten mehr senden.
+              </p>
+              <div class="friend-action__confirm-actions">
+                <button
+                  class="friend-action__menu-item friend-action__menu-item--danger"
+                  type="button"
+                  [disabled]="isBusy()"
+                  (click)="confirmBlock()"
+                >
+                  Blockieren
+                </button>
+                <button class="friend-action__menu-item" type="button" (click)="closeMenu()">
+                  Abbrechen
+                </button>
+              </div>
+            }
+            @default {
+              @if (isGuest()) {
+                <p class="friend-action__guest-note">{{ guestMenuNote }}</p>
+                <button class="friend-action__menu-item" type="button" role="menuitem" (click)="closeMenu()">
+                  Schließen
+                </button>
+              } @else {
+                <button
+                  class="friend-action__menu-item friend-action__menu-item--danger"
+                  type="button"
+                  role="menuitem"
+                  [disabled]="isBusy()"
+                  (click)="startRemove()"
+                >
+                  Freund entfernen
+                </button>
+                <button
+                  class="friend-action__menu-item friend-action__menu-item--danger"
+                  type="button"
+                  role="menuitem"
+                  [disabled]="isBusy()"
+                  (click)="startBlock()"
+                >
+                  Blockieren
+                </button>
+              }
+            }
           }
         </div>
       </app-dialog-shell>

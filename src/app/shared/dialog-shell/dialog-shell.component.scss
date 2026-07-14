@@ -51,6 +51,11 @@ $sheet-settle-ease: v.$sheet-settle-ease;
     padding: v.space('xl');
   }
 
+  &--settings {
+    width: min(v.dialog-width('settings'), 100%);
+    padding: v.space('xl');
+  }
+
   &--menu {
     width: auto;
     padding: v.space('sm-md');
@@ -128,6 +133,7 @@ $sheet-settle-ease: v.$sheet-settle-ease;
   .dialog-shell__card--members,
   .dialog-shell__card--add-members,
   .dialog-shell__card--profile,
+  .dialog-shell__card--settings,
   .dialog-shell__card--menu {
     @include m.sheet-card;
 

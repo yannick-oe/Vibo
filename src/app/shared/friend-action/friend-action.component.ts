@@ -1,9 +1,12 @@
 /**
  * @file Shared friend-action control rendering the correct action set for
- * the relationship to a user: send, withdraw, accept/decline (plus block),
- * message plus remove/block behind an overflow menu with confirm steps, or
- * unblock while the user is blocked. Reused unchanged by every surface
- * (sidebar, search, profile dialog, notification center).
+ * the relationship to a user: send, withdraw (plus block), accept/decline
+ * (plus block), message plus remove/block behind an overflow menu with
+ * confirm steps, or unblock while the user is blocked. Guests never see the
+ * destructive actions — the shared account would block/remove for everyone —
+ * and get the explanatory note in the overflow menu instead. Reused
+ * unchanged by every surface (sidebar, search, profile dialog, notification
+ * center).
  * Optimistic UI comes from Firestore's latency compensation: local writes
  * flip the streamed relationship immediately and roll back automatically
  * when the server rejects — the catch then surfaces an error toast.
@@ -29,6 +32,8 @@ import { DialogShellComponent } from '../dialog-shell/dialog-shell.component';
 const ACTION_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es später erneut.';
 const DM_ROUTE = '/app/dm';
 const MESSAGE_LABEL_FALLBACK = 'Nachricht senden';
+const GUEST_MENU_NOTE =
+  'Als Gast kannst du keine Freunde entfernen oder blockieren.';
 
 /** Dangerous menu action awaiting its inline confirmation step. */
 type ConfirmAction = 'remove' | 'block';
@@ -78,6 +83,10 @@ export class FriendActionComponent {
   protected readonly isSelf = computed(
     () => this.uid() === this.authService.currentUser()?.uid,
   );
+
+  protected readonly isGuest = this.authService.isGuest;
+
+  protected readonly guestMenuNote = GUEST_MENU_NOTE;
 
   protected readonly isBusy = signal(false);
 

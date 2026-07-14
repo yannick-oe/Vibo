@@ -3,6 +3,7 @@
 
 $touch-target: 44px;
 $menu-min-width: 220px;
+$menu-note-max-width: 280px;
 
 :host {
   display: inline-flex;
@@ -117,6 +118,13 @@ $menu-min-width: 220px;
   padding: v.space('xs') v.space('sm-md');
   font-size: v.font-size('min');
   color: v.color('black');
+}
+
+.friend-action__guest-note {
+  max-width: $menu-note-max-width;
+  padding: v.space('xs') v.space('sm-md');
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
 }
 
 .friend-action__confirm-actions {
