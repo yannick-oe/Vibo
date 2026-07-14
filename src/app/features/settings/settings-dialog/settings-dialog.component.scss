@@ -1,7 +1,6 @@
-// Styles of the "Sounds" settings section inside the topbar profile menu:
-// section heading, the switch rows (master toggle + swipe opt-in), the
-// labelled volume slider and the preview button. Split out of
-// topbar.component.scss to keep both files within the 400-LOC limit.
+// Styles of the settings dialog: the card header and the "Sounds" section —
+// switch rows (master toggle + swipe opt-in), the labelled volume slider and
+// the preview button — migrated from the former topbar profile-menu block.
 @use 'sass:math';
 @use 'variables' as v;
 @use 'mixins' as m;
@@ -19,16 +18,26 @@ $volume-thumb-border-width: 2px;
 $volume-thumb-top-offset: math.div($volume-track-height - $volume-thumb-size, 2);
 $disabled-control-opacity: 0.5;
 
-.topbar__menu-sounds {
+.settings-dialog__head {
+  @include m.flex-between;
+
+  gap: v.space('md');
+}
+
+.settings-dialog__title {
+  font-size: v.font-size('h4');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+  @include m.text-ellipsis;
+}
+
+.settings-dialog__section {
   display: flex;
   flex-direction: column;
   gap: v.space('xs');
-  padding: v.space('sm-md') v.space('lg') v.space('xs');
-  margin-top: v.space('xs');
-  border-top: 1px solid v.color('lines');
 }
 
-.topbar__menu-sounds-title {
+.settings-dialog__section-title {
   margin: 0;
   font-size: v.font-size('min');
   font-weight: v.$font-weight-bold;
@@ -37,7 +46,7 @@ $disabled-control-opacity: 0.5;
   letter-spacing: v.$letter-spacing-wide;
 }
 
-.topbar__sound-switch {
+.settings-dialog__sound-switch {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -64,11 +73,11 @@ $disabled-control-opacity: 0.5;
   }
 }
 
-.topbar__sound-switch-label {
+.settings-dialog__sound-switch-label {
   min-width: 0;
 }
 
-.topbar__switch-track {
+.settings-dialog__switch-track {
   position: relative;
   flex-shrink: 0;
   width: $switch-track-width;
@@ -78,11 +87,11 @@ $disabled-control-opacity: 0.5;
   transition: background-color v.$transition-fast;
 }
 
-.topbar__sound-switch[aria-checked='true'] .topbar__switch-track {
+.settings-dialog__sound-switch[aria-checked='true'] .settings-dialog__switch-track {
   background-color: v.color('primary');
 }
 
-.topbar__switch-thumb {
+.settings-dialog__switch-thumb {
   position: absolute;
   top: $switch-thumb-inset;
   left: $switch-thumb-inset;
@@ -93,29 +102,29 @@ $disabled-control-opacity: 0.5;
   transition: transform v.$transition-fast;
 }
 
-.topbar__sound-switch[aria-checked='true'] .topbar__switch-thumb {
+.settings-dialog__sound-switch[aria-checked='true'] .settings-dialog__switch-thumb {
   transform: translateX($switch-thumb-travel);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .topbar__switch-track,
-  .topbar__switch-thumb {
+  .settings-dialog__switch-track,
+  .settings-dialog__switch-thumb {
     transition: none;
   }
 
-  .topbar__sound-volume-slider::-webkit-slider-runnable-track {
+  .settings-dialog__sound-volume-slider::-webkit-slider-runnable-track {
     transition: none;
   }
 }
 
-.topbar__sound-volume {
+.settings-dialog__sound-volume {
   display: flex;
   align-items: center;
   gap: v.space('sm');
   min-height: $sound-control-min-height;
 }
 
-.topbar__sound-volume-label {
+.settings-dialog__sound-volume-label {
   flex-shrink: 0;
   font-size: v.font-size('body');
   font-weight: v.$font-weight-medium;
@@ -123,13 +132,13 @@ $disabled-control-opacity: 0.5;
 }
 
 // Fully custom range styling: both engines otherwise render engine-default
-// tracks that are invisible on the frosted menu surface. The filled portion
+// tracks that are invisible on the frosted card surface. The filled portion
 // is driven by the --volume-fill custom property the template binds from the
 // input value (WebKit paints it as a no-repeat gradient sized to the fill;
 // Firefox uses its native ::-moz-range-progress). The fill transition only
 // eases keyboard steps — while the pointer is held (:active) it is disabled
 // so dragging tracks the finger 1:1.
-.topbar__sound-volume-slider {
+.settings-dialog__sound-volume-slider {
   flex: 1;
   min-width: $volume-slider-min-width;
   min-height: $sound-control-min-height;
@@ -196,7 +205,7 @@ $disabled-control-opacity: 0.5;
   }
 }
 
-.topbar__sound-preview {
+.settings-dialog__sound-preview {
   flex-shrink: 0;
   min-height: v.$btn-height-sm;
   padding: v.space('xs') v.space('sm-md');

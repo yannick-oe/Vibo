@@ -12,7 +12,14 @@ const ANCHOR_MIN_VIEWPORT_PX = 768;
 const ANCHORED_BOTTOM_INSET_PX = 24;
 
 /** Width preset of the dialog card, mapped to the Figma measurements. */
-export type DialogSize = 'default' | 'members' | 'add-members' | 'profile' | 'menu' | 'search';
+export type DialogSize =
+  | 'default'
+  | 'members'
+  | 'add-members'
+  | 'profile'
+  | 'settings'
+  | 'menu'
+  | 'search';
 
 /**
  * Viewport position a dialog card is anchored to. Exactly one vertical edge

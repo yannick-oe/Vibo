@@ -64,7 +64,9 @@
             [alt]="avatarAlt()"
             [isActive]="userAct.isActive()"
           />
-          <span class="topbar__status" aria-hidden="true"></span>
+          @if (selfUid(); as uid) {
+            <app-presence-dot [uid]="uid" />
+          }
         </span>
         <img class="topbar__chevron" src="app-icons/arrow-down.svg" alt="" aria-hidden="true" />
       </button>
@@ -85,6 +87,19 @@
         <button class="topbar__menu-item topbar__menu-item--profile" type="button" role="menuitem" (click)="openProfile()">
           <img src="app-icons/account-circle.svg" alt="" aria-hidden="true" />
           Profil
+        </button>
+        <button
+          class="topbar__menu-item"
+          type="button"
+          role="menuitem"
+          aria-haspopup="dialog"
+          (click)="openSettings()"
+        >
+          <svg class="topbar__menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          Einstellungen
         </button>
         <button
           class="topbar__menu-item topbar__menu-item--theme"
@@ -110,66 +125,16 @@
           Log out
         </button>
       </div>
-      <div class="topbar__menu-sounds" role="group" aria-labelledby="topbar-sounds-title">
-        <h3 class="topbar__menu-sounds-title" id="topbar-sounds-title">Sounds</h3>
-        <button
-          class="topbar__sound-switch"
-          type="button"
-          role="switch"
-          [attr.aria-checked]="soundEnabled()"
-          (click)="toggleSoundEnabled()"
-        >
-          <span class="topbar__sound-switch-label">Soundeffekte</span>
-          <span class="topbar__switch-track" aria-hidden="true">
-            <span class="topbar__switch-thumb"></span>
-          </span>
-        </button>
-        <div class="topbar__sound-volume">
-          <label class="topbar__sound-volume-label" for="topbar-sound-volume">Lautstärke</label>
-          <input
-            class="topbar__sound-volume-slider"
-            id="topbar-sound-volume"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            [value]="volumePercent()"
-            [style.--volume-fill]="volumeFillStyle()"
-            [attr.aria-valuetext]="volumePercent() + ' %'"
-            [disabled]="!soundEnabled()"
-            (input)="onVolumeInput($event)"
-            (pointerdown)="$event.stopPropagation()"
-          />
-          <button
-            class="topbar__sound-preview"
-            type="button"
-            aria-label="Sound testen"
-            [disabled]="!soundEnabled()"
-            (click)="previewSound()"
-          >
-            Testen
-          </button>
-        </div>
-        <button
-          class="topbar__sound-switch"
-          type="button"
-          role="switch"
-          [attr.aria-checked]="swipeSoundEnabled()"
-          [disabled]="!soundEnabled()"
-          (click)="toggleSwipeSound()"
-        >
-          <span class="topbar__sound-switch-label">Sound der Seitenleiste</span>
-          <span class="topbar__switch-track" aria-hidden="true">
-            <span class="topbar__switch-thumb"></span>
-          </span>
-        </button>
-      </div>
       <nav class="topbar__menu-legal" aria-label="Rechtliches">
         <a class="topbar__menu-legal-link" routerLink="/impressum" (click)="close()">Impressum</a>
         <a class="topbar__menu-legal-link" routerLink="/datenschutz" (click)="close()">Datenschutz</a>
       </nav>
     </div>
   </app-dialog-shell>
+}
+
+@if (isSettingsOpen()) {
+  <app-settings-dialog (closed)="isSettingsOpen.set(false)" />
 }
 
 @if (profileUid(); as uid) {

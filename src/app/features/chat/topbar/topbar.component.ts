@@ -19,19 +19,19 @@ import { SearchBarComponent } from '../../search/search-bar/search-bar.component
 import { AuroraNameComponent } from '../../../shared/aurora-name/aurora-name.component';
 import { AvatarActivatorDirective } from '../../../shared/avatar/avatar-activator.directive';
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
+import { PresenceDotComponent } from '../../../shared/presence-dot/presence-dot.component';
 import {
   DialogAnchor,
   DialogShellComponent,
   anchorBelow,
 } from '../../../shared/dialog-shell/dialog-shell.component';
 import { APP_NAME, WORKSPACE_NAME } from '../../../shared/app.constants';
-import { SoundService } from '../../../services/sound.service';
+import { SettingsDialogComponent } from '../../settings/settings-dialog/settings-dialog.component';
 import { ThemeService } from '../../../services/theme.service';
 
 const GUEST_NAME = 'Gast';
 const DARK_MODE_LABEL = 'Dark Mode';
 const LIGHT_MODE_LABEL = 'Light Mode';
-const VOLUME_PERCENT_MAX = 100;
 
 type TopbarState = 'closed' | 'menu';
 
@@ -52,10 +52,12 @@ type TopbarState = 'closed' | 'menu';
     AuroraNameComponent,
     AvatarComponent,
     AvatarActivatorDirective,
+    PresenceDotComponent,
     RouterLink,
+    SettingsDialogComponent,
   ],
   templateUrl: './topbar.component.html',
-  styleUrls: ['./topbar.component.scss', './topbar-sounds.scss'],
+  styleUrl: './topbar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TopbarComponent {
@@ -72,8 +74,6 @@ export class TopbarComponent {
   private readonly threadService = inject(ThreadService);
 
   private readonly themeService = inject(ThemeService);
-
-  private readonly soundService = inject(SoundService);
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -95,16 +95,6 @@ export class TopbarComponent {
 
   protected readonly workspaceName = WORKSPACE_NAME;
 
-  protected readonly soundEnabled = this.soundService.soundEnabled;
-
-  protected readonly swipeSoundEnabled = this.soundService.swipeSoundEnabled;
-
-  protected readonly volumePercent = computed(() =>
-    Math.round(this.soundService.soundVolume() * VOLUME_PERCENT_MAX),
-  );
-
-  protected readonly volumeFillStyle = computed(() => `${this.volumePercent()}%`);
-
   protected readonly isMobile = this.layoutService.isMobile;
 
   protected readonly showBack = computed(
@@ -116,6 +106,8 @@ export class TopbarComponent {
   protected readonly profileUid = signal<string | null>(null);
 
   protected readonly menuAnchor = signal<DialogAnchor | null>(null);
+
+  protected readonly isSettingsOpen = signal(false);
 
   protected readonly selfUid = computed(() => this.authService.currentUser()?.uid ?? null);
 
@@ -171,36 +163,12 @@ export class TopbarComponent {
 
 
   /**
-   * Toggles all UI sound effects (master toggle).
+   * Switches from the menu to the settings dialog, so focus lands in the
+   * dialog and returns to the profile trigger when it closes.
    */
-  protected toggleSoundEnabled(): void {
-    this.soundService.setSoundEnabled(!this.soundEnabled());
-  }
-
-
-  /**
-   * Toggles the opt-in sidebar toggle sound.
-   */
-  protected toggleSwipeSound(): void {
-    this.soundService.setSwipeSoundEnabled(!this.swipeSoundEnabled());
-  }
-
-
-  /**
-   * Applies a volume-slider change to the sound service.
-   * @param event Input event of the volume range slider.
-   */
-  protected onVolumeInput(event: Event): void {
-    const value = Number((event.target as HTMLInputElement).value);
-    this.soundService.setSoundVolume(value / VOLUME_PERCENT_MAX);
-  }
-
-
-  /**
-   * Plays the send sound at the current volume as a preview.
-   */
-  protected previewSound(): void {
-    this.soundService.play('send');
+  protected openSettings(): void {
+    this.state.set('closed');
+    this.isSettingsOpen.set(true);
   }
 
 

@@ -198,8 +198,7 @@
 }
 
 .topbar__avatar-wrap {
-  position: relative;
-  flex-shrink: 0;
+  @include m.avatar-status-wrap;
 }
 
 .topbar__avatar {
@@ -207,16 +206,6 @@
   height: v.$avatar-topbar;
   border-radius: v.$radius-round;
   object-fit: cover;
-}
-
-.topbar__status {
-  @include m.status-dot;
-  width: 16px;
-  height: 16px;
-
-  position: absolute;
-  right: 0;
-  bottom: 0;
 }
 
 .topbar__chevron {

@@ -1,0 +1,63 @@
+<app-dialog-shell size="settings" labelledBy="settings-dialog-title" (closed)="closed.emit()">
+  <header class="settings-dialog__head">
+    <h2 class="settings-dialog__title" id="settings-dialog-title">Einstellungen</h2>
+    <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="closed.emit()">
+      <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+    </button>
+  </header>
+
+  <section class="settings-dialog__section" aria-labelledby="settings-sounds-title">
+    <h3 class="settings-dialog__section-title" id="settings-sounds-title">Sounds</h3>
+    <button
+      class="settings-dialog__sound-switch"
+      type="button"
+      role="switch"
+      [attr.aria-checked]="soundEnabled()"
+      (click)="toggleSoundEnabled()"
+    >
+      <span class="settings-dialog__sound-switch-label">Soundeffekte</span>
+      <span class="settings-dialog__switch-track" aria-hidden="true">
+        <span class="settings-dialog__switch-thumb"></span>
+      </span>
+    </button>
+    <div class="settings-dialog__sound-volume">
+      <label class="settings-dialog__sound-volume-label" for="settings-sound-volume">Lautstärke</label>
+      <input
+        class="settings-dialog__sound-volume-slider"
+        id="settings-sound-volume"
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        [value]="volumePercent()"
+        [style.--volume-fill]="volumeFillStyle()"
+        [attr.aria-valuetext]="volumePercent() + ' %'"
+        [disabled]="!soundEnabled()"
+        (input)="onVolumeInput($event)"
+        (pointerdown)="$event.stopPropagation()"
+      />
+      <button
+        class="settings-dialog__sound-preview"
+        type="button"
+        aria-label="Sound testen"
+        [disabled]="!soundEnabled()"
+        (click)="previewSound()"
+      >
+        Testen
+      </button>
+    </div>
+    <button
+      class="settings-dialog__sound-switch"
+      type="button"
+      role="switch"
+      [attr.aria-checked]="swipeSoundEnabled()"
+      [disabled]="!soundEnabled()"
+      (click)="toggleSwipeSound()"
+    >
+      <span class="settings-dialog__sound-switch-label">Sound der Seitenleiste</span>
+      <span class="settings-dialog__switch-track" aria-hidden="true">
+        <span class="settings-dialog__switch-thumb"></span>
+      </span>
+    </button>
+  </section>
+</app-dialog-shell>
