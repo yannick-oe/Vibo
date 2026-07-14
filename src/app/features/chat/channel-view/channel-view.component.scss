@@ -22,6 +22,28 @@
   z-index: v.$z-raised;
 }
 
+// The identity column reserves the topic line even while it is empty, so a
+// first-ever topic never shifts the header (CLS 0).
+.channel__identity {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.channel__topic {
+  align-self: stretch;
+  min-height: calc(1em * #{v.$line-height-base});
+  padding: 0 v.space('sm-md');
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: v.font-size('min');
+  line-height: v.$line-height-base;
+  color: v.color('text-gray');
+}
+
 .channel__title {
   display: flex;
   align-items: center;

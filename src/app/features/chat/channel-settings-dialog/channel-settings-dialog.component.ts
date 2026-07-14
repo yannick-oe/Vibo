@@ -1,6 +1,7 @@
 /**
- * @file Channel settings dialog: per-field editing of name and
- * description, creator display and leaving the channel.
+ * @file Channel settings dialog: per-field editing of name, description
+ * and the creator-only topic, invite entry point, creator display and
+ * leaving the channel.
  */
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
@@ -10,16 +11,16 @@ import { UserDoc } from '../../../models/user.model';
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
 import { LayoutService } from '../../../services/layout.service';
-import { PresenceService } from '../../../services/presence.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
-import { DEFAULT_CHANNEL_CREATED_BY } from '../../../shared/channels.constants';
+import { DEFAULT_CHANNEL_CREATED_BY, TOPIC_MAX_LENGTH } from '../../../shared/channels.constants';
 import {
   DialogAnchor,
   DialogShellComponent,
 } from '../../../shared/dialog-shell/dialog-shell.component';
+import { PresenceDotComponent } from '../../../shared/presence-dot/presence-dot.component';
 
 const NAME_REQUIRED_ERROR = 'Bitte gib einen Channel-Namen ein.';
 const NAME_DUPLICATE_ERROR = 'Ein Channel mit diesem Namen existiert bereits.';
@@ -45,7 +46,7 @@ interface MemberRow {
  */
 @Component({
   selector: 'app-channel-settings-dialog',
-  imports: [AvatarFallbackDirective, DialogShellComponent],
+  imports: [AvatarFallbackDirective, DialogShellComponent, PresenceDotComponent],
   templateUrl: './channel-settings-dialog.component.html',
   styleUrl: './channel-settings-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -61,13 +62,13 @@ export class ChannelSettingsDialogComponent {
 
   readonly addMembersRequested = output<void>();
 
+  readonly inviteRequested = output<void>();
+
   private readonly channelService = inject(ChannelService);
 
   private readonly userService = inject(UserService);
 
   private readonly authService = inject(AuthService);
-
-  protected readonly presenceService = inject(PresenceService);
 
   private readonly layoutService = inject(LayoutService);
 
@@ -79,9 +80,13 @@ export class ChannelSettingsDialogComponent {
 
   protected readonly isEditingDescription = signal(false);
 
+  protected readonly isEditingTopic = signal(false);
+
   protected readonly nameDraft = signal('');
 
   protected readonly descriptionDraft = signal('');
+
+  protected readonly topicDraft = signal('');
 
   protected readonly nameError = signal('');
 
@@ -89,7 +94,15 @@ export class ChannelSettingsDialogComponent {
 
   protected readonly isMobile = this.layoutService.isMobile;
 
+  protected readonly topicMax = TOPIC_MAX_LENGTH;
+
   protected readonly hasCreator = computed(() => Boolean(this.channel().createdBy));
+
+  protected readonly canEditTopic = computed(
+    () =>
+      this.channel().createdBy === this.authService.currentUser()?.uid &&
+      !this.authService.isGuest(),
+  );
 
   protected readonly members = computed(() => this.resolveMembers());
 
@@ -120,13 +133,23 @@ export class ChannelSettingsDialogComponent {
 
 
   /**
+   * Switches the topic field into edit mode (creator only).
+   */
+  protected startTopicEdit(): void {
+    this.topicDraft.set(this.channel().topic ?? '');
+    this.isEditingTopic.set(true);
+  }
+
+
+  /**
    * Syncs a draft signal with its input element.
    * @param target Draft signal to update.
    * @param event Input event of the field.
    */
-  protected syncDraft(target: 'name' | 'description', event: Event): void {
+  protected syncDraft(target: 'name' | 'description' | 'topic', event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     if (target === 'name') this.nameDraft.set(value);
+    else if (target === 'topic') this.topicDraft.set(value);
     else this.descriptionDraft.set(value);
   }
 
@@ -157,6 +180,19 @@ export class ChannelSettingsDialogComponent {
       this.channelService.updateDescription(this.channel().id, this.descriptionDraft()),
     );
     this.isEditingDescription.set(false);
+  }
+
+
+  /**
+   * Saves the trimmed topic; an empty topic clears the header line.
+   */
+  protected async saveTopic(): Promise<void> {
+    if (!this.canEditTopic()) return;
+    this.isPending.set(true);
+    await this.persist(() =>
+      this.channelService.updateTopic(this.channel().id, this.topicDraft()),
+    );
+    this.isEditingTopic.set(false);
   }
 
 

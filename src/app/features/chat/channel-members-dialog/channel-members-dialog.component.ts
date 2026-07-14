@@ -7,7 +7,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { Channel } from '../../../models/channel.model';
 import { UserDoc } from '../../../models/user.model';
 import { AuthService } from '../../../services/auth.service';
-import { PresenceService } from '../../../services/presence.service';
 import { resolveAvatarPath } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
@@ -15,6 +14,7 @@ import {
   DialogAnchor,
   DialogShellComponent,
 } from '../../../shared/dialog-shell/dialog-shell.component';
+import { PresenceDotComponent } from '../../../shared/presence-dot/presence-dot.component';
 
 const SELF_SUFFIX = ' (Du)';
 
@@ -33,7 +33,7 @@ interface MemberRow {
  */
 @Component({
   selector: 'app-channel-members-dialog',
-  imports: [AvatarFallbackDirective, DialogShellComponent],
+  imports: [AvatarFallbackDirective, DialogShellComponent, PresenceDotComponent],
   templateUrl: './channel-members-dialog.component.html',
   styleUrl: './channel-members-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,8 +52,6 @@ export class ChannelMembersDialogComponent {
   private readonly userService = inject(UserService);
 
   private readonly authService = inject(AuthService);
-
-  protected readonly presenceService = inject(PresenceService);
 
   protected readonly members = computed(() => this.resolveMembers());
 

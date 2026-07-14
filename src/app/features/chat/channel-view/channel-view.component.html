@@ -1,17 +1,20 @@
 <section class="channel">
   <h1 class="sr-only">{{ channel()?.name }}</h1>
   <header class="channel__head">
-    <button
-      class="channel__title"
-      type="button"
-      aria-label="Channel-Details öffnen"
-      [attr.aria-expanded]="dialog() === 'settings'"
-      (click)="openDialog('settings', $event)"
-    >
-      <img class="channel__title-icon" src="app-icons/tag.svg" alt="" aria-hidden="true" />
-      <span class="channel__name">{{ channel()?.name }}</span>
-      <img class="channel__caret" src="app-icons/arrow-down.svg" alt="" aria-hidden="true" />
-    </button>
+    <div class="channel__identity">
+      <button
+        class="channel__title"
+        type="button"
+        aria-label="Channel-Details öffnen"
+        [attr.aria-expanded]="dialog() === 'settings'"
+        (click)="openDialog('settings', $event)"
+      >
+        <img class="channel__title-icon" src="app-icons/tag.svg" alt="" aria-hidden="true" />
+        <span class="channel__name">{{ channel()?.name }}</span>
+        <img class="channel__caret" src="app-icons/arrow-down.svg" alt="" aria-hidden="true" />
+      </button>
+      <p class="channel__topic" [title]="topic() || null">{{ topic() }}</p>
+    </div>
 
     <div class="channel__members">
       <button
@@ -96,6 +99,7 @@
         (closed)="dialog.set(null)"
         (memberSelected)="openProfile($event)"
         (addMembersRequested)="dialog.set('add')"
+        (inviteRequested)="dialog.set('invite')"
       />
     }
     @case ('members') {
@@ -109,6 +113,13 @@
     }
     @case ('add') {
       <app-channel-add-members-dialog
+        [channel]="currentChannel"
+        [anchor]="dialogAnchor()"
+        (closed)="dialog.set(null)"
+      />
+    }
+    @case ('invite') {
+      <app-channel-invite-dialog
         [channel]="currentChannel"
         [anchor]="dialogAnchor()"
         (closed)="dialog.set(null)"

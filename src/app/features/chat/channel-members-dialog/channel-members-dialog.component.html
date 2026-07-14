@@ -17,14 +17,9 @@
         >
           <span class="members__avatar-wrap">
             <img class="members__avatar" appAvatarFallback [src]="member.avatar" alt="" aria-hidden="true" />
-            <span
-              class="members__status"
-              [class.members__status--offline]="!presenceService.isOnline(member.uid)"
-              aria-hidden="true"
-            ></span>
+            <app-presence-dot [uid]="member.uid" />
           </span>
           {{ member.name }}
-          <span class="sr-only">{{ presenceService.isOnline(member.uid) ? 'online' : 'offline' }}</span>
         </button>
       </li>
     }

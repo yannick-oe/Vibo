@@ -1,0 +1,65 @@
+<app-dialog-shell [anchor]="anchor()" labelledBy="channel-invite-title" (closed)="closed.emit()">
+  <header class="invite__head">
+    <h2 class="invite__title" id="channel-invite-title">Einladungslinks</h2>
+    <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="closed.emit()">
+      <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+    </button>
+  </header>
+
+  <p class="invite__hint">
+    Mit einem Einladungslink kann jede angemeldete Person dem Channel
+    <strong># {{ channel().name }}</strong> beitreten. Links sind {{ ttlDays }} Tage gültig.
+  </p>
+
+  @if (isGuest()) {
+    <p class="invite__guest-note">{{ guestNote }}</p>
+  } @else {
+    <button class="btn btn-primary invite__create" type="button" [disabled]="isPending()" (click)="create()">
+      Einladungslink erstellen
+    </button>
+  }
+
+  @if (createdUrl(); as url) {
+    <div class="invite__created">
+      <p class="invite__created-url" [title]="url">{{ url }}</p>
+      <button class="btn btn-secondary invite__created-copy" type="button" (click)="copy(url)">
+        Kopieren
+      </button>
+    </div>
+  }
+
+  <section class="invite__section" aria-label="Aktive Einladungslinks">
+    <h3 class="invite__list-title">Aktive Links</h3>
+    @if (isLoading()) {
+      <p class="invite__empty" role="status">Wird geladen …</p>
+    } @else if (invites().length === 0) {
+      <p class="invite__empty">Keine aktiven Einladungslinks.</p>
+    } @else {
+      <ul class="invite__list">
+        @for (invite of invites(); track invite.token) {
+          <li class="invite__row">
+            <span class="invite__row-info">
+              <span class="invite__row-url" [title]="inviteUrl(invite)">{{ inviteUrl(invite) }}</span>
+              <span class="invite__row-expiry">{{ expiryText(invite) }}</span>
+            </span>
+            <span class="invite__row-actions">
+              <button class="invite__link-btn" type="button" (click)="copy(inviteUrl(invite))">
+                Kopieren
+              </button>
+              @if (canRevoke(invite)) {
+                <button
+                  class="invite__link-btn invite__link-btn--danger"
+                  type="button"
+                  [disabled]="isPending()"
+                  (click)="revoke(invite)"
+                >
+                  Widerrufen
+                </button>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</app-dialog-shell>

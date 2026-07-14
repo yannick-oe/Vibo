@@ -34,6 +34,7 @@ import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { DialogAnchor, anchorBelow } from '../../../shared/dialog-shell/dialog-anchor';
 import { ChannelAddMembersDialogComponent } from '../channel-add-members-dialog/channel-add-members-dialog.component';
+import { ChannelInviteDialogComponent } from '../channel-invite-dialog/channel-invite-dialog.component';
 import { ChannelMembersDialogComponent } from '../channel-members-dialog/channel-members-dialog.component';
 import { ChannelSettingsDialogComponent } from '../channel-settings-dialog/channel-settings-dialog.component';
 import { MessageInputComponent, ReplyContext } from '../message-input/message-input.component';
@@ -46,7 +47,7 @@ const SEND_ERROR = 'Die Nachricht konnte nicht gesendet werden.';
 const HEAD_AVATAR_LIMIT = 3;
 const UNKNOWN_AUTHOR = 'Unbekannt';
 
-type ChannelDialog = 'settings' | 'members' | 'add';
+type ChannelDialog = 'settings' | 'members' | 'add' | 'invite';
 
 /**
  * Chat view of a channel per Figma frames 06/09: header with name and
@@ -57,6 +58,7 @@ type ChannelDialog = 'settings' | 'members' | 'add';
   selector: 'app-channel-view',
   imports: [
     ChannelAddMembersDialogComponent,
+    ChannelInviteDialogComponent,
     ChannelMembersDialogComponent,
     ChannelSettingsDialogComponent,
     MessageInputComponent,
@@ -126,6 +128,8 @@ export class ChannelViewComponent {
   protected readonly channel = computed<Channel | undefined>(() =>
     this.channelService.channels().find(channel => channel.id === this.channelId()),
   );
+
+  protected readonly topic = computed(() => this.channel()?.topic ?? '');
 
   private readonly resolvedMembers = computed(() => this.resolveMembers());
 

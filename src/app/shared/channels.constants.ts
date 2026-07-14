@@ -17,3 +17,6 @@ export const DEFAULT_CHANNEL_DESCRIPTION =
 
 /** createdBy marker for the system-seeded default channel (no real user). */
 export const DEFAULT_CHANNEL_CREATED_BY = 'system';
+
+/** Maximum length of the one-line channel topic (mirrored in the rules). */
+export const TOPIC_MAX_LENGTH = 120;

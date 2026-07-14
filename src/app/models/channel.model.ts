@@ -14,6 +14,8 @@ export interface ChannelDoc {
   nameLower: string;
   /** Short description shown in the channel details. */
   description: string;
+  /** One-line topic in the chat header; creator-editable, length-capped. */
+  topic?: string;
   /** Uid of the user who created the channel. */
   createdBy: string;
   /** Uids of all channel members. */

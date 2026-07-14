@@ -49,6 +49,47 @@
 
   <section class="settings__card">
     <div class="settings__card-head">
+      <span class="settings__label">Thema</span>
+      @if (canEditTopic() && isMobile()) {
+        <button
+          class="settings__icon-btn"
+          type="button"
+          [attr.aria-label]="isEditingTopic() ? 'Thema speichern' : 'Thema bearbeiten'"
+          [disabled]="isEditingTopic() && isPending()"
+          (click)="isEditingTopic() ? saveTopic() : startTopicEdit()"
+        >
+          <img [src]="isEditingTopic() ? 'app-icons/check-circle.svg' : 'app-icons/edit.svg'" alt="" aria-hidden="true" />
+        </button>
+      } @else if (canEditTopic() && isEditingTopic()) {
+        <button class="settings__link" type="button" [disabled]="isPending()" (click)="saveTopic()">
+          Speichern
+        </button>
+      } @else if (canEditTopic()) {
+        <button class="settings__link" type="button" (click)="startTopicEdit()">Bearbeiten</button>
+      }
+    </div>
+    @if (isEditingTopic()) {
+      <label class="sr-only" for="settings-topic">Thema</label>
+      <input
+        id="settings-topic"
+        class="form-input form-input--outlined"
+        type="text"
+        [value]="topicDraft()"
+        (input)="syncDraft('topic', $event)"
+        [attr.maxlength]="topicMax"
+        placeholder="Worum geht es in diesem Channel?"
+        aria-describedby="settings-topic-counter"
+      />
+      <p class="settings__topic-counter" id="settings-topic-counter">
+        {{ topicDraft().length }}/{{ topicMax }} Zeichen
+      </p>
+    } @else {
+      <p class="settings__value">{{ channel().topic || 'Kein Thema festgelegt.' }}</p>
+    }
+  </section>
+
+  <section class="settings__card">
+    <div class="settings__card-head">
       <span class="settings__label">Beschreibung</span>
       @if (isMobile()) {
         <button
@@ -92,6 +133,15 @@
     }
   </section>
 
+  <section class="settings__card">
+    <div class="settings__card-head">
+      <span class="settings__label">Einladungen</span>
+      <button class="settings__link" type="button" (click)="inviteRequested.emit()">
+        Einladungslink erstellen
+      </button>
+    </div>
+  </section>
+
   @if (isMobile()) {
     <section class="settings__card">
       <h3 class="settings__members-title">Mitglieder</h3>
@@ -106,14 +156,9 @@
             >
               <span class="settings__member-avatar-wrap">
                 <img class="settings__member-avatar" appAvatarFallback [src]="member.avatar" alt="" aria-hidden="true" />
-                <span
-                  class="settings__member-status"
-                  [class.settings__member-status--offline]="!presenceService.isOnline(member.uid)"
-                  aria-hidden="true"
-                ></span>
+                <app-presence-dot [uid]="member.uid" />
               </span>
               {{ member.name }}
-              <span class="sr-only">{{ presenceService.isOnline(member.uid) ? 'online' : 'offline' }}</span>
             </button>
           </li>
         }

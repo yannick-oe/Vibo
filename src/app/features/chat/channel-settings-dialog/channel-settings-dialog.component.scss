@@ -64,6 +64,11 @@
   overflow-wrap: anywhere;
 }
 
+.settings__topic-counter {
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+}
+
 .settings__creator {
   display: flex;
   flex-direction: column;
@@ -153,8 +158,7 @@
 }
 
 .settings__member-avatar-wrap {
-  position: relative;
-  flex-shrink: 0;
+  @include m.avatar-status-wrap;
 }
 
 .settings__member-avatar {
@@ -162,17 +166,6 @@
   height: v.$avatar-md;
   border-radius: v.$radius-round;
   object-fit: cover;
-}
-
-.settings__member-status {
-  @include m.status-dot;
-  position: absolute;
-  right: 0;
-  bottom: 0;
-
-  &--offline {
-    background-color: v.color('text-gray');
-  }
 }
 
 .settings__member-add-icon {
