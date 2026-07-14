@@ -34,4 +34,6 @@ export interface UserDoc {
   createdAt: Timestamp | FieldValue;
   /** Last presence heartbeat; serverTimestamp() on write, Timestamp on read. */
   lastActive?: Timestamp | FieldValue;
+  /** Session presence, written only on transitions; offline derives from lastActive. */
+  presence?: 'online' | 'away';
 }
