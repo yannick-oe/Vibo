@@ -4,7 +4,12 @@
     type="button"
     [class.chips__chip--active]="hasReacted(entry)"
     [attr.aria-label]="reactionLabel(entry)"
+    [attr.aria-describedby]="describedBy(entry)"
     (click)="toggled.emit(entry.emoji)"
+    (pointerenter)="onChipEnter($event, entry)"
+    (pointerleave)="onChipLeave()"
+    (focus)="onChipFocus($event, entry)"
+    (blur)="onChipBlur()"
   >
     @if (assetFor(entry.emoji); as asset) {
       <img class="chips__emoji" [src]="asset" [alt]="nameFor(entry.emoji)" />
@@ -12,12 +17,6 @@
       <span aria-hidden="true">{{ entry.emoji }}</span>
     }
     <span class="chips__count">{{ entry.uids.length }}</span>
-    <span class="chips__tooltip" role="tooltip">
-      @if (assetFor(entry.emoji); as asset) {
-        <img class="chips__tooltip-emoji" [src]="asset" alt="" aria-hidden="true" />
-      }
-      {{ reactorNames(entry) }}
-    </span>
   </button>
 }
 

@@ -7,8 +7,13 @@
       [class.system-message__wave--active]="hasWaved()"
       [attr.aria-pressed]="hasWaved()"
       [attr.aria-label]="waveLabel()"
+      [attr.aria-describedby]="waveDescribedBy()"
       [disabled]="messagePath() === null"
       (click)="wave()"
+      (pointerenter)="onWaveEnter($event)"
+      (pointerleave)="onWaveLeave()"
+      (focus)="onWaveFocus($event)"
+      (blur)="onWaveBlur()"
     >
       <img class="system-message__emoji" [src]="waveAsset" [alt]="waveEmoji" />
       <span class="system-message__wave-text">Winken</span>

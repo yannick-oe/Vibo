@@ -1,0 +1,15 @@
+@if (view(); as view) {
+  <div #bubble class="bubble" [id]="tooltipId" role="tooltip">
+    @if (view.asset) {
+      <img class="bubble__emoji" [src]="view.asset" alt="" />
+    } @else {
+      <span class="bubble__emoji-fallback" aria-hidden="true">{{ view.emoji }}</span>
+    }
+    <span class="bubble__avatars" aria-hidden="true">
+      @for (uid of view.visibleUids; track uid) {
+        <img class="bubble__avatar" [src]="avatarSrcFor(uid)" alt="" />
+      }
+    </span>
+    <span class="bubble__names">{{ namesText() }}</span>
+  </div>
+}

@@ -47,40 +47,6 @@
   height: v.$icon-sm;
 }
 
-.chips__tooltip-emoji {
-  width: v.$icon-sm;
-  height: v.$icon-sm;
-}
-
-.chips__tooltip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: v.space('xs');
-  position: absolute;
-  bottom: calc(100% + #{v.space('xs')});
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: v.$z-tooltip;
-  padding: v.space('xs') v.space('md');
-  border: 1px solid v.color('lines');
-  border-radius: v.$radius-sm;
-  background-color: v.color('white');
-  box-shadow: v.$shadow-md;
-  font-size: v.font-size('min');
-  color: v.color('black');
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity v.$transition-fast;
-}
-
-.chips__chip:hover .chips__tooltip,
-.chips__chip:focus-visible .chips__tooltip {
-  opacity: 1;
-}
-
 .chips__add {
   @include m.flex-center;
 
@@ -103,11 +69,5 @@
   img {
     width: v.$icon-sm;
     height: v.$icon-sm;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chips__tooltip {
-    transition: none;
   }
 }

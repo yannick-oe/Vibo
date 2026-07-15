@@ -1,0 +1,66 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.bubble {
+  @include m.glass;
+
+  position: fixed;
+  z-index: v.$z-tooltip;
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  max-width: v.$reaction-tooltip-max-width;
+  padding: v.space('sm') v.space('md');
+  border-radius: v.$radius-md;
+  font-size: v.font-size('min');
+  color: v.color('black');
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity v.$transition-fast;
+}
+
+.bubble--placed {
+  opacity: 1;
+}
+
+.bubble__emoji {
+  flex-shrink: 0;
+  width: v.$icon-md;
+  height: v.$icon-md;
+}
+
+.bubble__emoji-fallback {
+  flex-shrink: 0;
+  font-size: v.font-size('body');
+  line-height: 1;
+}
+
+.bubble__avatars {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.bubble__avatar {
+  width: v.$avatar-xs;
+  height: v.$avatar-xs;
+  border: 1px solid v.color('white');
+  border-radius: v.$radius-round;
+  object-fit: cover;
+
+  &:not(:first-child) {
+    margin-left: calc(-1 * v.space('xs'));
+  }
+}
+
+.bubble__names {
+  @include m.text-ellipsis;
+
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble {
+    transition: none;
+  }
+}

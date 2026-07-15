@@ -25,6 +25,7 @@ import { NotificationToastComponent } from '../../../shared/notification-toast/n
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { ChannelCreateDialogComponent } from '../channel-create-dialog/channel-create-dialog.component';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
+import { ReactionDetailsTooltipComponent } from '../reaction-details/reaction-details-tooltip.component';
 import { ThreadPanelComponent } from '../thread-panel/thread-panel.component';
 import { TopbarComponent } from '../topbar/topbar.component';
 import { WorkspaceMenuComponent } from '../workspace-menu/workspace-menu.component';
@@ -54,6 +55,7 @@ type MobileView = 'menu' | 'chat' | 'thread';
     CommandPaletteComponent,
     NotificationToastComponent,
     ProfileDialogComponent,
+    ReactionDetailsTooltipComponent,
     RouterOutlet,
     ThreadPanelComponent,
     TopbarComponent,
