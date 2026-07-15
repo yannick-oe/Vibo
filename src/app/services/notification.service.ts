@@ -33,7 +33,7 @@ import { NotificationFeedService } from './notification-feed.service';
 import { NotificationToastService } from './notification-toast.service';
 import { ConversationMeta, ReadMarker, ReadStateService } from './read-state.service';
 import { UserService } from './user.service';
-import { resolveAvatarPath } from './registration.service';
+import { resolveAvatarStillSrc } from './registration.service';
 import {
   ConversationWatch,
   buildWatchList,
@@ -261,7 +261,7 @@ export class NotificationService {
     const sender = this.senderDoc(authorId);
     this.toastService.show({
       senderName: sender?.name ?? UNKNOWN_SENDER,
-      senderAvatar: resolveAvatarPath(sender?.avatarPath),
+      senderAvatar: resolveAvatarStillSrc(sender?.avatarPath),
       context: this.contextLabel(watch),
       action: null,
       emoji: null,

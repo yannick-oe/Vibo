@@ -28,7 +28,7 @@ import { catchError, map, of, switchMap, timer } from 'rxjs';
 import { UserDoc } from '../../../models/user.model';
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
-import { resolveAvatarPath } from '../../../services/registration.service';
+import { resolveAvatarStillSrc } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { WORKSPACE_NAME } from '../../../shared/app.constants';
@@ -187,12 +187,13 @@ export class ChannelCreateDialogComponent implements AfterViewInit {
 
 
   /**
-   * Maps a user document's avatar path to an absolute asset URL; external
-   * URLs fall back to the placeholder because avatars are local-path based.
+   * Maps a user document's avatar path to its lightest still rendition
+   * (static WebP when one ships); external URLs fall back to the placeholder
+   * because avatars are local-path based.
    * @param path Avatar path stored on the user document.
    */
   protected avatarSrc(path: string): string {
-    return resolveAvatarPath(path);
+    return resolveAvatarStillSrc(path);
   }
 
 

@@ -25,7 +25,7 @@ import { FriendshipService } from '../../../services/friendship.service';
 import { MessageService, conversationDocPath } from '../../../services/message.service';
 import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { ReadEntry, ReadStateService } from '../../../services/read-state.service';
-import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
+import { DEFAULT_AVATAR_PATH, resolveAvatarStillSrc } from '../../../services/registration.service';
 import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
@@ -146,7 +146,7 @@ export class DirectMessageViewComponent {
     () => `${this.partnerName()}${this.isSelf() ? SELF_SUFFIX : ''}`,
   );
 
-  protected readonly partnerAvatar = computed(() => resolveAvatarPath(this.partnerDoc()?.avatarPath));
+  protected readonly partnerAvatar = computed(() => resolveAvatarStillSrc(this.partnerDoc()?.avatarPath));
 
   protected readonly partnerAvatarPath = computed(
     () => this.partnerDoc()?.avatarPath ?? DEFAULT_AVATAR_PATH,

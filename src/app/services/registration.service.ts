@@ -4,7 +4,7 @@
  */
 import { Injectable, computed, signal } from '@angular/core';
 
-import { isKnownAvatar } from '../shared/avatar-media';
+import { isKnownAvatar, resolveAvatarStill } from '../shared/avatar-media';
 
 export const DEFAULT_AVATAR_PATH = 'avatars/gast.jpeg';
 
@@ -20,6 +20,19 @@ export const REMOTE_AVATAR_PREFIX = 'http';
 export function resolveAvatarPath(path?: string | null): string {
   if (!path || path.startsWith(REMOTE_AVATAR_PREFIX) || !isKnownAvatar(path)) return DEFAULT_AVATAR_PATH;
   return path;
+}
+
+
+/**
+ * Resolves a stored avatar reference to its lightest still rendition for
+ * list-size surfaces (rows, chips, member stacks, toasts): the reference is
+ * normalized via {@link resolveAvatarPath}, then the small static WebP
+ * replaces the heavy source JPEG wherever one ships.
+ * @param path Stored avatarPath (local asset path), or null/undefined.
+ */
+export function resolveAvatarStillSrc(path?: string | null): string {
+  const resolved = resolveAvatarPath(path);
+  return resolveAvatarStill(resolved) ?? resolved;
 }
 
 /** Values collected by the registration form step. */

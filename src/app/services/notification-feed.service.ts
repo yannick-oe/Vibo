@@ -39,7 +39,7 @@ import { MessageFocusService } from './message-focus.service';
 import { ThreadService } from './thread.service';
 import { NotificationToastService } from './notification-toast.service';
 import { UserService } from './user.service';
-import { resolveAvatarPath } from './registration.service';
+import { resolveAvatarStillSrc } from './registration.service';
 import { parseOpenKey } from './notification.util';
 import {
   NotificationGroup,
@@ -306,7 +306,7 @@ export class NotificationFeedService {
     const actor = this.userService.users().find(user => user.uid === entry.actorUid);
     this.toastService.show({
       senderName: actor?.name ?? UNKNOWN_ACTOR,
-      senderAvatar: resolveAvatarPath(actor?.avatarPath),
+      senderAvatar: resolveAvatarStillSrc(actor?.avatarPath),
       context: this.contextLabelOf(entry),
       action: actionLabel(entry.kind),
       emoji: entry.emoji ? toastEmojiOf(entry.emoji) : null,

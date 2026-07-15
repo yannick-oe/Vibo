@@ -26,7 +26,7 @@ import {
   groupTitle,
   toastEmojiOf,
 } from '../../../services/notification-feed.util';
-import { resolveAvatarPath } from '../../../services/registration.service';
+import { resolveAvatarStillSrc } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import {
@@ -219,11 +219,11 @@ export class NotificationCenterComponent {
 
 
   /**
-   * Maps an avatar path to a renderable asset path.
+   * Maps an avatar path to its lightest renderable still rendition.
    * @param path Stored avatar path.
    */
   protected avatarSrc(path: string): string {
-    return resolveAvatarPath(path);
+    return resolveAvatarStillSrc(path);
   }
 
 
@@ -258,7 +258,7 @@ export class NotificationCenterComponent {
       key: group.key,
       title: groupTitle(group, actor?.name ?? UNKNOWN_NAME),
       preview: this.activityPreviewFor(group),
-      avatarPath: resolveAvatarPath(actor?.avatarPath),
+      avatarPath: resolveAvatarStillSrc(actor?.avatarPath),
       emoji: group.latest.emoji ? toastEmojiOf(group.latest.emoji) : null,
       group,
     };

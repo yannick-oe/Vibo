@@ -22,7 +22,7 @@ import { DirectMessageService } from '../../../services/direct-message.service';
 import { Channel } from '../../../models/channel.model';
 import { ChannelService } from '../../../services/channel.service';
 import { MessageService } from '../../../services/message.service';
-import { resolveAvatarPath } from '../../../services/registration.service';
+import { resolveAvatarStillSrc } from '../../../services/registration.service';
 import { ChannelHit, UserHit } from '../../../services/search.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
@@ -276,9 +276,10 @@ export class NewMessageComponent implements AfterViewInit {
 
 
 /**
- * Maps an avatar path to an absolute asset URL with placeholder fallback.
+ * Maps an avatar path to its lightest still rendition (static WebP when
+ * one ships) with placeholder fallback.
  * @param path Avatar path stored on a user document.
  */
 function avatarUrl(path: string): string {
-  return resolveAvatarPath(path);
+  return resolveAvatarStillSrc(path);
 }

@@ -6,7 +6,7 @@
  */
 import { Channel } from '../../models/channel.model';
 import { UserDoc } from '../../models/user.model';
-import { resolveAvatarPath } from '../../services/registration.service';
+import { resolveAvatarStillSrc } from '../../services/registration.service';
 import { Suggestion } from '../../shared/suggestion-dropdown/suggestion-dropdown.component';
 
 /** Open mention context inside the composer textarea. */
@@ -56,7 +56,7 @@ export function buildUserSuggestions(users: UserDoc[], query: string): Suggestio
     .map(user => ({
       id: user.uid,
       label: user.name,
-      avatar: resolveAvatarPath(user.avatarPath),
+      avatar: resolveAvatarStillSrc(user.avatarPath),
       presenceUid: user.uid,
     }));
 }

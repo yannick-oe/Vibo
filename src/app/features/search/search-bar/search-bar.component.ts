@@ -20,7 +20,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { LayoutService } from '../../../services/layout.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
-import { resolveAvatarPath } from '../../../services/registration.service';
+import { resolveAvatarStillSrc } from '../../../services/registration.service';
 import {
   ChannelHit,
   MessageHit,
@@ -173,12 +173,12 @@ export class SearchBarComponent {
 
 
   /**
-   * Builds the avatar URL of a user hit.
+   * Builds the avatar still-rendition URL of a user hit.
    * @param hit User search hit.
    */
   protected avatarSrc(hit: UserHit): string {
     const path = hit.avatarPath;
-    return resolveAvatarPath(path);
+    return resolveAvatarStillSrc(path);
   }
 
 

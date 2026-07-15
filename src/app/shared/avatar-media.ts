@@ -14,7 +14,8 @@ export interface AvatarMedia {
  * — `<stem>_static.webp`, `<stem>_256.webp` and `<stem>_384.webp` — in
  * public/avatars/. Add a stem here only once its three files are present,
  * otherwise the rendered `<img>` would request a missing file and 404. The
- * `gast` placeholder has no set and therefore stays a JPEG.
+ * `gast` placeholder has no animated set; it ships only the derived
+ * `gast_static.webp` still (see STILL_ONLY_STEMS).
  */
 export const ANIMATED_AVATAR_STEMS: ReadonlySet<string> = new Set<string>([
   'alien',
@@ -73,4 +74,27 @@ export function resolveAvatarMedia(avatarPath: string): AvatarMedia | null {
   const dot = avatarPath.lastIndexOf('.');
   const root = dot === -1 ? avatarPath : avatarPath.slice(0, dot);
   return { still: `${root}${STILL_SUFFIX}`, small: `${root}${SMALL_SUFFIX}`, large: `${root}${LARGE_SUFFIX}` };
+}
+
+
+/**
+ * Stems that ship only a static WebP rendition, no animated set. The guest
+ * placeholder's 1254px source JPEG (~345 kB) is far too heavy for avatar
+ * surfaces, so a derived `gast_static.webp` serves all of them instead.
+ */
+const STILL_ONLY_STEMS: ReadonlySet<string> = new Set<string>([PLACEHOLDER_STEM]);
+
+
+/**
+ * Resolves an avatar path to its static WebP rendition: available for every
+ * animated set and for the still-only guest placeholder; null when the stem
+ * ships no WebP, so callers keep the original asset path.
+ * @param avatarPath Avatar asset path from the user document.
+ */
+export function resolveAvatarStill(avatarPath: string): string | null {
+  const stem = avatarStem(avatarPath);
+  if (!ANIMATED_AVATAR_STEMS.has(stem) && !STILL_ONLY_STEMS.has(stem)) return null;
+  const dot = avatarPath.lastIndexOf('.');
+  const root = dot === -1 ? avatarPath : avatarPath.slice(0, dot);
+  return `${root}${STILL_SUFFIX}`;
 }

@@ -15,7 +15,11 @@ import {
   untracked,
 } from '@angular/core';
 
-import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../services/registration.service';
+import {
+  DEFAULT_AVATAR_PATH,
+  resolveAvatarPath,
+  resolveAvatarStillSrc,
+} from '../../services/registration.service';
 import { ReducedMotionService } from '../../services/reduced-motion.service';
 import { isKnownAvatar, resolveAvatarMedia } from '../avatar-media';
 
@@ -92,13 +96,15 @@ export class AvatarComponent {
 
 
   /**
-   * Resolves the base layer: the JPEG without a WebP set, the large animation
-   * for the continuously animated profile, otherwise the still frame.
+   * Resolves the base layer: the lightest still rendition without an animated
+   * set (the derived static WebP where one ships, e.g. the guest placeholder,
+   * else the JPEG), the large animation for the continuously animated
+   * profile, otherwise the set's still frame.
    */
   private resolveBaseSrc(): string {
-    if (!isKnownAvatar(this.avatarPath())) return resolveAvatarPath(DEFAULT_AVATAR_PATH);
+    if (!isKnownAvatar(this.avatarPath())) return resolveAvatarStillSrc(DEFAULT_AVATAR_PATH);
     const media = this.media();
-    if (!media) return resolveAvatarPath(this.avatarPath());
+    if (!media) return resolveAvatarStillSrc(this.avatarPath());
     if (CONTINUOUS_SURFACES.has(this.surface()) && !this.motion.prefersReducedMotion()) {
       return media.large;
     }

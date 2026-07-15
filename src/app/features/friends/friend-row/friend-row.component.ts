@@ -6,7 +6,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 
 import { ProfileOverlayService } from '../../../services/profile-overlay.service';
-import { resolveAvatarPath } from '../../../services/registration.service';
+import { resolveAvatarStillSrc } from '../../../services/registration.service';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import { FriendActionComponent } from '../../../shared/friend-action/friend-action.component';
 import { PresenceDotComponent } from '../../../shared/presence-dot/presence-dot.component';
@@ -37,7 +37,7 @@ export class FriendRowComponent {
 
   private readonly profileOverlay = inject(ProfileOverlayService);
 
-  protected readonly avatarSrc = computed(() => resolveAvatarPath(this.avatarPath()));
+  protected readonly avatarSrc = computed(() => resolveAvatarStillSrc(this.avatarPath()));
 
 
   /**

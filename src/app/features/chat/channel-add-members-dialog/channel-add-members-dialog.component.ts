@@ -9,7 +9,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Channel } from '../../../models/channel.model';
 import { UserDoc } from '../../../models/user.model';
 import { ChannelService } from '../../../services/channel.service';
-import { resolveAvatarPath } from '../../../services/registration.service';
+import { resolveAvatarStillSrc } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
@@ -81,11 +81,12 @@ export class ChannelAddMembersDialogComponent {
 
 
   /**
-   * Maps an avatar path to an absolute asset URL with placeholder fallback.
+   * Maps an avatar path to its lightest still rendition (static WebP when
+   * one ships) with placeholder fallback.
    * @param path Avatar path stored on a user document.
    */
   protected avatarSrc(path: string): string {
-    return resolveAvatarPath(path);
+    return resolveAvatarStillSrc(path);
   }
 
 

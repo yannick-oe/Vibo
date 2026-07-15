@@ -27,7 +27,7 @@ import { LayoutService } from '../../../services/layout.service';
 import { MessageService, channelMessagesPath, conversationDocPath } from '../../../services/message.service';
 import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { ReadEntry, ReadStateService } from '../../../services/read-state.service';
-import { resolveAvatarPath } from '../../../services/registration.service';
+import { resolveAvatarStillSrc } from '../../../services/registration.service';
 import { ThreadService } from '../../../services/thread.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
@@ -315,12 +315,12 @@ export class ChannelViewComponent {
 
 
   /**
-   * Maps an avatar path to an absolute asset URL; missing paths and
-   * external URLs fall back to the placeholder.
+   * Maps an avatar path to its lightest still rendition (static WebP when
+   * one ships); missing paths and external URLs fall back to the placeholder.
    * @param path Avatar path stored on a user document.
    */
   protected avatarSrc(path: string | undefined): string {
-    return resolveAvatarPath(path);
+    return resolveAvatarStillSrc(path);
   }
 
 

@@ -7,7 +7,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { Channel } from '../../../models/channel.model';
 import { UserDoc } from '../../../models/user.model';
 import { AuthService } from '../../../services/auth.service';
-import { resolveAvatarPath } from '../../../services/registration.service';
+import { resolveAvatarStillSrc } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
 import {
@@ -76,10 +76,10 @@ export class ChannelMembersDialogComponent {
 
 
 /**
- * Maps an avatar path to an absolute asset URL; external URLs fall back
- * to the placeholder.
+ * Maps an avatar path to its lightest still rendition (static WebP when
+ * one ships); external URLs and stale paths fall back to the placeholder.
  * @param path Avatar path stored on a user document.
  */
 function avatarSrc(path: string): string {
-  return resolveAvatarPath(path);
+  return resolveAvatarStillSrc(path);
 }

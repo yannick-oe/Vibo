@@ -18,7 +18,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 import { AuthService } from '../../../services/auth.service';
 import { PresenceService, PresenceState } from '../../../services/presence.service';
-import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
+import { DEFAULT_AVATAR_PATH, resolveAvatarStillSrc } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { ProfileDraft, UserService } from '../../../services/user.service';
 import { AVATAR_OPTIONS } from '../../../shared/avatar-options';
@@ -357,12 +357,12 @@ export class ProfileDialogComponent {
 
 
 /**
- * Maps an avatar path to an absolute asset URL; missing paths and
- * external URLs fall back to the placeholder.
+ * Maps an avatar path to its lightest still rendition (static WebP when
+ * one ships); missing paths and external URLs fall back to the placeholder.
  * @param path Avatar path stored on a user document.
  */
 function assetUrl(path: string | undefined): string {
-  return resolveAvatarPath(path);
+  return resolveAvatarStillSrc(path);
 }
 
 

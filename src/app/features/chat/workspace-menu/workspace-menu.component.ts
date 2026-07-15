@@ -17,7 +17,7 @@ import {
   conversationDocPath,
   directMessagesPath,
 } from '../../../services/message.service';
-import { DEFAULT_AVATAR_PATH, resolveAvatarPath } from '../../../services/registration.service';
+import { DEFAULT_AVATAR_PATH, resolveAvatarStillSrc } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MobileSearchViewComponent } from '../../search/mobile-search-view/mobile-search-view.component';
@@ -173,12 +173,13 @@ export class WorkspaceMenuComponent {
 
 
   /**
-   * Maps a user document's avatar path to an absolute asset URL; external
-   * URLs fall back to the placeholder because avatars are local-path based.
+   * Maps a user document's avatar path to its lightest still rendition
+   * (static WebP when one ships); external URLs fall back to the placeholder
+   * because avatars are local-path based.
    * @param path Avatar path stored on the user document.
    */
   protected avatarSrc(path: string): string {
-    return resolveAvatarPath(path);
+    return resolveAvatarStillSrc(path);
   }
 
 
