@@ -14,7 +14,7 @@ import {
 
 import { bigReactionEffect } from '../../../models/reactions';
 import { RecentEmojiService } from '../../../services/recent-emoji.service';
-import { DialogAnchor, anchorAbove } from '../../../shared/dialog-shell/dialog-anchor';
+import { DialogAnchor, anchorToTrigger } from '../../../shared/dialog-shell/dialog-anchor';
 import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
 import { emojiAsset, emojiName, reactionTriggerLabel } from '../emoji-catalog';
 
@@ -51,8 +51,6 @@ export class MessageActionsComponent {
   readonly isReplyable = input(false);
 
   readonly canEdit = input(false);
-
-  readonly bubbleElement = input<HTMLElement | null>(null);
 
   readonly reacted = output<string>();
 
@@ -104,15 +102,16 @@ export class MessageActionsComponent {
 
 
   /**
-   * Opens the options menu above the message bubble (bubble-side aligned; a
-   * null anchor sheets it on mobile). The dialog-shell owns outside-click,
-   * Escape, focus trap and focus restore.
+   * Opens the options menu anchored to the ⋮ trigger button itself: below the
+   * button while it sits in the upper viewport half, above it otherwise (a
+   * null anchor sheets the menu on mobile). The dialog-shell owns
+   * outside-click, Escape, focus trap and focus restore.
    * @param event Click or touch that opened the menu.
    */
   protected openMenu(event: Event): void {
     event.stopPropagation();
-    const bubble = this.bubbleElement();
-    this.menuAnchor.set(bubble ? anchorAbove(bubble, this.isOwn() ? 'right' : 'left') : null);
+    const trigger = event.currentTarget;
+    this.menuAnchor.set(trigger instanceof HTMLElement ? anchorToTrigger(trigger) : null);
     this.menuState.set('menu');
   }
 
@@ -130,10 +129,12 @@ export class MessageActionsComponent {
 
 
   /**
-   * Closes the options menu; the dialog-shell restores focus to the trigger.
+   * Closes the options menu and drops its trigger anchor; the dialog-shell
+   * restores focus to the trigger.
    */
   protected closeMenu(): void {
     this.menuState.set('closed');
+    this.menuAnchor.set(null);
   }
 
 
@@ -179,6 +180,6 @@ export class MessageActionsComponent {
     if (action === 'edit') this.editRequested.emit();
     if (action === 'forMe') this.deleteForMe.emit();
     if (action === 'forAll') this.deleteForAll.emit();
-    this.menuState.set('closed');
+    this.closeMenu();
   }
 }

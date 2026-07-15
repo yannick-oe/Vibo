@@ -85,18 +85,41 @@ export function anchorAbove(trigger: HTMLElement, align: 'left' | 'right'): Dial
 
 
 /**
+ * Builds the anchor docking a card to its trigger element, opening toward the
+ * larger viewport half: a trigger in the upper half opens the card below
+ * itself, one in the lower half above it. Horizontally the card edge-aligns
+ * with the trigger and grows toward the farther viewport edge so it never
+ * overflows sideways; {@link placeVertically} still corrects the vertical
+ * side against the measured card height. Null on small viewports (where the
+ * card sheets instead). Used by the message-options ⋮ menu.
+ * @param trigger Button element the card is anchored to.
+ */
+export function anchorToTrigger(trigger: HTMLElement): DialogAnchor | null {
+  if (window.innerWidth <= ANCHOR_MIN_VIEWPORT_PX) return null;
+  const rect = trigger.getBoundingClientRect();
+  const align = rect.left + rect.width / 2 > window.innerWidth / 2 ? 'right' : 'left';
+  const opensBelow = rect.top + rect.height / 2 < window.innerHeight / 2;
+  return opensBelow ? anchorBelow(trigger, align) : anchorAbove(trigger, align);
+}
+
+
+/**
  * Builds a fixed-point anchor docking a card at a viewport coordinate (e.g. a
- * right-click position). The card grows down from the point and toward the
- * nearer horizontal edge (left half → left-aligned, right half → right-aligned)
- * so it never overflows sideways; {@link placeVertically} flips it above the
- * point when there is no room below.
+ * right-click position). The card grows toward the larger space on both axes:
+ * down from a point in the upper viewport half, up from one in the lower
+ * half, and horizontally toward the farther edge (left half → left-aligned,
+ * right half → right-aligned) so it never overflows sideways;
+ * {@link placeVertically} flips the vertical side when the measured card
+ * still does not fit.
  * @param x Horizontal viewport coordinate in pixels.
  * @param y Vertical viewport coordinate in pixels.
  */
 export function anchorAtPoint(x: number, y: number): DialogAnchor {
   const horizontal =
     x > window.innerWidth / 2 ? { right: window.innerWidth - x } : { left: x };
-  return { top: y, triggerTop: y, triggerBottom: y, ...horizontal };
+  const vertical =
+    y < window.innerHeight / 2 ? { top: y } : { bottom: window.innerHeight - y };
+  return { triggerTop: y, triggerBottom: y, ...vertical, ...horizontal };
 }
 
 
