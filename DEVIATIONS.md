@@ -1593,3 +1593,47 @@ live repro against the dev server (pre-fix), re-verified green post-fix (55 chec
   the source JPEG stays for stored-path compatibility and as the error fallback. Animated
   behavior is unchanged (profile 384 continuous — smallest adequate at 168 px @2×dpr; 256
   hover overlay on topbar/header). **FTP deploy note: upload `avatars/gast_static.webp`.**
+
+## Reaction-details hover tooltip + live cache-header fallback (2026-07-15)
+
+- **Reaction chips get a real "wer hat reagiert"-tooltip (desktop only, no Figma design).**
+  The old per-chip CSS tooltip (absolutely positioned inside the button, clipped by the
+  message column, uncapped name list) is replaced by one shared, service-driven bubble:
+  `pointerenter` opens it after a 350 ms hover-intent delay (`HOVER_OPEN_DELAY_MS`),
+  `pointerleave` closes with a 150 ms grace (`HOVER_CLOSE_GRACE_MS`) so moving between
+  chips does not flicker; keyboard focus (`:focus-visible` only, so pointer clicks stay
+  hover-driven) opens immediately and blur closes. It also closes on any scroll (capture
+  listener while open), when the owning row unmounts and when the live reaction empties.
+  Everything is gated on `LayoutService.isHoverCapable` — touch behavior is unchanged (tap
+  keeps toggling the reaction). The bubble is deliberately **not** a dialog-shell surface:
+  non-interactive (`pointer-events: none`), no scrim/focus trap/open-stack entry, hosted
+  once in the chat app-shell and positioned `fixed` via the shared anchor math
+  (`anchorToTrigger` + `placeVertically` flip/clamp), so it never leaves the viewport and
+  has zero layout impact (CLS 0). Content: the Twemoji emoji, small stacked avatar stills
+  (`resolveAvatarStillSrc`) and the reactor names — viewer first as "Du", capped at 5
+  (`REACTION_NAMES_MAX`) with "und X weitere", single-line ellipsis, glass styling, AA in
+  both themes; `prefers-reduced-motion` skips the fade. Names resolve from the live user
+  stream; uids missing from it (deleted accounts) are fetched **once** via `getDoc` and
+  cached incl. negative results (`ReactorLookupService`) — only the capped visible set is
+  ever fetched, no new Firestore listeners. Exposed via the ARIA tooltip pattern
+  (`role="tooltip"` + `aria-describedby` on the chip while open). Applies to regular
+  reaction chips and the 👋 "Winken" chip on join system messages.
+- **`.htaccess` cache policy is declared through mod_headers AND mod_expires (live
+  Lighthouse follow-up).** Production responses (nginx-fronted netcup host) carry
+  ETag/Last-Modified but **no Cache-Control/Expires** — the existing mod_headers rules are
+  not taking effect (~1.9 MB flagged as "efficient cache lifetimes"). The caching section
+  is now duplicated as a mod_expires fallback (own `<IfModule>` guard; emits Expires +
+  plain max-age, no `immutable` — acceptable), so whichever module the host enables wins.
+  Policy per asset class: hashed build outputs (`-[A-Z0-9]{8}\.(js|mjs|css|woff2|svg|webp|png)`,
+  pattern verified against the real dist — esbuild emits an 8-char **uppercase** base32
+  hash, 59/59 bundles match, and the uppercase class keeps `Inter-Variable.woff2` safely
+  unmatched) → 1 year immutable; unhashed statics (fonts, emojis, avatars incl. jpeg,
+  icons) → 7 days (`STATIC_ASSET_TTL_SECONDS = 604800`); `index.html` **and**
+  `emoji-data.de.json` → `no-cache` (the catalogue was previously max-age=86400; a deploy
+  should update it immediately, 304 revalidation keeps it cheap). Diagnostics:
+  `Header always set X-Vibo-Htaccess "v2"` — live decision tree: marker present → verify
+  Cache-Control per class; marker absent but Expires present → mod_expires path active,
+  acceptable; **neither** → the nginx front serves statics without consulting `.htaccess`
+  → accepted deviation on shared hosting (ETag/Last-Modified 304 revalidation remains),
+  nothing further possible without server access. Firebase Hosting is unaffected (cache
+  headers come from `firebase.json`).
