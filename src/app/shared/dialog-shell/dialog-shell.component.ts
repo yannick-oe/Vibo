@@ -5,7 +5,11 @@
  * with a backdrop-filter or transform (any glass dialog card) would otherwise
  * become its containing block, so a shell nested inside another dialog would
  * interpret its viewport anchor coordinates relative to that card and vanish
- * into its overflow clip. Escape closes only the top-most open shell, so
+ * into its overflow clip. On destroy the shell removes its hoisted host
+ * again — Angular only detaches the root nodes of a destroyed view, never a
+ * node that was re-parented out of it — so a closed shell always leaves
+ * document.body regardless of whether it closed itself or its parent was
+ * torn down. Escape closes only the top-most open shell, so
  * nested dialogs unwind one level at a time. In the mobile bottom-sheet mode
  * the anchor is ignored entirely — the sheet pins to the viewport bottom and
  * its rest position derives only from the sheet model — and the card supports
@@ -167,14 +171,22 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
 
   /**
-   * Deregisters from the open-shell stack, releases the scroll lock,
-   * detaches the drag controller and restores focus.
+   * Deregisters from the open-shell stack, releases the scroll lock, detaches
+   * the drag controller, removes the hoisted host element from document.body
+   * and restores focus. The explicit removal is the teardown counterpart of
+   * the open-time hoist: Angular detaches only the root nodes of a destroyed
+   * view, so a shell hoisted out of a wrapper dialog's subtree would otherwise
+   * stay attached to the body forever and resurface fully styled as soon as
+   * the next shell instance re-injects the component stylesheet. Removing an
+   * already-detached node is a no-op, so every destroy path — close event,
+   * parent teardown, route change — tears down idempotently.
    */
   ngOnDestroy(): void {
     const stackIndex = OPEN_SHELLS.indexOf(this);
     if (stackIndex >= 0) OPEN_SHELLS.splice(stackIndex, 1);
     this.scrollLock.unlock(this.suppressesScrollbars);
     this.drag.detach();
+    this.host.nativeElement.remove();
     this.restoreFocus();
   }
 

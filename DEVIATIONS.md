@@ -1547,3 +1547,49 @@ token-based, rules-enforced where affordable on Spark.
   first activity/visibility regain. Offline still derives from the stale `lastActive` heartbeat
   and takes precedence. Concurrent guest sessions share one doc, so the last transition wins —
   accepted for the demo account.
+
+## Dialog-shell teardown fix, trigger-anchored ⋮ menu, still-first avatar delivery (2026-07-15)
+Production fix pack: closed dialogs resurfaced next to every newly opened overlay, and the
+own-message ⋮ menu opened detached from its trigger. Root causes evidenced with a headless
+live repro against the dev server (pre-fix), re-verified green post-fix (55 checks).
+
+- **Hoisted shells are now explicitly removed on destroy (corrects the 2026-07-14 hoist
+  entry).** The hoist note claimed Angular's `node.remove()`-based renderer makes the body
+  hoist safe — that holds only when the shell element is itself the root of the destroyed
+  view (`@if` directly around `app-dialog-shell`). Every wrapper dialog (settings, profile,
+  channel-create/-settings/-members/-add/-invite, notification center, gif picker, command
+  palette, mobile search) destroys a view whose root is the *wrapper* element: Angular
+  detaches only that root, so the shell host — re-parented to `document.body` on open —
+  stayed attached forever. The corpse was invisible until the next shell opened because
+  Angular removes a component's stylesheet with its last instance
+  (`REMOVE_STYLES_ON_COMPONENT_DESTROY`, default true) and re-injects it with the next one,
+  restyling every leaked corpse back to `position: fixed` — hence "closed dialogs come back
+  when any overlay opens", accumulating (up to four stacked shells reproduced). The shell's
+  `ngOnDestroy` now removes its own host (`host.nativeElement.remove()`, a no-op when already
+  detached) — idempotent and covering every destroy path (close event, parent teardown, route
+  change), so a closed shell always leaves zero DOM behind; the open-shell stack entry was
+  already spliced there. Escape/scrim semantics and genuine parent→child nesting (friend-action
+  menu over the profile dialog) are unchanged; closing a parent with an open child destroys
+  both, verified live.
+- **The ⋮ message menu anchors to its trigger button (was: the message body).** Independent of
+  the hoist (pre-/post-hoist rects were pixel-identical): the menu anchored via
+  `anchorAbove(messageBody, 'right')`, i.e. above the *body's* right corner — for own rows the
+  hover bar (and its ⋮) sits at the row's top **left**, so the menu appeared ~350 px up-right
+  of the click. New `anchorToTrigger(button)`: opens **below** a trigger in the upper viewport
+  half, **above** one in the lower half, horizontally edge-aligned toward the larger side;
+  `placeVertically` keeps flipping/capping when the measured card does not fit. The desktop
+  right-click reaction picker keeps opening at the cursor with the same upper/lower-half rule
+  (`anchorAtPoint` previously always grew downward and relied on the flip); the point anchor
+  is still dropped on close (verified: a following button-open re-anchors to the bubble).
+  Mobile long-press sheets are untouched (null anchors sheet as before).
+- **Avatar delivery is still-first everywhere (Lighthouse follow-up).** Every list-size
+  surface that rendered avatars through plain `<img>` (`resolveAvatarPath` → source JPEG,
+  0.35–0.7 MB per head on 24–48 px rows: sidebar DMs, member stacks/lists, add-member chips
+  and results, notification bell/toast, search hits, mention/new-message suggestions, friend
+  rows, DM empty state, avatar-picker options) now resolves through `resolveAvatarStillSrc`,
+  which maps to the existing `<stem>_static.webp` renditions (9–15 kB). The guest placeholder
+  ships a new derived still — `public/avatars/gast_static.webp`, 384², 10.5 kB, cwebp q82
+  from the 1254² / 345 kB `gast.jpeg` — used by all surfaces incl. the app-avatar component;
+  the source JPEG stays for stored-path compatibility and as the error fallback. Animated
+  behavior is unchanged (profile 384 continuous — smallest adequate at 168 px @2×dpr; 256
+  hover overlay on topbar/header). **FTP deploy note: upload `avatars/gast_static.webp`.**
