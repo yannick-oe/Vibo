@@ -307,7 +307,9 @@ $message-hide-scale-to: 0.92;
 
   :host(:hover) &,
   :host(.message--bar-open) &,
-  &:focus-within {
+  :host(.message--pinned) &,
+  :host(.message--hover-hold) &,
+  &:has(:focus-visible) {
     opacity: 1;
   }
 

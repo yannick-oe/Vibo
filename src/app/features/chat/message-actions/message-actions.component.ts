@@ -66,6 +66,8 @@ export class MessageActionsComponent {
 
   readonly deleteForAll = output<void>();
 
+  readonly menuOpenChanged = output<boolean>();
+
   private readonly recentEmojiService = inject(RecentEmojiService);
 
   protected readonly menuState = signal<MenuState>('closed');
@@ -112,6 +114,7 @@ export class MessageActionsComponent {
     event.stopPropagation();
     const trigger = event.currentTarget;
     this.menuAnchor.set(trigger instanceof HTMLElement ? anchorToTrigger(trigger) : null);
+    if (this.menuState() === 'closed') this.menuOpenChanged.emit(true);
     this.menuState.set('menu');
   }
 
@@ -133,6 +136,7 @@ export class MessageActionsComponent {
    * restores focus to the trigger.
    */
   protected closeMenu(): void {
+    if (this.menuState() !== 'closed') this.menuOpenChanged.emit(false);
     this.menuState.set('closed');
     this.menuAnchor.set(null);
   }

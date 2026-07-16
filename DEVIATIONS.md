@@ -1637,3 +1637,40 @@ live repro against the dev server (pre-fix), re-verified green post-fix (55 chec
   → accepted deviation on shared hosting (ETag/Last-Modified 304 revalidation remains),
   nothing further possible without server access. Firebase Hosting is unaffected (cache
   headers come from `firebase.json`).
+
+## Production polish pack: pinned hover bar, badge/sidebar flashes, presence seed, GIF delivery (2026-07-16)
+
+- **The message hover action bar pins while a row-owned overlay is open.** Opening the ⋮
+  menu, the reaction picker or the edit emoji picker keeps the row's bar visible (new
+  single-owner pin, `MessagePinService` — at most one pinned row app-wide); every close
+  path releases it, and true hover is then re-evaluated via a hit-test against the last
+  pointer position (`PointerPositionService`, one passive throttled document listener,
+  hover-capable devices only) because the overlay's transparent scrim swallowed the row's
+  pointer events. The stuck-bar root cause was the dialog-shell's focus restore to the ⋮
+  trigger combined with the bar's `:focus-within` reveal — that reveal is now
+  `:has(:focus-visible)`, so mouse-origin restored focus no longer pins the bar while
+  keyboard focus still reveals it (WCAG 2.4.7: after an Esc-close the bar intentionally
+  stays visible while the trigger holds visible keyboard focus). Touch long-press flow
+  unchanged.
+- **Giphy message embeds render the `200w.webp` rendition instead of the stored
+  `fixed_height` GIF** (`gif-rendition.ts`; onerror falls back to the stored URL; the
+  reserved box keeps the stored width/height → CLS 0; the reduced-motion still is
+  untouched; the picker grid keeps its previews). Live-measured savings: a real trending
+  fixed_height GIF was 338.6 KB, its 200w.webp 30.0 KB (−91%); across samples −23% to
+  −91%. Trade-off, accepted deliberately: the ~200px-wide WebP upscales into wider bubbles
+  (up to ~356px) with mild softness on large desktop views — bytes beat crispness for
+  animated meme content on a chat surface (Lighthouse flagged ~891 KiB "improve image
+  delivery" dominated by one GIF).
+- **Pending server timestamps no longer flash UI state.** DM conversations stream with
+  `serverTimestamps: 'estimate'` (a just-sent message sorts its row to the final position
+  exactly once — previously the pending `lastMessageAt` read as null → recency 0 → the row
+  jumped to the bottom and back); `flip-list` additionally runs FLIP only when the row
+  ORDER actually changed, so same-order re-emissions (presence heartbeats) never animate
+  or cancel an in-flight glide. The bell badge derives from synchronously view-excluded
+  sources (open conversation excluded from the unread count, in-view feed entries excluded
+  from the event count), so the async read-marker write / feed auto-clear can no longer
+  flash a phantom badge on navigation.
+- **New accounts are born online**: registration, guest reset and Google first sign-in seed
+  `lastActive: serverTimestamp()` + `presence: 'online'` into the user document — the
+  presence service's immediate beat raced the doc creation (`updateDoc` on a missing doc
+  rejects silently), so a fresh account looked offline until the first 60 s heartbeat.
