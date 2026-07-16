@@ -209,6 +209,8 @@ export class AuthService {
       animatedName: true,
       badges: [],
       createdAt: serverTimestamp(),
+      lastActive: serverTimestamp(),
+      presence: 'online',
     };
     return this.inContext(() => setDoc(doc(this.firestore, `users/${uid}`), document));
   }
@@ -237,6 +239,8 @@ export class AuthService {
       animatedName: false,
       badges: [NEW_USER_BADGE_ID],
       createdAt: serverTimestamp(),
+      lastActive: serverTimestamp(),
+      presence: 'online',
     };
   }
 
@@ -323,6 +327,8 @@ export class AuthService {
       status: '',
       animatedName: false,
       createdAt: serverTimestamp(),
+      lastActive: serverTimestamp(),
+      presence: 'online',
     };
   }
 }
