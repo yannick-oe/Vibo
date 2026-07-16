@@ -203,7 +203,10 @@ export class DirectMessageService {
 
   /**
    * Reads all conversations containing the given uid live; errors recover
-   * with an empty list so the UI stays functional.
+   * with an empty list so the UI stays functional. Pending server timestamps
+   * read as local estimates, so a just-sent message's latency-compensated
+   * snapshot sorts the conversation to its final recency position at once
+   * instead of momentarily treating lastMessageAt as unresolved.
    * @param uid Uid whose conversations to stream.
    */
   private queryConversations(uid: string): Observable<DirectMessageDoc[]> {
@@ -211,9 +214,11 @@ export class DirectMessageService {
       collection(this.firestore, DM_COLLECTION),
       where(PARTICIPANT_IDS_FIELD, 'array-contains', uid),
     );
-    return (collectionData(conversationsQuery) as Observable<DirectMessageDoc[]>).pipe(
-      catchError(() => of([])),
-    );
+    return (
+      collectionData(conversationsQuery, { serverTimestamps: 'estimate' }) as Observable<
+        DirectMessageDoc[]
+      >
+    ).pipe(catchError(() => of([])));
   }
 
 
@@ -260,7 +265,9 @@ function sortedParticipants(uidA: string, uidB: string): [string, string] {
 
 /**
  * Last-activity millis of a conversation: its denormalized lastMessageAt, or
- * createdAt before the first message; 0 while a server sentinel is unresolved.
+ * createdAt before the first message. Pending server timestamps arrive as
+ * local estimates (see queryConversations), so the instanceof guard's 0 is
+ * only a type-level fallback, never a sort-visible state.
  * @param conversation Direct-message conversation document.
  */
 function recencyMillis(conversation: DirectMessageDoc): number {

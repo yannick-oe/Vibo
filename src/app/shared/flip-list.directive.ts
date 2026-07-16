@@ -42,6 +42,8 @@ export class FlipListDirective {
 
   private primed = false;
 
+  private lastOrder = '';
+
 
   /**
    * Schedules a FLIP pass after each re-render of the bound list.
@@ -70,13 +72,34 @@ export class FlipListDirective {
   /**
    * Animates each row (FLIP for moved, fade for new), then prunes stored
    * positions of removed rows. The first pass only seeds the baseline so the
-   * initial render is never mass-animated.
+   * initial render is never mass-animated. Re-emissions that keep the row
+   * order (presence heartbeats, metadata refreshes) only refresh the stored
+   * baseline — they never run FLIP and never cancel an in-flight animation.
    * @param rects Freshly measured row rectangles.
    */
   private play(rects: RowRect[]): void {
+    const order = rects.map(rect => rect.id).join(' ');
+    const orderChanged = order !== this.lastOrder;
+    this.lastOrder = order;
     const instant = !this.primed || this.reducedMotion.prefersReducedMotion();
     this.primed = true;
+    if (!orderChanged) return this.refresh(rects);
     for (const rect of rects) this.animateRow(rect, instant);
+    this.prune(rects);
+  }
+
+
+  /**
+   * Stores the measured positions without animating, keeping the FLIP
+   * baseline accurate across same-order re-renders. Rows with a running
+   * animation are skipped — their measured top includes the in-flight
+   * transform and would corrupt the baseline.
+   * @param rects Freshly measured row rectangles.
+   */
+  private refresh(rects: RowRect[]): void {
+    for (const rect of rects) {
+      if (rect.el.getAnimations().length === 0) this.positions.set(rect.id, rect.top);
+    }
     this.prune(rects);
   }
 
