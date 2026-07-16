@@ -5,10 +5,10 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   LOCALE_ID,
   computed,
-  effect,
   inject,
   input,
   output,
@@ -21,22 +21,20 @@ import { AuthService } from '../../../services/auth.service';
 import { BigReactionService } from '../../../services/big-reaction.service';
 import { ReadEntry } from '../../../services/read-state.service';
 import { MessageFocusService } from '../../../services/message-focus.service';
+import { MessagePinService } from '../../../services/message-pin.service';
 import { MessageService } from '../../../services/message.service';
+import { PointerPositionService } from '../../../services/pointer-position.service';
 import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { RecentEmojiService } from '../../../services/recent-emoji.service';
 import { DEFAULT_AVATAR_PATH } from '../../../services/registration.service';
 import { SoundService } from '../../../services/sound.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
-import {
-  delay,
-  messageTime,
-  prefersReducedMotion,
-  replyPreviewTime,
-  runMessageAction,
-  withinEditWindow,
-} from './message-item.util';
+import { messageTime, replyPreviewTime, runMessageAction, withinEditWindow } from './message-item.util';
+import { BarPinContext, MessageBarPin } from './bar-pin.controller';
+import { MessageDelete } from './message-delete';
 import { MessageEdit } from '../message-edit';
+import { gifWebpRendition } from '../gif-rendition';
 import { EmojiPickerComponent } from '../emoji-picker/emoji-picker.component';
 import { MessageActionsComponent } from '../message-actions/message-actions.component';
 import { MessageContentComponent } from '../message-content/message-content.component';
@@ -51,7 +49,6 @@ import { ReadReceiptComponent } from '../../../shared/read-receipt/read-receipt.
 const UNKNOWN_AUTHOR = 'Unbekannt';
 const LONG_PRESS_MS = 500;
 const DESKTOP_REACTION_LIMIT = 20;
-const DELETE_POP_MS = 220;
 const NATIVE_MENU_SELECTOR = 'input, textarea, [contenteditable], a[href]';
 
 /**
@@ -81,9 +78,12 @@ const NATIVE_MENU_SELECTOR = 'input, textarea, [contenteditable], a[href]';
     '[class.message--own]': 'isOwn()',
     '[class.message--focus]': 'focusHighlight()',
     '[class.message--bar-open]': 'barOpen()',
+    '[class.message--pinned]': 'barPin.isPinned()',
+    '[class.message--hover-hold]': 'barPin.hoverHold()',
     '[class.message--enter]': 'enterAnimate()',
-    '[class.message--hiding]': 'isHiding()',
+    '[class.message--hiding]': 'deleteFlow.isHiding()',
     '[id]': '"message-" + entry().id',
+    '(pointerleave)': 'barPin.hoverHold.set(false)',
     '(touchstart)': 'startLongPress()',
     '(touchend)': 'cancelLongPress()',
     '(touchmove)': 'cancelLongPress()',
@@ -135,6 +135,10 @@ export class MessageItemComponent {
 
   private readonly layoutService = inject(LayoutService);
 
+  private readonly pinService = inject(MessagePinService);
+
+  private readonly pointerService = inject(PointerPositionService);
+
   private readonly soundService = inject(SoundService);
 
   private readonly toastService = inject(ToastService);
@@ -151,15 +155,7 @@ export class MessageItemComponent {
 
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private hasObservedDeletion = false;
-
-  private wasDeleted = false;
-
   protected readonly barOpen = signal(false);
-
-  protected readonly justDeleted = signal(false);
-
-  protected readonly isHiding = signal(false);
 
   protected readonly editFieldId = `message-edit-${MessageItemComponent.instanceCounter++}`;
 
@@ -229,18 +225,40 @@ export class MessageItemComponent {
     Object.values(this.entry().reactions).some(uids => uids.length > 0),
   );
 
+  protected readonly gifFailed = signal(false);
+
+  protected readonly gifSrc = computed(() => {
+    const stored = this.entry().gifUrl;
+    if (!stored || this.gifFailed()) return stored;
+    return gifWebpRendition(stored) ?? stored;
+  });
+
+  protected readonly deleteFlow = new MessageDelete(
+    this.messageService,
+    this.soundService,
+    this.toastService,
+    this.isDeleted,
+    () => this.messagePath(),
+  );
+
+  protected readonly barPin = new MessageBarPin(this.barPinContext());
+
 
   /**
-   * Plays the tombstone pop only on a genuine not-deleted → deleted transition
-   * during this session; a message that loads already deleted does not pop.
+   * Assembles the bar-pin controller's collaborators and row context; the
+   * external overlays are the reaction picker and the edit picker (the ⋮
+   * menu state lives inside the controller).
    */
-  constructor() {
-    effect(() => {
-      const deleted = this.isDeleted();
-      if (this.hasObservedDeletion && deleted && !this.wasDeleted) this.justDeleted.set(true);
-      this.hasObservedDeletion = true;
-      this.wasDeleted = deleted;
-    });
+  private barPinContext(): BarPinContext {
+    return {
+      pinService: this.pinService,
+      pointerService: this.pointerService,
+      layoutService: this.layoutService,
+      destroyRef: inject(DestroyRef),
+      host: this.host.nativeElement,
+      ownsOverlay: computed(() => this.reactionPickerOpen() || this.edit.pickerOpen()),
+      menuInvalid: computed(() => this.isDeleted() || this.edit.active()),
+    };
   }
 
 
@@ -363,31 +381,12 @@ export class MessageItemComponent {
 
 
   /**
-   * Hides the message for the signed-in user only; plays a brief collapse-out
-   * first (unless reduced motion), then writes the hide — reverting the
-   * collapse if the write fails so the row never stays stuck invisible.
+   * Runs a deletion flow (delegated to the delete controller) and closes any
+   * open long-press bar.
+   * @param scope Whether the deletion targets only the own view or everyone.
    */
-  protected async onDeleteForMe(): Promise<void> {
+  protected onDelete(scope: 'me' | 'all'): void {
     this.barOpen.set(false);
-    const messagePath = this.messagePath();
-    if (!messagePath) return;
-    this.soundService.play('delete');
-    const animates = !prefersReducedMotion();
-    this.isHiding.set(animates);
-    if (animates) await delay(DELETE_POP_MS);
-    const hidden = await runMessageAction(this.toastService, () => this.messageService.hideForMe(messagePath));
-    if (!hidden) this.isHiding.set(false);
-  }
-
-
-  /**
-   * Deletes the message for everyone (tombstone).
-   */
-  protected async onDeleteForAll(): Promise<void> {
-    this.barOpen.set(false);
-    const messagePath = this.messagePath();
-    if (!messagePath) return;
-    this.soundService.play('delete');
-    await runMessageAction(this.toastService, () => this.messageService.deleteForAll(messagePath));
+    void (scope === 'me' ? this.deleteFlow.forMe() : this.deleteFlow.forAll());
   }
 }

@@ -33,7 +33,7 @@
   }
 
   @if (isDeleted()) {
-    <p class="message__tombstone" [class.message__tombstone--pop]="justDeleted()">Nachricht gelöscht</p>
+    <p class="message__tombstone" [class.message__tombstone--pop]="deleteFlow.justDeleted()">Nachricht gelöscht</p>
   } @else if (edit.active()) {
     <div class="message__edit">
       <label class="sr-only" [for]="editFieldId">Nachricht bearbeiten</label>
@@ -93,12 +93,13 @@
     <picture class="message__gif">
       <source media="(prefers-reduced-motion: reduce)" [srcset]="entry().gifStill" />
       <img
-        [src]="entry().gifUrl"
+        [src]="gifSrc()"
         [alt]="entry().gifAlt"
         [width]="entry().gifWidth"
         [height]="entry().gifHeight"
         loading="lazy"
         decoding="async"
+        (error)="gifFailed.set(true)"
       />
     </picture>
   } @else {
@@ -143,8 +144,9 @@
       (threadToggled)="requestThread()"
       (replyRequested)="barOpen.set(false); replyRequested.emit()"
       (editRequested)="startEdit()"
-      (deleteForMe)="onDeleteForMe()"
-      (deleteForAll)="onDeleteForAll()"
+      (deleteForMe)="onDelete('me')"
+      (deleteForAll)="onDelete('all')"
+      (menuOpenChanged)="barPin.menuOpen.set($event)"
     />
   </div>
 }
