@@ -87,16 +87,22 @@ export class NotificationService {
 
   private readonly entriesState = signal<WatchMeta[]>([]);
 
+  private readonly urlState = signal('');
+
   /**
    * Conversations with unread messages (last message newer than the own
-   * read marker, sent by someone else), excluding any that a pending mention
-   * or inline reply already represents — an activity entry supersedes the
-   * generic unread indicator so one event never counts twice (hierarchy
-   * mention > reply > generic unread). Consumed by the notification center.
+   * read marker, sent by someone else), excluding the currently open
+   * conversation (viewing is reading — its marker write is still in flight)
+   * and any that a pending mention or inline reply already represents — an
+   * activity entry supersedes the generic unread indicator so one event
+   * never counts twice (hierarchy mention > reply > generic unread).
+   * Consumed by the notification center.
    */
   readonly unreadConversations = computed(() => {
     const superseded = this.supersedingConversationKeys();
+    const openKey = parseOpenKey(this.urlState());
     return this.entriesState()
+      .filter(entry => entry.watch.key !== openKey)
       .filter(entry => this.isUnread(entry) && !superseded.has(entry.watch.key))
       .map(entry => entry.watch);
   });
@@ -118,8 +124,10 @@ export class NotificationService {
 
 
   /**
-   * Re-anchors the baseline on every sign-in/out and subscribes to the
-   * conversation metadata streams for the lifetime of the app.
+   * Re-anchors the baseline on every sign-in/out, subscribes to the
+   * conversation metadata streams for the lifetime of the app and tracks the
+   * router URL reactively so the open conversation is excluded from the
+   * unread count in the same tick as the navigation.
    */
   constructor() {
     effect(() => this.anchorForUser(this.authService.currentUser()?.uid ?? null));
@@ -131,6 +139,8 @@ export class NotificationService {
         takeUntilDestroyed(),
       )
       .subscribe(entries => this.handle(entries));
+    this.urlState.set(this.router.url);
+    this.router.events.pipe(takeUntilDestroyed()).subscribe(() => this.urlState.set(this.router.url));
   }
 
 

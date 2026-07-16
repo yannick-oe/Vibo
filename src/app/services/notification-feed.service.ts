@@ -101,10 +101,23 @@ export class NotificationFeedService {
   );
 
   /**
-   * Total unread activity events (feed documents, before coalescing), so the
-   * bell badge counts every event rather than every group.
+   * Feed entries whose target is NOT currently in view. The persistent
+   * auto-clear deletes viewed documents asynchronously; deriving the badge
+   * from this synchronous exclusion means it can never flash while the
+   * deletion round-trips.
    */
-  readonly eventCount: Signal<number> = computed(() => this.entriesState().length);
+  private readonly pendingEntries = computed(() =>
+    this.entriesState().filter(
+      entry => !this.isViewedIn(entry, this.urlState(), this.openThreadPath()),
+    ),
+  );
+
+  /**
+   * Total unread activity events (feed documents, before coalescing) whose
+   * target is not currently in view, so the bell badge counts every event
+   * rather than every group and never counts the open conversation.
+   */
+  readonly eventCount: Signal<number> = computed(() => this.pendingEntries().length);
 
   /**
    * Conversation keys (channel:… / dm:…) that currently carry a pending
