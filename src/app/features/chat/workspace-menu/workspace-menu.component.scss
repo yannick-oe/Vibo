@@ -282,6 +282,38 @@
   }
 }
 
+.workspace__dm-empty {
+  padding: v.space('xs') v.space('sm-md');
+  font-size: v.font-size('min');
+  line-height: v.$line-height-base;
+  color: v.color('text-gray');
+  overflow-wrap: break-word;
+}
+
+// Plain inline text link: overrides the global pill-shaped a:not(.btn) rule
+// (padding, radius, hover border) so the sentence reads and wraps naturally.
+.workspace__dm-empty-link {
+  display: inline;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--link-color);
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--link-color);
+    font-weight: inherit;
+    border: none;
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+
+    border-radius: v.$radius-xs;
+  }
+}
+
 @include m.respond-md {
   .workspace__head {
     display: none;

@@ -12,28 +12,31 @@
   height: 100%;
 }
 
+// Two-row grid: the title and the member stack share the vertically centered
+// first row (so they always line up), while the reserved topic slot is its
+// own second row. The identity wrapper dissolves via display: contents so
+// its children place directly into the grid.
 .channel__head {
-  @include m.flex-between;
-
-  gap: v.space('md');
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: v.space('md');
   padding: v.space('md') v.space('lg');
   background-color: v.color('white');
   box-shadow: v.$shadow-sm;
   z-index: v.$z-raised;
 }
 
-// The identity column reserves the topic line even while it is empty, so a
-// first-ever topic never shifts the header (CLS 0).
 .channel__identity {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  align-items: flex-start;
+  display: contents;
 }
 
+// The topic line stays reserved even while it is empty, so a first-ever
+// topic never shifts the header (CLS 0).
 .channel__topic {
-  align-self: stretch;
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
   min-height: calc(1em * #{v.$line-height-base});
   padding: 0 v.space('sm-md');
   overflow: hidden;
@@ -45,6 +48,11 @@
 }
 
 .channel__title {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   align-items: center;
   gap: v.space('sm-md');
@@ -86,6 +94,8 @@
 }
 
 .channel__members {
+  grid-column: 2;
+  grid-row: 1;
   display: flex;
   align-items: center;
   gap: v.space('sm');
