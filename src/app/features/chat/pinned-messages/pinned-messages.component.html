@@ -1,0 +1,60 @@
+<button
+  class="pins__trigger"
+  type="button"
+  aria-haspopup="dialog"
+  [attr.aria-expanded]="isOpen()"
+  [attr.aria-label]="triggerLabel()"
+  (click)="open()"
+>
+  <img src="app-icons/keep.svg" alt="" width="20" height="20" aria-hidden="true" />
+  @if (count() > 0) {
+    <span class="pins__badge" aria-hidden="true">{{ count() }}</span>
+  }
+</button>
+
+@if (isOpen()) {
+  <app-dialog-shell labelledBy="pinned-messages-title" (closed)="close()">
+    <header class="pins__head">
+      <h2 class="pins__title" id="pinned-messages-title">Angepinnte Nachrichten</h2>
+      <button class="pins__close" type="button" aria-label="Dialog schließen" (click)="close()">
+        <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+      </button>
+    </header>
+    @if (entries(); as list) {
+      @if (list.length === 0) {
+        <p class="pins__empty">
+          Noch keine Nachrichten angepinnt. Nutze „Anpinnen“ im ⋮-Menü einer Nachricht.
+        </p>
+      } @else {
+        <ul class="pins__list">
+          @for (message of list; track message.id) {
+            <li class="pins__item">
+              <div class="pins__meta">
+                <span class="pins__author">{{ authorName(message.authorId) }}</span>
+                <span class="pins__time">{{ timeOf(message) }} Uhr</span>
+                <button class="pins__unpin" type="button" (click)="unpin(message)">Lösen</button>
+              </div>
+              @if (message.deletedAt) {
+                <p class="pins__deleted">Nachricht gelöscht</p>
+              } @else if (message.gifUrl) {
+                <picture class="pins__gif">
+                  <source media="(prefers-reduced-motion: reduce)" [srcset]="message.gifStill" />
+                  <img
+                    [src]="gifSrcOf(message)"
+                    [alt]="message.gifAlt"
+                    [width]="message.gifWidth"
+                    [height]="message.gifHeight"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              } @else {
+                <app-message-content class="pins__content" [text]="message.text" />
+              }
+            </li>
+          }
+        </ul>
+      }
+    }
+  </app-dialog-shell>
+}

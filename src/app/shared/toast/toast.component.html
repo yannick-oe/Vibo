@@ -5,6 +5,11 @@
         <img class="toast__icon" [src]="currentToast.icon" alt="" aria-hidden="true" />
       }
       {{ currentToast.message }}
+      @if (currentToast.action; as action) {
+        <button class="toast__action" type="button" (click)="runAction(action)">
+          {{ action.label }}
+        </button>
+      }
     </p>
   }
 </div>

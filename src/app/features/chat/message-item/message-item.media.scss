@@ -1,0 +1,21 @@
+/* Media embeds of a message row (GIF bubble; split out of the main
+   stylesheet for file-size reasons). */
+@use 'variables' as v;
+
+.message__gif {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 0 v.$radius-md v.$radius-md v.$radius-md;
+  overflow: hidden;
+
+  :host(.message--own) & {
+    border-radius: v.$radius-md 0 v.$radius-md v.$radius-md;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+}

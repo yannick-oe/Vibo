@@ -3,11 +3,12 @@
  */
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
-import { ToastService } from '../../services/toast.service';
+import { ToastAction, ToastService } from '../../services/toast.service';
 
 /**
  * Persistent live region in the bottom-right corner that slides in the
- * current toast message and hides it when the service clears it.
+ * current toast message, renders an optional action button and hides the
+ * toast when the service clears it.
  */
 @Component({
   selector: 'app-toast',
@@ -16,5 +17,17 @@ import { ToastService } from '../../services/toast.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ToastComponent {
-  protected readonly toast = inject(ToastService).toast;
+  private readonly toastService = inject(ToastService);
+
+  protected readonly toast = this.toastService.toast;
+
+
+  /**
+   * Runs a toast action and dismisses the toast afterwards.
+   * @param action Action attached to the visible toast.
+   */
+  protected runAction(action: ToastAction): void {
+    action.run();
+    this.toastService.dismiss();
+  }
 }

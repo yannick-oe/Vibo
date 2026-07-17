@@ -50,7 +50,7 @@
     </button>
   }
 
-  @if (isOwn()) {
+  @if (hasMenu()) {
     <button
       class="actions__btn"
       type="button"
@@ -76,20 +76,27 @@
     <span class="sr-only" id="message-options-title">Nachrichtenoptionen</span>
     @if (menuState() === 'menu') {
       <div class="actions__menu" role="menu">
+        @if (isPinnable()) {
+          <button class="actions__menu-item" type="button" role="menuitem" (click)="emitAndClose('pin')">
+            {{ pinLabel() }}
+          </button>
+        }
         @if (canEdit()) {
           <button class="actions__menu-item" type="button" role="menuitem" (click)="emitAndClose('edit')">
             Nachricht bearbeiten
           </button>
         }
-        <button
-          class="actions__menu-item"
-          type="button"
-          role="menuitem"
-          (click)="openConfirm()"
-          (touchend)="openConfirmTouch($event)"
-        >
-          Nachricht löschen
-        </button>
+        @if (isOwn()) {
+          <button
+            class="actions__menu-item"
+            type="button"
+            role="menuitem"
+            (click)="openConfirm()"
+            (touchend)="openConfirmTouch($event)"
+          >
+            Nachricht löschen
+          </button>
+        }
       </div>
     } @else {
       <div class="actions__menu" role="menu" aria-label="Löschen bestätigen">

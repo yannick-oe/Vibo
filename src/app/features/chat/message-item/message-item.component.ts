@@ -32,6 +32,7 @@ import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { messageTime, replyPreviewTime, runMessageAction, withinEditWindow } from './message-item.util';
 import { BarPinContext, MessageBarPin } from './bar-pin.controller';
+import { createPinToggle } from './pin-toggle';
 import { MessageDelete } from './message-delete';
 import { MessageEdit } from '../message-edit';
 import { gifWebpRendition } from '../gif-rendition';
@@ -40,6 +41,7 @@ import { MessageActionsComponent } from '../message-actions/message-actions.comp
 import { MessageContentComponent } from '../message-content/message-content.component';
 import { ReactionChipsComponent } from '../reaction-chips/reaction-chips.component';
 import { ReplyQuoteComponent } from '../reply-quote/reply-quote.component';
+import { YoutubeEmbedComponent } from '../youtube-embed/youtube-embed.component';
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
 import { DialogAnchor, anchorAbove, anchorAtPoint } from '../../../shared/dialog-shell/dialog-anchor';
@@ -68,10 +70,11 @@ const NATIVE_MENU_SELECTOR = 'input, textarea, [contenteditable], a[href]';
     ReactionChipsComponent,
     ReadReceiptComponent,
     ReplyQuoteComponent,
+    YoutubeEmbedComponent,
     DialogShellComponent,
   ],
   templateUrl: './message-item.component.html',
-  styleUrl: './message-item.component.scss',
+  styleUrls: ['./message-item.component.scss', './message-item.media.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'message',
@@ -242,6 +245,8 @@ export class MessageItemComponent {
   );
 
   protected readonly barPin = new MessageBarPin(this.barPinContext());
+
+  protected readonly pin = createPinToggle(this.entry, () => this.messagePath());
 
 
   /**

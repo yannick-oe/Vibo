@@ -105,6 +105,9 @@ export interface MessageDoc extends ReplyDoc {
   /** Inline-reply reference when this message answers another one ("Antworten");
    * absent on ordinary messages. MAIN-stream only — thread replies never set it. */
   replyTo?: ReplyRef;
+  /** Whether the message is pinned in its channel/conversation. Top-level
+   * messages only — system messages and thread replies are never pinnable. */
+  pinned?: boolean;
 }
 
 /**

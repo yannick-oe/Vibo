@@ -39,6 +39,7 @@ import { ChannelMembersDialogComponent } from '../channel-members-dialog/channel
 import { ChannelSettingsDialogComponent } from '../channel-settings-dialog/channel-settings-dialog.component';
 import { MessageInputComponent, ReplyContext } from '../message-input/message-input.component';
 import { MessageListComponent } from '../message-list/message-list.component';
+import { PinnedMessagesComponent } from '../pinned-messages/pinned-messages.component';
 import { buildReplyRef } from '../reply-ref';
 import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
 import { extendWindowToBoundary } from '../unread-window';
@@ -63,6 +64,7 @@ type ChannelDialog = 'settings' | 'members' | 'add' | 'invite';
     ChannelSettingsDialogComponent,
     MessageInputComponent,
     MessageListComponent,
+    PinnedMessagesComponent,
     TypingIndicatorComponent,
     ProfileDialogComponent,
   ],

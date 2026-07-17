@@ -23,6 +23,10 @@ $partner-status-max: 240px;
   z-index: v.$z-raised;
 }
 
+.dm__pins {
+  margin-left: auto;
+}
+
 .dm__partner {
   position: relative;
   display: flex;

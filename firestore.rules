@@ -144,6 +144,15 @@ service cloud.firestore {
         || setsBigReaction();
     }
 
+    // Message pinning: any channel member / DM participant may toggle
+    // exactly the boolean pinned flag on TOP-LEVEL messages. Thread
+    // replies never get this clause (their update path omits it), and
+    // blocked conversations deny it at the call site.
+    function togglesPinnedOnly() {
+      return affectedKeys().hasOnly(['pinned'])
+        && request.resource.data.pinned is bool;
+    }
+
     // Denormalization: the message author stamps the conversation's
     // lastMessageAt/lastMessageAuthorId in the same batch as the message
     // create, so the sidebar detects unread from one small doc.
@@ -353,7 +362,7 @@ service cloud.firestore {
           && request.auth.uid in channelMembersAfter(channelId)
           && validMessageCreate();
         allow update: if isChannelMember(channelId)
-          && (allowedMessageUpdate() || bumpsReplyCounters());
+          && (allowedMessageUpdate() || bumpsReplyCounters() || togglesPinnedOnly());
         allow delete: if isSoleChannelMember(channelId);
 
         match /replies/{replyId} {
@@ -555,7 +564,9 @@ service cloud.firestore {
           && validMessageCreate()
           && !isBlockedConversation(conversationId);
         allow update: if isParticipant(conversationId)
-          && (allowedMessageUpdate() || bumpsReplyCounters());
+          && (allowedMessageUpdate()
+            || bumpsReplyCounters()
+            || (togglesPinnedOnly() && !isBlockedConversation(conversationId)));
 
         match /replies/{replyId} {
           allow read, delete: if isParticipant(conversationId);

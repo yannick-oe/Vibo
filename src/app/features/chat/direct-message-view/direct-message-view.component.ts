@@ -39,6 +39,7 @@ import { PresenceDotComponent } from '../../../shared/presence-dot/presence-dot.
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { MessageInputComponent, ReplyContext } from '../message-input/message-input.component';
 import { MessageListComponent } from '../message-list/message-list.component';
+import { PinnedMessagesComponent } from '../pinned-messages/pinned-messages.component';
 import { buildReplyRef } from '../reply-ref';
 import { DmBlockState, blockStateOf, isUnfriendedState } from './dm-relationship';
 import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
@@ -61,6 +62,7 @@ const DM_START_MARKER = 'Das ist der Anfang eurer Unterhaltung';
   imports: [
     MessageInputComponent,
     MessageListComponent,
+    PinnedMessagesComponent,
     TypingIndicatorComponent,
     ProfileDialogComponent,
     AuroraNameComponent,

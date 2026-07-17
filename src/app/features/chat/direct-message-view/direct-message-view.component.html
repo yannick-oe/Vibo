@@ -30,6 +30,7 @@
         }
       </span>
     </div>
+    <app-pinned-messages class="dm__pins" [messagesPath]="messagesCollectionPath()" />
   </header>
 
   @if (messageWindow()?.loaded() && messages().length === 0) {

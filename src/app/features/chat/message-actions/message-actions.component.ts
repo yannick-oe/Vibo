@@ -22,13 +22,18 @@ type MenuState = 'closed' | 'menu' | 'confirm';
 
 const GHOST_TAP_GUARD_MS = 500;
 
+const PIN_LABEL = 'Anpinnen';
+
+const UNPIN_LABEL = 'Lösen';
+
 /**
  * Pill-shaped action bar per the Figma frames, shown by the message row on
  * hover and focus. Every message offers the two last-used quick reactions
  * (a big reaction keeps its special highlight when it surfaces here), the
- * emoji picker and the thread toggle; own messages additionally get the
- * options menu with edit (within its time window) and the two delete variants
- * behind a confirmation step.
+ * emoji picker and the thread toggle. The ⋮ options menu is context-
+ * dependent and never empty: pin/unpin on every pinnable message, edit
+ * (within its time window) and the delete variants behind a confirmation
+ * step on own messages only.
  */
 @Component({
   selector: 'app-message-actions',
@@ -52,6 +57,10 @@ export class MessageActionsComponent {
 
   readonly canEdit = input(false);
 
+  readonly isPinnable = input(false);
+
+  readonly isPinned = input(false);
+
   readonly reacted = output<string>();
 
   readonly pickerRequested = output<void>();
@@ -66,6 +75,8 @@ export class MessageActionsComponent {
 
   readonly deleteForAll = output<void>();
 
+  readonly pinToggled = output<void>();
+
   readonly menuOpenChanged = output<boolean>();
 
   private readonly recentEmojiService = inject(RecentEmojiService);
@@ -77,6 +88,10 @@ export class MessageActionsComponent {
   private confirmOpenedAt = 0;
 
   protected readonly quickEmojis = computed(() => this.recentEmojiService.recent());
+
+  protected readonly hasMenu = computed(() => this.isPinnable() || this.isOwn());
+
+  protected readonly pinLabel = computed(() => (this.isPinned() ? UNPIN_LABEL : PIN_LABEL));
 
   protected readonly assetFor = emojiAsset;
 
@@ -179,8 +194,9 @@ export class MessageActionsComponent {
    * while the ghost-tap guard is active so they need a deliberate tap.
    * @param action Output to emit.
    */
-  protected emitAndClose(action: 'edit' | 'forMe' | 'forAll'): void {
-    if (action !== 'edit' && this.isGhostTap()) return;
+  protected emitAndClose(action: 'pin' | 'edit' | 'forMe' | 'forAll'): void {
+    if ((action === 'forMe' || action === 'forAll') && this.isGhostTap()) return;
+    if (action === 'pin') this.pinToggled.emit();
     if (action === 'edit') this.editRequested.emit();
     if (action === 'forMe') this.deleteForMe.emit();
     if (action === 'forAll') this.deleteForAll.emit();
