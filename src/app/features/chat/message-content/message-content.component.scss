@@ -230,3 +230,32 @@
     transition: opacity v.$transition-base;
   }
 }
+
+:host ::ng-deep {
+  .spoiler {
+    display: inline;
+    padding: 0 v.space('xs');
+    border: none;
+    border-radius: v.$radius-sm;
+    background-color: v.color('lines');
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+
+    &:focus-visible {
+      @include m.focus-ring;
+    }
+  }
+
+  .spoiler__content {
+    visibility: hidden;
+  }
+
+  .spoiler--revealed {
+    padding: 0;
+    background-color: transparent;
+    cursor: inherit;
+  }
+}

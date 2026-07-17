@@ -112,8 +112,39 @@ export function millisOf(value: Timestamp | undefined): number {
 }
 
 
+const SPOILER_RUN = /\|\|[\s\S]+?\|\|/g;
+
+const SPOILER_MASK = 'Spoiler';
+
+const MARKDOWN_MARKERS = /(`{3}[\w-]*|`|\*\*|\*|~~)/g;
+
+
+/**
+ * Masks every ||spoiler|| run as the literal word "Spoiler" so hidden text
+ * never surfaces on plain-text paths (previews AND the pre-Markdown segment
+ * fallback of the message body).
+ * @param text Raw message text that may contain spoiler runs.
+ */
+export function maskSpoilers(text: string): string {
+  return text.replace(SPOILER_RUN, SPOILER_MASK);
+}
+
+
+/**
+ * Flattens message Markdown for one-line preview surfaces: spoiler runs are
+ * masked as "Spoiler" BEFORE any other processing so hidden text can never
+ * leak into a toast or reply snapshot, then the bold/italic/strikethrough/
+ * code markers are stripped.
+ * @param text Raw message text that may contain Markdown.
+ */
+export function plainPreviewText(text: string): string {
+  return maskSpoilers(text).replace(MARKDOWN_MARKERS, '');
+}
+
+
 /**
  * A short, single-line preview of a message: "GIF" for a GIF, otherwise the
+ * marker-stripped ({@link plainPreviewText} — spoiler content is masked),
  * trimmed, whitespace-collapsed text capped to at most `max` characters
  * (the appended ellipsis is counted, so the result never exceeds `max` — the
  * inline-reply snapshot relies on this to stay within its Firestore size cap).
@@ -128,7 +159,7 @@ export function previewOf(
 ): string {
   if (!message) return NEW_MESSAGE_FALLBACK;
   if (message.gifUrl) return GIF_PREVIEW;
-  const text = message.text.replace(/\s+/g, ' ').trim();
+  const text = plainPreviewText(message.text).replace(/\s+/g, ' ').trim();
   if (!text) return NEW_MESSAGE_FALLBACK;
   return text.length > max ? `${text.slice(0, max - ELLIPSIS.length)}${ELLIPSIS}` : text;
 }

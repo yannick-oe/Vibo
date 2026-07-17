@@ -1,20 +1,27 @@
 /**
  * @file Re-injects Twemoji emoji and @mention spans into already-sanitized
  * Markdown HTML by re-segmenting its text nodes (outside code), reusing the
- * shared message segmenter. The emoji images and mention spans added here are
- * our own trusted nodes; DOMPurify already ran on the Markdown itself.
+ * shared message segmenter, and upgrades inert spoiler markers to their
+ * interactive buttons. The emoji images, mention spans and spoiler buttons
+ * added here are our own trusted nodes; DOMPurify already ran on the
+ * Markdown itself.
  */
 import { MessageSegment, buildMessageSegments } from '../message-segments';
 import { enhanceCodeBlocks } from './code-block';
 
 const CODE_TAGS = ['CODE', 'PRE'];
 
+const SPOILER_MARKER_SELECTOR = 'span[data-spoiler]';
+
+const SPOILER_LABEL = 'Spoiler anzeigen';
+
 
 /**
- * Returns sanitized Markdown HTML with catalog emoji rendered as Twemoji
- * images, @mentions wrapped in highlight spans, and every fenced code block
- * wrapped in its chrome. Emoji/mention enrichment runs first so the chrome's
- * own header text is never processed.
+ * Returns sanitized Markdown HTML with spoiler markers upgraded to hidden-by-
+ * default buttons, catalog emoji rendered as Twemoji images, @mentions wrapped
+ * in highlight spans, and every fenced code block wrapped in its chrome.
+ * Spoilers upgrade first so emoji/mention enrichment also applies inside their
+ * content; the chrome's own header text is never processed.
  * @param html Sanitized Markdown HTML string.
  * @param userNames Known display names used to detect mentions.
  * @param selfName Signed-in user's display name, or null.
@@ -26,9 +33,39 @@ export function enhanceMessageHtml(
 ): string {
   const template = document.createElement('template');
   template.innerHTML = html;
+  upgradeSpoilers(template.content);
   collectTextNodes(template.content).forEach(node => replaceTextNode(node, userNames, selfName));
   enhanceCodeBlocks(template.content);
   return template.innerHTML;
+}
+
+
+/**
+ * Swaps every inert spoiler marker for the interactive hidden-state button.
+ * @param root Parsed Markdown fragment.
+ */
+function upgradeSpoilers(root: DocumentFragment): void {
+  root.querySelectorAll(SPOILER_MARKER_SELECTOR).forEach(marker => marker.replaceWith(spoilerButton(marker)));
+}
+
+
+/**
+ * Builds the hidden spoiler button: real button semantics with a German
+ * label, the obscured content wrapped aria-hidden so assistive tech cannot
+ * read it before the reveal.
+ * @param marker Sanitized inert spoiler span whose children move over.
+ */
+function spoilerButton(marker: Element): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'spoiler';
+  button.setAttribute('aria-label', SPOILER_LABEL);
+  const content = document.createElement('span');
+  content.className = 'spoiler__content';
+  content.setAttribute('aria-hidden', 'true');
+  content.append(...marker.childNodes);
+  button.appendChild(content);
+  return button;
 }
 
 

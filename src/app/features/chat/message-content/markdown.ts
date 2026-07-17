@@ -1,8 +1,10 @@
 /**
  * @file Lazily-loaded Markdown rendering pipeline for message display. The
- * parser (marked) does NOT sanitize, so its output is always run through
- * DOMPurify with a strict allow-list before it can reach the DOM.
+ * parser (marked, extended with Discord-style ||spoiler|| runs) does NOT
+ * sanitize, so its output is always run through DOMPurify with a strict
+ * allow-list before it can reach the DOM.
  */
+import type { Token, TokenizerAndRendererExtension, Tokens } from 'marked';
 
 const ALLOWED_TAGS = [
   'p',
@@ -20,9 +22,36 @@ const ALLOWED_TAGS = [
   'ol',
   'li',
   'blockquote',
+  'span',
 ];
 
-const ALLOWED_ATTR = ['href', 'title', 'target', 'rel', 'class'];
+const ALLOWED_ATTR = ['href', 'title', 'target', 'rel', 'class', 'data-spoiler'];
+
+const SPOILER_PATTERN = /^\|\|([\s\S]+?)\|\|/;
+
+/**
+ * marked inline extension for ||spoiler|| runs. Tokenized after code spans
+ * (marked consumes a code span atomically, so `||` inside backticks stays
+ * literal) and before emphasis, whose syntax still applies INSIDE the spoiler
+ * via the nested inline tokens. An unclosed `||` never matches and renders
+ * literally. Emits an inert `<span data-spoiler>`; the enhance step upgrades
+ * it to the interactive button after sanitization.
+ */
+const SPOILER_EXTENSION: TokenizerAndRendererExtension = {
+  name: 'spoiler',
+  level: 'inline',
+  start: (src: string) => src.indexOf('||'),
+  tokenizer(src: string): Tokens.Generic | undefined {
+    const match = SPOILER_PATTERN.exec(src);
+    if (!match) return undefined;
+    const children: Token[] = [];
+    this.lexer.inline(match[1], children);
+    return { type: 'spoiler', raw: match[0], text: match[1], tokens: children };
+  },
+  renderer(token: Tokens.Generic): string {
+    return `<span data-spoiler>${this.parser.parseInline(token.tokens ?? [])}</span>`;
+  },
+};
 
 const SANITIZE_CONFIG = { ALLOWED_TAGS, ALLOWED_ATTR };
 
@@ -66,6 +95,7 @@ async function buildRenderer(): Promise<(text: string) => string> {
   const [{ marked }, purifyModule] = await Promise.all([import('marked'), import('dompurify')]);
   const purify = purifyModule.default;
   purify.addHook('afterSanitizeAttributes', hardenNode);
+  marked.use({ extensions: [SPOILER_EXTENSION] });
   renderer = text =>
     purify.sanitize(marked.parse(text, { gfm: true, breaks: true, async: false }), SANITIZE_CONFIG);
   return renderer;

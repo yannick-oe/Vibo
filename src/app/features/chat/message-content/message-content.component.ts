@@ -15,6 +15,7 @@ import {
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import { AuthService } from '../../../services/auth.service';
+import { maskSpoilers } from '../../../services/notification.util';
 import { UserService } from '../../../services/user.service';
 import { buildMessageSegments } from '../message-segments';
 import { enhanceMessageHtml } from './message-enhance';
@@ -29,6 +30,12 @@ const COPIED_CLASS = 'code-block__copy--copied';
 const COPY_STATUS = 'Kopiert';
 
 const COPY_FEEDBACK_MS = 1500;
+
+const SPOILER_CLASS = 'spoiler';
+
+const SPOILER_CONTENT_CLASS = 'spoiler__content';
+
+const SPOILER_REVEALED_CLASS = 'spoiler--revealed';
 
 
 /**
@@ -76,7 +83,7 @@ export class MessageContentComponent {
   private readonly selfName = computed(() => this.resolveSelfName());
 
   protected readonly segments = computed(() =>
-    buildMessageSegments(this.text(), this.userNames(), this.selfName()),
+    buildMessageSegments(maskSpoilers(this.text()), this.userNames(), this.selfName()),
   );
 
   protected readonly rendered = signal<SafeHtml | null>(null);
@@ -141,14 +148,35 @@ export class MessageContentComponent {
 
 
   /**
-   * Copies a code block's raw text when its copy button is activated (mouse or
-   * keyboard); other clicks are ignored.
+   * Handles activation of rendered interactive chrome: reveals a hidden
+   * spoiler or copies a code block's raw text (mouse or keyboard); other
+   * clicks are ignored.
    * @param event Click event bubbled from the rendered content.
    */
   protected onContentClick(event: Event): void {
     const target = event.target;
-    const button = target instanceof Element ? target.closest(`.${COPY_BUTTON_CLASS}`) : null;
+    if (!(target instanceof Element)) return;
+    const spoiler = target.closest(`.${SPOILER_CLASS}:not(.${SPOILER_REVEALED_CLASS})`);
+    if (spoiler instanceof HTMLElement) return this.revealSpoiler(spoiler);
+    const button = target.closest(`.${COPY_BUTTON_CLASS}`);
     if (button instanceof HTMLElement) void this.copyCode(button);
+  }
+
+
+  /**
+   * Reveals one spoiler instance in place: the button is swapped for a plain
+   * span holding the fully enhanced content, so the text joins the normal
+   * flow (instant — no animation, honoring prefers-reduced-motion by design).
+   * Reveal state is local to the rendered DOM and never persisted.
+   * @param button Hidden spoiler button that was activated.
+   */
+  private revealSpoiler(button: HTMLElement): void {
+    const content = button.querySelector(`.${SPOILER_CONTENT_CLASS}`);
+    if (!(content instanceof HTMLElement)) return;
+    const revealed = document.createElement('span');
+    revealed.className = `${SPOILER_CLASS} ${SPOILER_REVEALED_CLASS}`;
+    revealed.append(...content.childNodes);
+    button.replaceWith(revealed);
   }
 
 
