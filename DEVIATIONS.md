@@ -1637,6 +1637,11 @@ live repro against the dev server (pre-fix), re-verified green post-fix (55 chec
   → accepted deviation on shared hosting (ETag/Last-Modified 304 revalidation remains),
   nothing further possible without server access. Firebase Hosting is unaffected (cache
   headers come from `firebase.json`).
+  **Verdict (2026-07-17, live re-check): the "neither" branch is confirmed** — production
+  bundle responses carry no `Cache-Control`, no `Expires` and no `X-Vibo-Htaccess` marker,
+  so the nginx front serves statics without consulting `.htaccess` header directives at
+  all. This is **final**: accepted deviation, do not revisit; the `.htaccess` rules stay
+  in place solely as a dormant fallback should the host configuration ever change.
 
 ## Production polish pack: pinned hover bar, badge/sidebar flashes, presence seed, GIF delivery (2026-07-16)
 
@@ -1670,6 +1675,141 @@ live repro against the dev server (pre-fix), re-verified green post-fix (55 chec
   sources (open conversation excluded from the unread count, in-view feed entries excluded
   from the event count), so the async read-marker write / feed auto-clear can no longer
   flash a phantom badge on navigation.
+
+## Lighthouse residuals closeout (2026-07-17)
+
+- **Best Practices 96 on GIF-bearing channel views is the score cost of the accepted
+  `200w.webp` rendition — final, not fixable without undoing the byte savings.** Identified
+  via an isolated CLI harness (the exact `<picture>`/`<img>` embed markup + CSS, real Giphy
+  renditions, served locally): the failing audit is `image-size-responsive` ("Serves images
+  with low resolution") — the ~200px-wide rendition upscales into wider bubbles (e.g.
+  displayed 356×199, actual 200×112, Lighthouse expects 534×299 on the mobile preset).
+  Explicitly **not** third-party cookies: Giphy's media CDN sets no cookies (GET responses
+  carry no `Set-Cookie`; `access-control-allow-origin: *`), and the audit passes (score 1)
+  with the embeds present, so `crossorigin="anonymous"` was evaluated and deliberately not
+  shipped — it would change nothing. Views without GIF embeds score BP 100 (verified live
+  on the authenticated shell via CLI). Accepted deviation, same rationale as the rendition
+  entry above (bytes beat crispness); serving DPR-matched larger renditions would undo the
+  −23%…−91% savings.
+- **Explicit image dimensions ("unsized images") re-audit:** the only real remaining gaps on
+  the authenticated app shell were the notification-bell icon (`notifications.svg`) and the
+  sidebar "Channel hinzufügen" icon (`add.svg`) — both classless `<img>`s with neither
+  width/height attributes nor CSS sizing. Fixed with explicit `width`/`height` attributes
+  mirroring each SVG's intrinsic size (16×16 / 14×14, zero visual change). All other images
+  (avatars, inline emoji, GIF embeds, remaining icons) are attribute- or CSS-sized.
+- **"Reduce unused JavaScript" is dominated by the eager Firebase SDK — accepted, do not
+  defer.** The largest initial chunk (~373 kB raw) is the Firestore/`@firebase` core pulled
+  eagerly by `provideFirestore` in `app.config.ts` (known tech debt, budget raised to
+  800 kB for it); Lighthouse counts its not-yet-executed code as "unused" on every view.
+  The remainder is framework code parsed at boot (normal for Angular). Deferring the SDK
+  would break the eager auth bootstrap; accepted deviation.
+
+## Phase 7: PWA — service worker, manifest, offline persistence (2026-07-17)
+
+- **Angular service worker, production only.** `provideServiceWorker('ngsw-worker.js', { enabled: !isDevMode(), registrationStrategy: 'registerWhenStable:30000' })`;
+  `serviceWorker: "ngsw-config.json"` sits in the **production** build configuration, so
+  `ng serve`/dev builds never register a worker. Asset strategy: the `app` group prefetches
+  the shell (index.html, hashed js/css, favicons, manifest, PWA icons); the `media-lazy`
+  group (installMode **lazy**, updateMode lazy) covers `/emojis/**`, `/avatars/**`,
+  `/fonts/**`, `/app-icons/**`, `/logos/**` and `emoji-data.de.json` — the ~8 MB Twemoji
+  set is **never prefetched**, it is cached emoji-by-emoji as actually used. **No
+  dataGroups**: Firestore/Auth/Giphy (and future YouTube) requests bypass the worker
+  untouched — Firestore has its own offline layer (below). `navigationUrls` stays at the
+  defaults; with hash routing every navigation is `/`. Known cost, accepted and measured:
+  hashing every lazy asset puts ~2,000 entries into `ngsw.json` (~210 kB raw, fetched only
+  on cache-busted update checks, never in the request path). If that ever hurts, the
+  alternative is a lazy dataGroup for `/emojis/**` (no hash table entries, but also no
+  integrity/versioning for emojis).
+- **Manifest + icons.** German `manifest.webmanifest` (name/short_name "Vibo", display
+  standalone, `theme_color`/`background_color` mirror the light `bg` token `#eceefe`).
+  `start_url`/`scope` are `"./"` — not the spec'd `"/"` — deliberately: relative URLs
+  resolve correctly on BOTH deployments (Firebase root and the `/vibo/browser/` subfolder),
+  matching the repo-wide relative-asset convention. Icons 192/512 in `any` + `maskable`
+  plus a 180px `apple-touch-icon` live in `public/pwa-icons/`, generated by
+  `tools/generate-pwa-icons.mjs` (headless Chrome + canvas, no npm deps; maskable variants
+  sample the artwork's dark-sky color for a full-bleed background and center the logo in
+  the safe zone). **Flagged limitation:** the "SVG" logo assets embed a 128×128 PNG, so the
+  512px icons are upscaled and slightly soft — sharper icons need a true-vector or ≥512px
+  source exported once into `public/logos/` (then re-run the tool); no new artwork was
+  created per scope.
+- **Firestore offline persistence.** `provideFirestore` now builds the instance via
+  `initializeFirestore(getApp(), { localCache: persistentLocalCache({ tabManager:
+  persistentMultipleTabManager() }) })` in a try/catch that falls back to the default
+  in-memory `getFirestore()` (private-mode/storage failures ⇒ the app is simply
+  online-only again, no user-facing error). Eager auth bootstrap untouched.
+- **Update UX.** `AppUpdateService` (wired via `provideAppInitializer`) filters
+  `SwUpdate.versionUpdates` for `VERSION_READY` and shows the global toast with **"Neue
+  Version verfügbar"** and the action **"Neu laden"** — the reload is user-triggered
+  (`document.location.reload()`), never automatic. The toast service gained a persistent
+  action variant for this (`showWithAction`; no auto-dismiss, so the choice cannot be
+  missed — plain toasts keep the 3 s auto-dismiss).
+- **Deploy interplay on the nginx-fronted shared host** (see also README "Deployment &
+  PWA"): the host's missing cache headers do NOT break updates — ngsw fetches `ngsw.json`
+  with a cache-busting query and browsers bypass HTTP caches for the worker-script
+  update check per spec, so deploys propagate. FileZilla uploads must mirror the FULL dist
+  (incl. `ngsw.json`, `ngsw-worker.js`, `manifest.webmanifest`, `pwa-icons/`); after a
+  partial upload the worker detects hash mismatches and degrades to network-serving
+  (app stays usable online) until a complete redeploy. Recovery from a genuinely broken
+  worker: deploy `@angular/service-worker/safety-worker.js` as `ngsw-worker.js` (kill
+  switch — unregisters + clears caches). First-time visitors remain subject to the
+  browser's heuristic caching of `index.html` on this host; the service worker removes
+  that edge for returning users.
+- **Verified locally via CLI** (prod build + static server + headless Chrome): worker
+  active after first visit, `app`/`media-lazy` caches populated, and an offline reload
+  renders the full login shell. The update flow was verified end-to-end the same way: a
+  second deploy over the installed version surfaced the "Neue Version verfügbar" toast
+  (console clean) and its "Neu laden" action reloaded into the new version. Device install
+  flow and mobile standalone behavior remain device-only checks.
+
+## Phase 8: message pins, ||spoiler||, YouTube embeds (2026-07-17)
+
+- **Message pins (no Figma design).** `pinned: boolean` on top-level message docs (channel
+  + DM); thread replies and system messages are not pinnable — **client-enforced** (the
+  rules additionally omit the pin clause on the replies subcollections). The ⋮ trigger now
+  appears on EVERY message row's hover bar / long-press flow, no longer own-only; the menu
+  is context-dependent and never empty: "Anpinnen"/"Lösen" for every member/participant,
+  Bearbeiten/Löschen stay own-only. Desktop right-click still opens the reaction picker,
+  unchanged. Pinned rows show a muted pin glyph appended to the meta line (visually-hidden
+  "Angepinnt", sized under the line height → no layout shift). The chat headers (channel +
+  DM) carry an always-rendered pin button with a count badge (>0) opening a dialog-shell
+  listing pinned messages: **one-shot** `where('pinned','==',true)` query capped at
+  `PINNED_QUERY_LIMIT = 50`, client-sorted newest first (no composite index needed), each
+  entry with author, time, content via the shared message-content rendering and a "Lösen"
+  action. **No jump-to-message — accepted scope:** with windowed history (live window of
+  50 + on-demand older pages) the target is often not in the DOM, so a jump would be
+  unreliable; deliberately omitted. **Listener-free by design (§14):** the count comes
+  from one aggregate read per context open and is kept in sync locally for own actions —
+  a foreign pin/unpin during the visit shows on the next context open (accepted
+  staleness). No notifications, no sounds for pin actions.
+- **||spoiler|| in the message pipeline.** Markdown itself (bold/italic/inline code,
+  fenced blocks, links, lists) predates this phase — the spoiler is implemented as a
+  marked inline extension INSIDE that existing pipeline: code spans stay fully protected
+  (marked consumes them atomically, `||` in backticks renders literally), emphasis/emoji/
+  mention/link enhancement applies inside spoiler content, unclosed `||` renders
+  literally. The extension emits an inert `<span data-spoiler>` through DOMPurify's
+  allow-list; the trusted enhance step then upgrades it to a real
+  `<button class="spoiler">` ("Spoiler anzeigen", content wrapped `aria-hidden` so
+  assistive tech cannot read it pre-reveal). Reveal is per instance and local (button
+  swaps to a plain span; multiple spoilers toggle independently; not persisted — an edit
+  or re-render re-hides). Reveal is instant by design (no animation), satisfying
+  reduced-motion trivially. **Preview masking:** the shared `plainPreviewText`/
+  `maskSpoilers` helpers mask spoiler runs as "Spoiler" and strip `**`/`*`/`~~`/backtick
+  markers on every one-line surface (notification toast, inline-reply snapshot) AND in
+  the pre-Markdown segment fallback of the bubble, so hidden text never flashes or leaks.
+  (The sidebar shows no last-message text in this app, so toast + reply snapshot are the
+  only preview surfaces.)
+- **YouTube embeds — the roadmap-sanctioned exception to "no generic link previews".**
+  Only the FIRST YouTube URL per message embeds (`YOUTUBE_EMBEDS_PER_MESSAGE = 1`;
+  watch?v=/youtu.be//shorts//embed/ + optional t/start offset); the URL keeps its normal
+  link rendering in the text. Below the text renders a fixed 16:9 click-to-play facade
+  (`$media-embed-width` = 320px, CLS 0): the lazy `i.ytimg.com` hqdefault thumbnail
+  (object-fit cover crops its 4:3 letterbox) plus a play pill, as a real button
+  ("YouTube-Video abspielen"). Before the click the thumbnail is the ONLY YouTube
+  request — no iframe, no oEmbed/title fetch (keeps Best Practices clean); activation
+  swaps in a `youtube-nocookie.com/embed` iframe with `autoplay=1(&start=<s>)`,
+  `allow="autoplay; encrypted-media; fullscreen"`. Thumbnail onerror ⇒ the box is
+  dropped entirely and only the text link remains. Generic link previews for other sites
+  remain permanently excluded.
 - **New accounts are born online**: registration, guest reset and Google first sign-in seed
   `lastActive: serverTimestamp()` + `presence: 'online'` into the user document — the
   presence service's immediate beat raced the doc creation (`updateDoc` on a missing doc

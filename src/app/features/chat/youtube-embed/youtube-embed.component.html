@@ -1,0 +1,29 @@
+@if (video(); as currentVideo) {
+  @if (!thumbFailed()) {
+    <div class="yt">
+      @if (frameSrc(); as src) {
+        <iframe
+          class="yt__frame"
+          [src]="src"
+          [title]="iframeTitle"
+          allow="autoplay; encrypted-media; fullscreen"
+          allowfullscreen
+        ></iframe>
+      } @else {
+        <button class="yt__facade" type="button" aria-label="YouTube-Video abspielen" (click)="activate()">
+          <img
+            class="yt__thumb"
+            [src]="thumbUrl()"
+            alt=""
+            width="480"
+            height="360"
+            loading="lazy"
+            decoding="async"
+            (error)="thumbFailed.set(true)"
+          />
+          <span class="yt__play" aria-hidden="true"></span>
+        </button>
+      }
+    </div>
+  }
+}

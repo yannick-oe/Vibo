@@ -18,6 +18,12 @@
     @if (isEdited()) {
       <span class="message__edited">(bearbeitet)</span>
     }
+    @if (pin.isPinned()) {
+      <span class="message__pinned-flag">
+        <img src="app-icons/keep.svg" alt="" width="14" height="14" aria-hidden="true" />
+        <span class="sr-only">Angepinnt</span>
+      </span>
+    }
     @if (isOwn() && showReceipt()) {
       <app-read-receipt
         [entry]="messageEntry()"
@@ -104,6 +110,7 @@
     </picture>
   } @else {
     <app-message-content class="message__bubble" [text]="entry().text" />
+    <app-youtube-embed [text]="entry().text" />
   }
 
   @if (!isDeleted() && hasReactions()) {
@@ -139,6 +146,8 @@
       [isThreadOpen]="isThreadOpen()"
       [isReplyable]="isReplyable()"
       [canEdit]="canEditNow()"
+      [isPinnable]="pin.isPinnable()"
+      [isPinned]="pin.isPinned()"
       (reacted)="react($event)"
       (pickerRequested)="reactionPickerOpen.set(true)"
       (threadToggled)="requestThread()"
@@ -146,6 +155,7 @@
       (editRequested)="startEdit()"
       (deleteForMe)="onDelete('me')"
       (deleteForAll)="onDelete('all')"
+      (pinToggled)="barOpen.set(false); pin.toggle()"
       (menuOpenChanged)="barPin.menuOpen.set($event)"
     />
   </div>
