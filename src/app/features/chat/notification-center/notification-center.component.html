@@ -6,7 +6,7 @@
   [attr.aria-label]="bellLabel()"
   (click)="open($event)"
 >
-  <img src="app-icons/notifications.svg" alt="" aria-hidden="true" />
+  <img src="app-icons/notifications.svg" alt="" width="16" height="16" aria-hidden="true" />
   @if (badgeText()) {
     <span class="notification-center__badge" aria-hidden="true">{{ badgeText() }}</span>
   }
