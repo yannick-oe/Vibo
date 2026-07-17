@@ -150,6 +150,15 @@ firebase deploy --only firestore:rules
 
 **Trying it out:** click the **Gäste-Login** button for instant access to the public shared demo account.
 
+### Deployment & PWA (service worker)
+
+The production build ships an Angular service worker (`ngsw`), a web app manifest and PWA icons — the app is installable and previously visited views work offline (Firestore serves persisted data).
+
+- **Always deploy the FULL `dist/vibo/browser/` output** — including `ngsw.json`, `ngsw-worker.js`, `manifest.webmanifest` and `pwa-icons/`. A partial upload causes hash mismatches: the service worker then degrades to plain network serving (the app still works online) until a complete redeploy restores a consistent version.
+- **Host cache headers don't matter for updates.** The nginx front on the shared host serves statics without cache headers, but ngsw update checks bypass HTTP caching by design (`ngsw.json` is fetched with a cache-busting parameter; the browser re-checks the worker script per spec), so new deploys propagate reliably. Only the very first visit of a new user is subject to the browser's heuristic caching of `index.html`; once the service worker controls the page, it serves and updates `index.html` itself.
+- **Kill switch:** if a broken worker ever needs to be retired in production, deploy Angular's safety worker — copy `node_modules/@angular/service-worker/safety-worker.js` over `ngsw-worker.js` (same URL) and it unregisters itself and clears all caches on the next update check.
+- **Local verification:** the service worker is disabled in dev (`ng serve`). Test with a production build and a static server, e.g. `npm run build && npx http-server dist/vibo/browser`.
+
 ---
 
 ## Accessibility & performance
