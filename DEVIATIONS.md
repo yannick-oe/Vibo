@@ -1814,3 +1814,88 @@ live repro against the dev server (pre-fix), re-verified green post-fix (55 chec
   `lastActive: serverTimestamp()` + `presence: 'online'` into the user document — the
   presence service's immediate beat raced the doc creation (`updateDoc` on a missing doc
   rejects silently), so a fresh account looked offline until the first 60 s heartbeat.
+
+## Roadmap finale: persistent voice channels (2026-07-18)
+Discord-style persistent voice channels with peer-to-peer audio. **This supersedes the
+previously planned — never executed — 1:1 ring-call phase**: instead of ephemeral DM calls
+with ring/accept/decline, voice lives in always-visible channels users freely join and
+leave (Discord parity). A later DM-call feature could ride the exact same room model as a
+private two-person room; nothing in this design blocks it. No Figma frames — all voice UI
+follows Discord conventions rendered strictly with existing tokens. German UI throughout.
+
+- **Audio is strictly P2P (full mesh, DTLS-SRTP).** Firestore carries ONLY presence
+  (`voiceChannels/{id}/voiceParticipants/{sessionId}`) and transient signaling envelopes
+  (`…/signals/{autoId}`, deleted by the addressee after applying — self-cleaning mailbox).
+  No audio ever touches a server Vibo controls; there is no recording surface at all.
+- **Mesh cap ≤ 5 (`MAX_VOICE_PARTICIPANTS`).** Every participant sends its Opus stream to
+  every other: worst-case uplink = (5−1) × 128 kbit/s = **512 kbit/s** (plus RTP/SRTP
+  overhead) and the same downlink — the practical ceiling for consumer uplinks, hence the
+  hard cap. The cap is **client-enforced only** (toast „Sprachkanal ist voll (5/5)"); two
+  clients joining a 4/5 channel in the same instant can race to 6/5 — tolerated at project
+  scale, the channel merely runs beyond Discord-parity capacity until someone leaves.
+- **Opus vs. Discord tiers (honest framing).** Discord's kbps tiers are SFU-side transcode
+  settings; pure P2P has no transcode step, so every leg negotiates the raw codec. Each
+  LOCAL description is munged (`sdp-quality.ts`) to `maxaveragebitrate=128000, stereo=1,
+  sprop-stereo=1, useinbandfec=1, usedtx=0, maxplaybackrate=48000` — 128 kbit/s stereo
+  full-band Opus with FEC, which meets or exceeds Discord's boosted tiers for every user
+  on every leg. Both directions are covered because the munged local SDP is exactly what
+  travels through signaling to the remote side.
+- **STUN-only NAT traversal (no TURN).** Google STUN (primary + one fallback) resolves
+  ~85–90 % of real-world pairs; symmetric-NAT pairs (~10–15 %) cannot connect **per peer
+  leg** — surfaced as that single peer staying silent and being dropped by the watchdog
+  (`DISCONNECT_GRACE_MS` = 5 s on `failed`/`disconnected`), never as a channel error. A
+  TURN relay would need a server + credentials (out of scope on Spark).
+- **Glare-free deterministic initiation.** The JOINER offers to every session present at
+  join; for the rare simultaneous join neither side saw, the lexicographically smaller
+  session id back-fills, and an incoming offer beats an own unanswered offer only from a
+  smaller session id — exactly one initiator per pair in every interleaving.
+- **Session-id identity (shared guest account).** Participant docs are keyed by the
+  client-session id (same pattern as the typing markers), so several guest windows are
+  distinct voice participants. Consequences, all accepted and mirrored from the typing
+  model: guest sessions share one uid, so the rules let one guest session delete another's
+  participant doc and read the other's signaling envelopes (same account, no privilege
+  boundary crossed); both docs render as „Gast" with the same avatar.
+- **Orphan/stale tolerance.** A crashed or closed tab leaves its participant doc behind;
+  peers detect the death via `connectionState` + the stale heartbeat (`lastSeen` older
+  than `VOICE_STALE_MS` = 90 s, swept client-side every 15 s) and the doc disappears from
+  every roster without server-side cleanup. `beforeunload` attempts a best-effort delete.
+  Heartbeat writes (`VOICE_HEARTBEAT_MS` = 30 s) happen ONLY while actively connected.
+- **Listener budget (§14).** Exactly ONE new persistent listener: a
+  `collectionGroup('voiceParticipants')` stream powering BOTH the sidebar occupancy and
+  the in-channel roster (client-filtered). Plus ONE connection-scoped listener while
+  connected (signals `where toSession == mine AND toUid == mine` — equality-only, no
+  composite index, provable against the uid-scoped read rule). The voice-channel LIST
+  deliberately has NO listener: one-shot fetch on sign-in, after an own create, and
+  self-healing whenever the roster stream references an unknown channel id. Trade-off: an
+  empty channel created elsewhere appears only with the next sign-in/reload or as soon as
+  anyone joins it.
+- **Creation gating mirrors text channels exactly** — verified finding: text-channel
+  creation has NO guest restriction (guests are only barred from invite links and profile
+  editing), so voice-channel creation is equally open to every signed-in user including
+  the guest. No rename/delete in this phase (rules: `update, delete: if false`) —
+  accepted scope. Duplicate voice-channel names are allowed (no uniqueness requirement was
+  specified; text channels keep their global duplicate check).
+- **Speaking indicators are local-only** (zero Firestore writes): one AnalyserNode per
+  stream (own mic + each peer), RMS threshold with hold hysteresis → green ring (online
+  token) + visually hidden „spricht". Only clients IN the channel hear audio, so only
+  they see rings; muted/deafened participants never show as speaking. Reduced motion ⇒
+  static ring, no pulse. Analysers are torn down with their peers.
+- **Voice bar** (Discord parity): docked at the bottom of the desktop workspace column
+  (reserved flex space below the scrollable nav), compact bar in the mobile app shell
+  (own flex row — reserved space, no overlay, CLS 0: it appears only as the direct result
+  of the join tap). With the desktop workspace column COLLAPSED the docked bar would
+  disappear with it, so the shell renders the compact variant as a full-width bottom
+  strip in that state — the bar is reachable in every layout while connected. Controls ≥ 44 px, aria-pressed on mute/deafen, „Verbindung trennen"
+  in the error token. Pressing Mute while deafened lifts the deafen and unmutes (Discord
+  parity); un-deafen restores the pre-deafen mute state. **AA deviation from the spec's
+  „green line":** the `online` token fails 4.5:1 as TEXT on the light theme (≈1.7:1), so
+  „Sprachchat verbunden" renders in the default text color with an online-token status
+  DOT (presence-dot precedent) — status is never conveyed by color alone.
+- **Voice glyphs are inline stroke SVGs** (`currentColor`), not new icon assets: the
+  icon set has no speaker/mic/headset glyphs, and inline SVG (existing precedent:
+  read-receipt, theme-toggle, topbar) inherits token colors in both themes instead of
+  needing per-theme asset pairs.
+- **iOS Safari / device-only caveats** (not verifiable headless): autoplay of the hidden
+  per-peer `<audio>` elements (join click is the gesture; a rejected `play()` re-arms
+  once on the next pointer gesture), mic permission UX, and backgrounded-tab throttling
+  of the heartbeat. Flagged for a manual device pass.

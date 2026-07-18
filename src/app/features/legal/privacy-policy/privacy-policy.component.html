@@ -86,7 +86,28 @@
   </section>
 
   <section>
-    <h2>6. Speicherdauer</h2>
+    <h2>6. Sprachkanäle (Peer-to-Peer-Audio)</h2>
+    <p>
+      Die App bietet Sprachkanäle für Audio-Gespräche in Echtzeit. Ihr Mikrofon wird
+      ausschließlich verwendet, während Sie mit einem Sprachkanal verbunden sind, und erst,
+      nachdem Sie den Zugriff in Ihrem Browser ausdrücklich erlaubt haben. Die Audio-Daten
+      werden direkt zwischen den Geräten aller Teilnehmenden des Kanals übertragen
+      (Peer-to-Peer, verschlüsselt per DTLS-SRTP) und von Vibo zu keinem Zeitpunkt
+      aufgezeichnet, gespeichert oder über eigene Server geleitet.
+    </p>
+    <p>
+      Technisch bedingt lernt bei einer Peer-to-Peer-Verbindung das Gerät jedes Teilnehmenden
+      Ihre IP-Adresse kennen. Verbindungs-Metadaten (Sitzungsbeschreibungen und
+      Verbindungskandidaten, die IP-Adressen enthalten) werden zum Verbindungsaufbau
+      vorübergehend in Firestore gespeichert und nach Gebrauch gelöscht. Zur Ermittlung der
+      Verbindungswege werden STUN-Server von Google als Drittanbieter-Dienst genutzt; diese
+      sehen dabei Ihre IP-Adresse und Ihren Port, jedoch keinerlei Audio-Inhalte. Die
+      Verarbeitung erfolgt zur Bereitstellung der Sprachfunktion (Art 6 Abs 1 lit b DSGVO).
+    </p>
+  </section>
+
+  <section>
+    <h2>7. Speicherdauer</h2>
     <p>
       Personenbezogene Daten werden nur so lange gespeichert, wie es für die genannten Zwecke
       erforderlich ist bzw. bis zur Löschung Ihres Kontos. Inhalte des Gäste-Profils werden bei
@@ -95,7 +116,7 @@
   </section>
 
   <section>
-    <h2>7. Ihre Rechte</h2>
+    <h2>8. Ihre Rechte</h2>
     <p>Ihnen stehen die Rechte auf</p>
     <ul>
       <li>Auskunft (Art 15),</li>
@@ -112,7 +133,7 @@
   </section>
 
   <section>
-    <h2>8. Beschwerderecht</h2>
+    <h2>9. Beschwerderecht</h2>
     <p>
       Sie haben das Recht, sich bei einer Aufsichtsbehörde zu beschweren. In Österreich ist dies
       die Österreichische Datenschutzbehörde, Barichgasse 40-42, 1030 Wien
@@ -121,12 +142,12 @@
   </section>
 
   <section>
-    <h2>9. Kontakt</h2>
+    <h2>10. Kontakt</h2>
     <p>
       Bei Fragen zum Datenschutz:
       <a href="mailto:oetelshoven.dev@gmail.com">oetelshoven.dev@gmail.com</a>
     </p>
   </section>
 
-  <p>Stand: Juni 2026</p>
+  <p>Stand: Juli 2026</p>
 </article>
