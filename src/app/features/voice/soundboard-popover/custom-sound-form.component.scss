@@ -1,0 +1,66 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.sound-form {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('sm');
+  padding: v.space('sm') v.space('sm') 0;
+  border-top: 1px solid var(--field-border);
+}
+
+.sound-form__label {
+  font-size: v.font-size('min');
+}
+
+.sound-form__file {
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  cursor: pointer;
+
+  &::file-selector-button {
+    @include m.press-feedback;
+
+    margin-right: v.space('sm');
+    padding: v.space('xs') v.space('sm');
+    border: none;
+    border-radius: v.$radius-sm;
+    background-color: v.color('bg');
+    font-family: inherit;
+    font-size: v.font-size('min');
+    font-weight: v.$font-weight-semibold;
+    color: v.color('black');
+    cursor: pointer;
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
+.sound-form__info {
+  @include m.text-ellipsis;
+
+  margin-top: v.space('xs');
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+}
+
+.sound-form__counter {
+  margin-top: v.space('xs');
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  text-align: right;
+}
+
+.sound-form__actions {
+  @include m.flex-end;
+
+  gap: v.space('sm');
+  padding-bottom: v.space('sm');
+}

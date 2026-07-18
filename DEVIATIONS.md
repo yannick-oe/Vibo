@@ -1958,3 +1958,71 @@ connection-scoped signals inbox (§14).
   so participant docs created BEFORE the rules deploy fail their next heartbeat update and
   go stale within 90 s. Deploy the consolidated rules before live testing; anyone
   connected across the deploy simply rejoins.
+
+## Custom soundboard sounds: Firestore as tiny-blob store (2026-07-18)
+User-uploaded soundboard sounds stored as small base64 audio blobs in `soundboardSounds/{id}`
+documents — a deliberate architecture decision, not a workaround-by-accident. No Figma frames;
+German UI, tokens only, §14 listener inventory UNCHANGED (everything is one-shot fetches; the
+broadcast still rides the existing signals mailbox as the same `'sound'` envelope).
+
+- **WHY Firestore instead of Firebase Storage (permanent decision):** Storage on new projects
+  requires the **Blaze** plan — a billing plan needing a payment method on file, with real cost
+  exposure on a public portfolio app whose **shared guest account** anyone can use. The project
+  is deliberately Spark-only (no Cloud Functions, no Storage), so tiny audio blobs live directly
+  in Firestore documents. The caps make that safe: raw file ≤ **150 KB**
+  (`MAX_SOUND_FILE_BYTES`), duration ≤ **3 s** (`MAX_SOUND_DURATION_MS`), base64 `data` ≤
+  **200,000 chars** in rules (exactly the 4/3 base64 inflation of 150 KB — 3 bytes → 4 chars),
+  name ≤ 24 (`SOUND_NAME_MAX`) — every document stays far under Firestore's 1 MiB limit.
+  Worst case at the count cap: 8 × ~200 KB = **~1.6 MB total**, fetched at most once per
+  session per client.
+- **No transcoding.** Oversized or too-long files are REJECTED with a German inline error
+  („Datei zu groß — max. 150 KB" / „Zu lang — max. 3 Sekunden" / „Format wird nicht
+  unterstützt"), never silently shrunk or re-encoded. Validation is client-side and real:
+  MIME allow-list (mpeg/mp4/ogg/wav/webm), raw size cap, an actual `decodeAudioData` (must
+  succeed) and the decoded-duration cap; errors render in the reserved `form-error` slot
+  (CLS 0). The rules re-enforce every storable property (exact key set, `createdBy ==
+  auth.uid`, server-time `createdAt`, type/length/number guards) — only decodability is
+  client-only, so the worst a malicious client can store is ≤ 200 KB of undecodable noise
+  that every receiver negative-caches after one read.
+- **Read/write volumes (all one-shot, §14 no new listeners):** popover open = ONE list fetch
+  per session (≤ 8 doc reads incl. blobs, session-cached); own create = 1 write + list
+  re-fetch (also re-validates the count cap); own delete = 1 delete, local cache update, no
+  fetch; press = 0 reads (list cache feeds the decoded-buffer cache) + ≤ 4 envelope writes
+  (unchanged broadcast); receiving a custom sound = at most ONE doc read per soundId per
+  session (buffer cached; missing/undecodable ids negative-cached; clients with sounds OFF
+  skip the fetch entirely).
+- **Cache staleness after delete (tolerated, documented):** a deleted sound keeps playing on
+  clients whose caches are warm until their reload — receivers apply broadcasts from their
+  buffer cache without re-checking existence (that check would cost a read per press). The
+  deleting client drops its own caches immediately.
+- **Count-cap race (tolerated, documented):** `MAX_CUSTOM_SOUNDS` = 8 workspace-wide is
+  client-enforced (checked against a fresh list at create time); two clients creating in the
+  same instant can land at 9. Document counts are not provable in Firestore rules without
+  aggregation infrastructure — same tolerance class as the voice join cap.
+- **Guest gating is server-side too:** the rules already hard-reference the shared guest uid
+  (demo friendship seed), so `soundboardSounds` create additionally excludes that uid in the
+  rules (`demoGuestUid()`); the UI hides the add flow behind the established German notice
+  („Als Gast kannst du keine eigenen Sounds hinzufügen."). Guests still play, preview and
+  broadcast all sounds; delete is creator-only in the rules, which excludes the guest
+  implicitly.
+- **Playback cohesion:** decoded buffers route through the EXISTING SoundService master gain
+  (master toggle + volume respected, same engine as every synthesized sound); the buffer path
+  is dry (no reverb send — arbitrary user audio through the synth reverb sounds muddy). No
+  normalization/limiting: user-provided levels play as uploaded, bounded by the master volume.
+  Uploads decode through the same shared AudioContext (created on demand; decoding works while
+  suspended, so validation cannot race the autoplay unlock).
+- **Popover structure:** two labelled groups — „Standard" (the six synthesized presets) and
+  „Eigene" (name-button = press/broadcast, ▶ = local-only preview, ✕ = creator-only two-step
+  inline delete confirmation; all targets ≥ 44 px, keyboard accessible). German empty state
+  („Noch keine eigenen Sounds"), cap note when full. The custom list loads one-shot on
+  popover open.
+- **Two new synthesized presets** round out the palette (asset-free, named constants, ≤ 1.2 s):
+  `trombone` („Posaune") — the sad-trombone wah-wah-wah-wahhh, four descending sawtooth slides
+  E♭4→D4→D♭4→C4 with the last note slumping to G♯3 in the melodic reverb space; `rimshot`
+  („Ba-dum-tss") — two low sine thuds answered by a falling band-passed noise-burst cymbal,
+  kept dry like the drum. Broadcast ids stay ≤ 32 chars (rules cap; Firestore auto-ids are 20).
+- **Sender/receiver refactor for the LOC budget:** the receive-side dispatch (per-session spam
+  gate, preset-vs-custom resolution) moved out of `VoiceConnectionService` into the new
+  `SoundboardDispatchService` — also breaking the DI cycle a combined sender/receiver service
+  would have with the connection service; the localStorage helpers of `SoundService` moved to
+  `sound-settings.storage.ts` to keep the engine under 400 LOC with the new buffer path.

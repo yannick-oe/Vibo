@@ -3,11 +3,19 @@
 
 $sound-min-size: 44px;
 $sound-min-width: 96px;
+$icon-size: 18px;
 
 .soundboard__title {
   padding: v.space('xs') v.space('sm') 0;
   font-size: v.font-size('min');
   font-weight: v.$font-weight-semibold;
+  color: v.color('text-gray');
+}
+
+.soundboard__group-title {
+  padding: v.space('sm') v.space('sm') 0;
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-medium;
   color: v.color('text-gray');
 }
 
@@ -43,8 +51,92 @@ $sound-min-width: 96px;
   }
 }
 
+.soundboard__custom-list {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+  padding: v.space('sm') v.space('sm') 0;
+  list-style: none;
+}
+
+.soundboard__custom-row {
+  display: flex;
+  align-items: center;
+  gap: v.space('xs');
+}
+
+.soundboard__custom-press {
+  @include m.text-ellipsis;
+
+  flex: 1;
+  justify-content: flex-start;
+  min-width: 0;
+  padding: v.space('sm');
+  text-align: left;
+}
+
+.soundboard__icon-button {
+  @include m.flex-center;
+  @include m.press-feedback;
+
+  flex-shrink: 0;
+  width: $sound-min-size;
+  height: $sound-min-size;
+  border: none;
+  border-radius: v.$radius-sm;
+  background-color: transparent;
+  color: v.color('text-gray');
+  cursor: pointer;
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &--delete:hover {
+    color: v.color('error');
+  }
+}
+
+.soundboard__icon {
+  width: $icon-size;
+  height: $icon-size;
+}
+
+.soundboard__confirm-question {
+  flex: 1;
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-medium;
+  color: v.color('error-text');
+}
+
+.soundboard__empty,
+.soundboard__guest-note,
+.soundboard__cap-note {
+  padding: v.space('sm') v.space('sm') 0;
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+}
+
+.soundboard__add {
+  align-self: flex-start;
+  margin: v.space('sm');
+}
+
+.soundboard__group--custom {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: v.space('xs');
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .soundboard__sound {
+  .soundboard__sound,
+  .soundboard__icon-button {
     transition: none;
   }
 }

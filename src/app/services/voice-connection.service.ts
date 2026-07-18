@@ -1,9 +1,10 @@
 /**
  * @file The one voice connection of the app: joining and leaving voice
  * channels, the microphone capture, the own participant document with its
- * heartbeat, the mute/deafen controls, the join/leave sounds, the bridge
- * into the mesh for screen sharing and the dispatch of received soundboard
- * broadcasts. The WebRTC mesh itself lives in {@link VoiceMesh}; audio and
+ * heartbeat, the mute/deafen controls, the join/leave sounds and the bridge
+ * into the mesh for screen sharing; received soundboard broadcasts are
+ * forwarded to {@link SoundboardDispatchService}. The WebRTC mesh itself
+ * lives in {@link VoiceMesh}; audio and
  * video flow strictly peer-to-peer — Firestore only ever carries presence
  * and signaling. Joining is the autoplay/microphone user gesture; leaving
  * happens only via the voice bar, on a seamless channel switch, or
@@ -23,7 +24,7 @@ import {
 import { AuthService } from './auth.service';
 import { ClientSessionService } from './client-session.service';
 import { SoundService } from './sound.service';
-import { SoundboardReceiveGate, soundboardSoundById } from './soundboard-palette';
+import { SoundboardDispatchService } from './soundboard-dispatch.service';
 import { ToastService } from './toast.service';
 import { VoiceParticipantService } from './voice-participant.service';
 import { VoiceRosterService } from './voice-roster.service';
@@ -101,9 +102,9 @@ export class VoiceConnectionService {
 
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
-  private readonly rosterChimes = new RosterChimes();
+  private readonly soundboardDispatch = inject(SoundboardDispatchService);
 
-  private readonly soundboardGate = new SoundboardReceiveGate();
+  private readonly rosterChimes = new RosterChimes();
 
   private muteBeforeDeafen = false;
 
@@ -238,7 +239,7 @@ export class VoiceConnectionService {
       isDeafened: () => this.isDeafenedState(),
       onSpeakingChange: speaking => this.speakingSessionsState.set(speaking),
       onRemoteScreensChange: screens => this.remoteScreensState.set(screens),
-      onSoundSignal: (fromSession, soundId) => this.playRemoteSound(fromSession, soundId),
+      onSoundSignal: (fromSession, soundId) => this.soundboardDispatch.dispatch(fromSession, soundId),
     });
     this.inboxSubscription = this.signalingService
       .streamInbox(channelId)
@@ -320,19 +321,6 @@ export class VoiceConnectionService {
     if (!channel || !this.mesh) return;
     this.mesh.stopShare();
     this.participantService.writeSharing(channel.id, false);
-  }
-
-
-  /**
-   * Plays a received soundboard broadcast through the shared sound engine;
-   * spam-gated per sending session, unknown ids are ignored silently.
-   * @param fromSession Session that pressed the soundboard.
-   * @param soundId Broadcast sound id.
-   */
-  private playRemoteSound(fromSession: string, soundId: string): void {
-    if (!this.soundboardGate.accepts(fromSession, performance.now())) return;
-    const sound = soundboardSoundById(soundId);
-    if (sound) this.soundService.playSoundboard(sound);
   }
 
 

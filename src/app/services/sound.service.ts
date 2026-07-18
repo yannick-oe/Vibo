@@ -4,12 +4,14 @@
  * before the unlock are dropped silently, never queued), a master volume
  * gain, a lazily built synthesized reverb (generated impulse response, no
  * audio assets) melodic sounds send into at a low wet level, per-kind
- * replay throttles and the settings signals (master toggle, volume, sidebar
- * sound opt-in) persisted to localStorage.
+ * replay throttles, a dry playback path for decoded custom-sound buffers
+ * and the settings signals (master toggle, volume, sidebar sound opt-in)
+ * persisted via the sound-settings storage helpers.
  */
 import { Injectable, Signal, signal } from '@angular/core';
 
 import { NoiseStep, SOUND_PALETTE, SoundDefinition, SoundKind, ToneStep } from './sound-palette';
+import { readStoredBoolean, readStoredVolume, storeSetting } from './sound-settings.storage';
 import { SoundboardSound } from './soundboard-palette';
 
 const STORAGE_KEY_SOUND_ENABLED = 'vibo:soundEnabled';
@@ -114,6 +116,35 @@ export class SoundService {
     const context = this.runningContext();
     if (!context) return;
     this.schedule(context, sound.definition);
+  }
+
+
+  /**
+   * Plays a decoded audio buffer (custom soundboard sound) through the
+   * master gain, honoring the master toggle, the volume and the autoplay
+   * unlock. Throttling is the callers' concern, mirroring
+   * {@link playSoundboard}; the buffer stays dry (no reverb send).
+   * @param buffer Decoded audio buffer to play.
+   */
+  playBuffer(buffer: AudioBuffer): void {
+    if (!this.soundEnabledState()) return;
+    const context = this.runningContext();
+    if (!context || !this.masterGain) return;
+    const source = new AudioBufferSourceNode(context, { buffer });
+    source.connect(this.masterGain);
+    source.start();
+  }
+
+
+  /**
+   * Decodes encoded audio file bytes with the shared AudioContext, creating
+   * it on demand — decoding works while the context is still suspended.
+   * @param bytes Encoded audio file bytes.
+   * @returns The decoded buffer; rejects on undecodable data.
+   */
+  decodeSoundBytes(bytes: ArrayBuffer): Promise<AudioBuffer> {
+    const context = this.context ?? this.createContext();
+    return context.decodeAudioData(bytes);
   }
 
 
@@ -343,53 +374,5 @@ export class SoundService {
     for (let index = 0; index < length; index++) data[index] = Math.random() * 2 - 1;
     this.cachedNoiseBuffer = buffer;
     return buffer;
-  }
-}
-
-
-/**
- * Reads a persisted boolean setting; malformed or missing values (or
- * unavailable storage) fall back to the default.
- * @param key localStorage key.
- * @param fallback Default when nothing valid is stored.
- */
-function readStoredBoolean(key: string, fallback: boolean): boolean {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored === null ? fallback : stored === 'true';
-  } catch {
-    return fallback;
-  }
-}
-
-
-/**
- * Reads the persisted volume; malformed or missing values (or unavailable
- * storage) fall back to the default, valid values are clamped to 0–1.
- * @param key localStorage key.
- * @param fallback Default when nothing valid is stored.
- */
-function readStoredVolume(key: string, fallback: number): number {
-  try {
-    const parsed = Number(localStorage.getItem(key));
-    if (localStorage.getItem(key) === null || Number.isNaN(parsed)) return fallback;
-    return Math.min(1, Math.max(0, parsed));
-  } catch {
-    return fallback;
-  }
-}
-
-
-/**
- * Persists a setting value; storage errors are ignored because the
- * settings work without persistence.
- * @param key localStorage key.
- * @param value Serialized setting value.
- */
-function storeSetting(key: string, value: string): void {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    return;
   }
 }
