@@ -1,0 +1,53 @@
+<app-dialog-shell labelledBy="screen-viewer-title" size="viewer" (closed)="close()">
+  <header class="screen-viewer__head">
+    <h2 class="screen-viewer__title" id="screen-viewer-title">
+      Bildschirm von {{ sharerName() }}
+    </h2>
+    <div class="screen-viewer__actions">
+      @if (fullscreenSupported) {
+        <button
+          class="btn btn-icon btn-sm"
+          type="button"
+          aria-label="Vollbild anzeigen"
+          (click)="openFullscreen()"
+        >
+          <svg
+            class="screen-viewer__action-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M4 9V4h5" />
+            <path d="M20 9V4h-5" />
+            <path d="M4 15v5h5" />
+            <path d="M20 15v5h-5" />
+          </svg>
+        </button>
+      }
+      <button
+        class="btn btn-icon btn-sm"
+        type="button"
+        aria-label="Dialog schließen"
+        (click)="close()"
+      >
+        <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+      </button>
+    </div>
+  </header>
+
+  <div class="screen-viewer__stage">
+    <video
+      #video
+      class="screen-viewer__video"
+      playsinline
+      autoplay
+      muted
+      aria-label="Geteilter Bildschirm"
+    ></video>
+  </div>
+</app-dialog-shell>

@@ -54,6 +54,10 @@
     <app-profile-dialog [uid]="uid" (closed)="profileOverlay.close()" />
   }
 
+  @if (screenViewer.viewedSession(); as viewedSession) {
+    <app-screen-viewer [sessionId]="viewedSession" (closed)="screenViewer.close()" />
+  }
+
   <app-notification-toast />
 
   <app-reaction-details-tooltip />

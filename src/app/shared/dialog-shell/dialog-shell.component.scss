@@ -62,6 +62,11 @@ $sheet-settle-ease: v.$sheet-settle-ease;
     @include m.menu-inflate(top right);
   }
 
+  &--viewer {
+    width: min(v.dialog-width('viewer'), 100%);
+    padding: v.space('lg');
+  }
+
   @include m.respond-sm {
     padding: v.space('lg');
     border-radius: v.$radius-md;
@@ -134,7 +139,8 @@ $sheet-settle-ease: v.$sheet-settle-ease;
   .dialog-shell__card--add-members,
   .dialog-shell__card--profile,
   .dialog-shell__card--settings,
-  .dialog-shell__card--menu {
+  .dialog-shell__card--menu,
+  .dialog-shell__card--viewer {
     @include m.sheet-card;
 
     position: static;

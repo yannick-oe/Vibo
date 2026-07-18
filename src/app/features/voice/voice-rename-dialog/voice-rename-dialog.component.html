@@ -1,0 +1,39 @@
+<app-dialog-shell labelledBy="rename-voice-title" size="members" (closed)="close()">
+  <header class="rename-voice__head">
+    <h2 class="rename-voice__title" id="rename-voice-title">Sprachkanal umbenennen</h2>
+    <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="close()">
+      <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+    </button>
+  </header>
+
+  <form class="rename-voice__form" [formGroup]="nameForm" (ngSubmit)="save()">
+    <div class="form-field">
+      <label class="form-label rename-voice__label" for="rename-voice-name">Name des Sprachkanals</label>
+      <input
+        #nameInput
+        id="rename-voice-name"
+        class="form-input form-input--outlined"
+        type="text"
+        formControlName="name"
+        placeholder="z.B. Teambesprechung"
+        [attr.maxlength]="nameMax"
+        aria-describedby="rename-voice-name-error rename-voice-name-counter"
+        [attr.aria-invalid]="nameInvalid()"
+      />
+      <p class="rename-voice__counter" id="rename-voice-name-counter">
+        {{ nameLength() }}/{{ nameMax }} Zeichen
+      </p>
+      <p class="form-error" id="rename-voice-name-error">{{ nameError() }}</p>
+    </div>
+
+    <footer class="rename-voice__actions">
+      <button
+        class="btn btn-primary"
+        type="submit"
+        [disabled]="nameControl.invalid || isPending()"
+      >
+        Speichern
+      </button>
+    </footer>
+  </form>
+</app-dialog-shell>

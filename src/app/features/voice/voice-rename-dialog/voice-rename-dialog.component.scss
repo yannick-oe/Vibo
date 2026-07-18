@@ -1,0 +1,35 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.rename-voice__head {
+  @include m.flex-between;
+
+  gap: v.space('md');
+}
+
+.rename-voice__title {
+  font-size: v.font-size('h4');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.rename-voice__form {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('lg');
+}
+
+.rename-voice__label {
+  font-size: v.font-size('body');
+}
+
+.rename-voice__counter {
+  margin-top: v.space('xs');
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  text-align: right;
+}
+
+.rename-voice__actions {
+  @include m.flex-end;
+}

@@ -243,6 +243,7 @@ $dialog-widths: (
   'add-members': 514px,
   'profile':     500px,
   'settings':    500px,
+  'viewer':      1080px,
 );
 
 @function dialog-width($key) {

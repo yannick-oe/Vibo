@@ -19,7 +19,8 @@ export type DialogSize =
   | 'profile'
   | 'settings'
   | 'menu'
-  | 'search';
+  | 'search'
+  | 'viewer';
 
 /**
  * Viewport position a dialog card is anchored to. Exactly one vertical edge

@@ -19,12 +19,14 @@ import { ChannelCreateService } from '../../../services/channel-create.service';
 import { CommandPaletteService } from '../../../services/command-palette.service';
 import { LayoutService } from '../../../services/layout.service';
 import { ProfileOverlayService } from '../../../services/profile-overlay.service';
+import { ScreenViewerService } from '../../../services/screen-viewer.service';
 import { SoundService } from '../../../services/sound.service';
 import { ThreadService } from '../../../services/thread.service';
 import { VoiceConnectionService } from '../../../services/voice-connection.service';
 import { VoiceCreateService } from '../../../services/voice-create.service';
 import { NotificationToastComponent } from '../../../shared/notification-toast/notification-toast.component';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
+import { ScreenViewerComponent } from '../../voice/screen-viewer/screen-viewer.component';
 import { VoiceBarComponent } from '../../voice/voice-bar/voice-bar.component';
 import { VoiceCreateDialogComponent } from '../../voice/voice-create-dialog/voice-create-dialog.component';
 import { ChannelCreateDialogComponent } from '../channel-create-dialog/channel-create-dialog.component';
@@ -61,6 +63,7 @@ type MobileView = 'menu' | 'chat' | 'thread';
     ProfileDialogComponent,
     ReactionDetailsTooltipComponent,
     RouterOutlet,
+    ScreenViewerComponent,
     ThreadPanelComponent,
     TopbarComponent,
     VoiceBarComponent,
@@ -89,6 +92,8 @@ export class AppShellComponent implements OnDestroy {
   protected readonly palette = inject(CommandPaletteService);
 
   protected readonly profileOverlay = inject(ProfileOverlayService);
+
+  protected readonly screenViewer = inject(ScreenViewerService);
 
   private readonly layoutService = inject(LayoutService);
 
