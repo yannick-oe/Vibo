@@ -138,8 +138,11 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
    * open-shell stack, locks background scrolling (suppressing background
    * scrollbars under a visible scrim), resolves the anchor's vertical side
    * (outside sheet mode only — the sheet never follows an anchor), focuses
-   * the first focusable element once the dialog is rendered, attaches the
-   * drag controller's native listeners and schedules the detent entrance.
+   * the first focusable element once the dialog is rendered (without
+   * scrolling — the first focusable sits at the top of the content, and a
+   * focus-scroll against the mid-entrance geometry lands on garbage
+   * offsets in scrollable cards), attaches the drag controller's native
+   * listeners and schedules the detent entrance.
    */
   ngAfterViewInit(): void {
     document.body.appendChild(this.host.nativeElement);
@@ -150,7 +153,7 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
     if (anchor && !this.isSheetMode()) {
       this.placedAnchor.set(placeVertically(anchor, this.card().nativeElement.offsetHeight));
     }
-    focusableElementsIn(this.card().nativeElement)[0]?.focus();
+    focusableElementsIn(this.card().nativeElement)[0]?.focus({ preventScroll: true });
     this.drag.attach();
     this.releaseEntranceAfterPaint();
   }
