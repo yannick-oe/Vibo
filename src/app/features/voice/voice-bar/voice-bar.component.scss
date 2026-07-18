@@ -6,6 +6,9 @@ $avatar-size: 28px;
 $avatar-overlap: -8px;
 $state-badge-size: 16px;
 $state-badge-icon: 10px;
+$screen-badge-size: 24px;
+$screen-badge-icon: 13px;
+$control-disabled-opacity: 0.45;
 $speaking-ring-width: 2px;
 $speaking-pulse-width: 3px;
 $speaking-pulse-duration: 1200ms;
@@ -105,6 +108,39 @@ $speaking-pulse-duration: 1200ms;
   }
 }
 
+.voice-bar__member-screen {
+  @include m.flex-center;
+
+  position: absolute;
+  top: calc(-1 * v.space('sm'));
+  right: calc(-1 * v.space('xs'));
+  width: $screen-badge-size;
+  height: $screen-badge-size;
+  padding: 0;
+  border: none;
+  border-radius: v.$radius-round;
+  background-color: v.color('white');
+  color: v.color('primary');
+  box-shadow: v.$shadow-xs;
+
+  svg {
+    width: $screen-badge-icon;
+    height: $screen-badge-icon;
+  }
+
+  &--view {
+    cursor: pointer;
+
+    &:hover {
+      color: v.color('primary-hover');
+    }
+
+    &:focus-visible {
+      @include m.focus-ring;
+    }
+  }
+}
+
 .voice-bar__controls {
   display: flex;
   align-items: center;
@@ -137,6 +173,23 @@ $speaking-pulse-duration: 1200ms;
 
     &:hover {
       color: v.color('error-text');
+    }
+  }
+
+  &--share-on {
+    color: v.color('primary');
+
+    &:hover {
+      color: v.color('primary');
+    }
+  }
+
+  &:disabled {
+    opacity: $control-disabled-opacity;
+    cursor: default;
+
+    &:hover {
+      color: v.color('black');
     }
   }
 
@@ -191,6 +244,15 @@ $speaking-pulse-duration: 1200ms;
 
   .voice-bar__avatar-wrap--speaking {
     animation: none;
+  }
+}
+
+// The compact shell bar cannot fit the facepile next to five ≥44px
+// controls on narrow phones (320px, no horizontal scroll); the members
+// stay visible in the workspace menu's channel roster.
+@include m.respond-sm {
+  .voice-bar--shell .voice-bar__members {
+    display: none;
   }
 }
 

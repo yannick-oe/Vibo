@@ -1,0 +1,10 @@
+<app-dialog-shell labelledBy="soundboard-title" size="menu" scrim="transparent" [anchor]="anchor()" (closed)="close()">
+  <h2 class="soundboard__title" id="soundboard-title">Soundboard</h2>
+  <div class="soundboard__grid">
+    @for (sound of sounds; track sound.id) {
+      <button class="soundboard__sound" type="button" (click)="press(sound)">
+        {{ sound.label }}
+      </button>
+    }
+  </div>
+</app-dialog-shell>

@@ -1,8 +1,9 @@
 /**
  * @file Typed shapes of the voice-channel Firestore documents: the channel
- * itself, the live participant-session documents and the transient WebRTC
- * signaling envelopes. Audio never touches Firestore — these documents carry
- * only presence and connection metadata.
+ * itself, the live participant-session documents and the transient signaling
+ * envelopes (WebRTC negotiation plus soundboard broadcasts). Audio and video
+ * never touch Firestore — these documents carry only presence and connection
+ * metadata.
  */
 import { FieldValue, Timestamp } from '@angular/fire/firestore';
 
@@ -39,6 +40,8 @@ export interface VoiceParticipantDoc {
   muted: boolean;
   /** Whether the participant deafened all incoming audio (implies muted). */
   deafened: boolean;
+  /** Whether the participant currently shares their screen. */
+  sharing: boolean;
   /** Last heartbeat; participants with a stale value are filtered out. */
   lastSeen: Timestamp | FieldValue;
 }
@@ -52,11 +55,20 @@ export interface VoiceParticipant extends VoiceParticipantDoc {
   readonly channelId: string;
 }
 
-/** Kind of one WebRTC signaling envelope. */
-export type VoiceSignalKind = 'offer' | 'answer' | 'candidate';
+/** Kind of one signaling envelope (WebRTC negotiation or soundboard). */
+export type VoiceSignalKind = 'offer' | 'answer' | 'candidate' | 'sound';
 
-/** Session description or ICE candidate carried by a signaling envelope. */
-export type VoiceSignalPayload = RTCSessionDescriptionInit | RTCIceCandidateInit;
+/** Payload of a soundboard broadcast envelope. */
+export interface SoundSignalPayload {
+  /** Id of the soundboard sound to play (unknown ids are ignored). */
+  soundId: string;
+}
+
+/** Session description, ICE candidate or soundboard payload of an envelope. */
+export type VoiceSignalPayload =
+  | RTCSessionDescriptionInit
+  | RTCIceCandidateInit
+  | SoundSignalPayload;
 
 /**
  * Firestore document at voiceChannels/{id}/signals/{autoId}: one directed

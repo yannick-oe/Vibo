@@ -6,11 +6,20 @@
  * is deterministic and glare-free: the JOINER offers to all sessions that
  * were present before it; for the rare simultaneous join neither side saw,
  * the lexicographically smaller session id initiates, and an incoming
- * offer beats an own unanswered offer only from a smaller session id.
+ * offer beats an own unanswered offer only from a smaller session id. An
+ * offer arriving on an ESTABLISHED connection is a renegotiation (screen
+ * share start/stop) and is answered on the same connection; the SHARER is
+ * always the renegotiation initiator.
  */
 import { Timestamp } from '@angular/fire/firestore';
 
-import { VoiceParticipant, VoiceSignal, VoiceSignalKind, VoiceSignalPayload } from '../../../models/voice.model';
+import {
+  SoundSignalPayload,
+  VoiceParticipant,
+  VoiceSignal,
+  VoiceSignalKind,
+  VoiceSignalPayload,
+} from '../../../models/voice.model';
 import { SpeakingMonitor } from './speaking-monitor';
 import { VoicePeer } from './voice-peer';
 
@@ -33,6 +42,10 @@ export interface VoiceMeshDeps {
   readonly isDeafened: () => boolean;
   /** Publishes the changed set of speaking session ids. */
   readonly onSpeakingChange: (speaking: ReadonlySet<string>) => void;
+  /** Publishes the changed map of remote screen streams by session id. */
+  readonly onRemoteScreensChange: (screens: ReadonlyMap<string, MediaStream>) => void;
+  /** Dispatches a received soundboard broadcast. */
+  readonly onSoundSignal: (fromSession: string, soundId: string) => void;
 }
 
 /**
@@ -47,6 +60,12 @@ export class VoiceMesh {
   private readonly monitor: SpeakingMonitor;
 
   private readonly processedSignalIds = new Set<string>();
+
+  private shareTrack: MediaStreamTrack | null = null;
+
+  private shareStream: MediaStream | null = null;
+
+  private readonly remoteScreens = new Map<string, MediaStream>();
 
 
   /**
@@ -84,7 +103,7 @@ export class VoiceMesh {
     for (const signal of [...signals].sort(byCreation)) {
       if (this.processedSignalIds.has(signal.id)) continue;
       this.processedSignalIds.add(signal.id);
-      void this.applySignal(signal);
+      void this.applySignal(signal).catch(() => undefined);
       this.deps.consumeSignal(signal.id);
     }
   }
@@ -115,6 +134,39 @@ export class VoiceMesh {
 
 
   /**
+   * Starts sharing a screen track: it is added to every existing peer and
+   * each one is renegotiated; peers joining later receive it in their
+   * negotiation automatically. A failed renegotiation is swallowed — the
+   * peer keeps its working audio and only misses the video.
+   * @param track Captured screen video track.
+   * @param stream Capture stream the track belongs to.
+   */
+  startShare(track: MediaStreamTrack, stream: MediaStream): void {
+    this.shareTrack = track;
+    this.shareStream = stream;
+    for (const peer of this.peers.values()) {
+      peer.addVideo(track, stream);
+      void peer.initiate().catch(() => undefined);
+    }
+  }
+
+
+  /**
+   * Stops the own screen share: the track is removed from every peer and
+   * each one is renegotiated. Idempotent — repeated stops are no-ops.
+   */
+  stopShare(): void {
+    if (!this.shareTrack) return;
+    this.shareTrack = null;
+    this.shareStream = null;
+    for (const peer of this.peers.values()) {
+      peer.removeVideo();
+      void peer.initiate().catch(() => undefined);
+    }
+  }
+
+
+  /**
    * Tears the whole mesh down: every peer connection, every hidden audio
    * element and the speaking monitor. Idempotent.
    */
@@ -127,10 +179,12 @@ export class VoiceMesh {
 
   /**
    * Routes one envelope to its peer; answers and candidates for unknown
-   * sessions are stale leftovers and are dropped silently.
+   * sessions are stale leftovers and are dropped silently. Soundboard
+   * envelopes bypass the peer map entirely.
    * @param signal Envelope addressed to this session.
    */
   private async applySignal(signal: VoiceSignal): Promise<void> {
+    if (signal.kind === 'sound') return this.handleSound(signal);
     if (signal.kind === 'offer') return this.handleOffer(signal);
     const peer = this.peers.get(signal.fromSession);
     if (!peer) return;
@@ -142,21 +196,56 @@ export class VoiceMesh {
 
 
   /**
-   * Answers an incoming offer. Glare guard: with an own unanswered offer
-   * pending toward the same session, the smaller session id wins — an
-   * offer from a smaller id replaces the own attempt, a larger one is
-   * ignored (that side will answer ours by the mirrored rule).
+   * Dispatches a soundboard broadcast; malformed payloads are ignored.
+   * @param signal Envelope of kind sound.
+   */
+  private handleSound(signal: VoiceSignal): void {
+    const soundId = (signal.payload as SoundSignalPayload).soundId;
+    if (typeof soundId !== 'string') return;
+    this.deps.onSoundSignal(signal.fromSession, soundId);
+  }
+
+
+  /**
+   * Answers an incoming offer. An offer on an established connection is a
+   * renegotiation (screen share) and is answered in place. Otherwise the
+   * glare guard applies: with an own unanswered offer pending toward the
+   * same session, the smaller session id wins — an offer from a smaller id
+   * replaces the own attempt, a larger one is ignored (that side will
+   * answer ours by the mirrored rule).
    * @param signal Offer envelope.
    */
   private async handleOffer(signal: VoiceSignal): Promise<void> {
-    if (this.peers.has(signal.fromSession)) {
+    const existing = this.peers.get(signal.fromSession);
+    if (existing?.canRenegotiate()) {
+      return existing
+        .acceptOffer(signal.payload as RTCSessionDescriptionInit)
+        .catch(() => undefined);
+    }
+    if (existing) {
       if (signal.fromSession >= this.deps.ownSessionId) return;
       this.dropPeer(signal.fromSession);
     }
+    await this.answerAsNewPeer(signal);
+  }
+
+
+  /**
+   * Creates the peer for a first offer and answers it; while an own share
+   * is active, the video track is added afterwards and offered back in a
+   * renegotiation, so late joiners receive the running share too.
+   * @param signal Offer envelope of a session without a peer.
+   */
+  private async answerAsNewPeer(signal: VoiceSignal): Promise<void> {
     const peer = this.createPeer(signal.fromSession, signal.fromUid);
-    await peer
-      .acceptOffer(signal.payload as RTCSessionDescriptionInit)
-      .catch(() => this.dropPeer(signal.fromSession));
+    try {
+      await peer.acceptOffer(signal.payload as RTCSessionDescriptionInit);
+    } catch {
+      return this.dropPeer(signal.fromSession);
+    }
+    if (!this.shareTrack || !this.shareStream) return;
+    peer.addVideo(this.shareTrack, this.shareStream);
+    void peer.initiate().catch(() => undefined);
   }
 
 
@@ -169,6 +258,7 @@ export class VoiceMesh {
     const peer = new VoicePeer(sessionId, this.deps.localStream, {
       sendSignal: (kind, payload) => this.deps.sendSignal(sessionId, uid, kind, payload),
       onRemoteStream: (session, stream) => this.monitor.add(session, stream),
+      onRemoteVideo: (session, stream) => this.setRemoteScreen(session, stream),
       onDropped: session => this.dropPeer(session),
       isDeafened: this.deps.isDeafened,
     });
@@ -178,12 +268,14 @@ export class VoiceMesh {
 
 
   /**
-   * Creates a peer and starts the offer toward it; a failed negotiation
-   * start drops only this peer.
+   * Creates a peer and starts the offer toward it; an active own share is
+   * included in that first offer. A failed negotiation start drops only
+   * this peer.
    * @param participant Remote participant to connect to.
    */
   private initiatePeer(participant: VoiceParticipant): void {
     const peer = this.createPeer(participant.sessionId, participant.uid);
+    if (this.shareTrack && this.shareStream) peer.addVideo(this.shareTrack, this.shareStream);
     void peer.initiate().catch(() => this.dropPeer(participant.sessionId));
   }
 
@@ -202,8 +294,9 @@ export class VoiceMesh {
 
 
   /**
-   * Removes one peer: connection, audio element and analyser — without
-   * touching the rest of the mesh or the channel membership.
+   * Removes one peer: connection, audio element, analyser and a screen
+   * stream it may have delivered — without touching the rest of the mesh
+   * or the channel membership.
    * @param sessionId Session whose peer is dropped.
    */
   private dropPeer(sessionId: string): void {
@@ -212,6 +305,20 @@ export class VoiceMesh {
     this.peers.delete(sessionId);
     peer.close();
     this.monitor.remove(sessionId);
+    this.setRemoteScreen(sessionId, null);
+  }
+
+
+  /**
+   * Records or clears a session's remote screen stream and publishes the
+   * changed map (the roster glyphs and the viewer read it as a signal).
+   * @param sessionId Remote session the stream belongs to.
+   * @param stream New stream, or null when the share ended.
+   */
+  private setRemoteScreen(sessionId: string, stream: MediaStream | null): void {
+    if (stream) this.remoteScreens.set(sessionId, stream);
+    else if (!this.remoteScreens.delete(sessionId)) return;
+    this.deps.onRemoteScreensChange(new Map(this.remoteScreens));
   }
 }
 

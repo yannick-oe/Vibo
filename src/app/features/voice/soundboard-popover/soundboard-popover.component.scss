@@ -1,0 +1,50 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$sound-min-size: 44px;
+$sound-min-width: 96px;
+
+.soundboard__title {
+  padding: v.space('xs') v.space('sm') 0;
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('text-gray');
+}
+
+.soundboard__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax($sound-min-width, 1fr));
+  gap: v.space('sm');
+  padding: v.space('sm');
+}
+
+.soundboard__sound {
+  @include m.flex-center;
+  @include m.press-feedback;
+
+  min-width: $sound-min-size;
+  min-height: $sound-min-size;
+  padding: v.space('sm') v.space('md');
+  border: none;
+  border-radius: v.$radius-sm;
+  background-color: v.color('bg');
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('black');
+  cursor: pointer;
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover {
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .soundboard__sound {
+    transition: none;
+  }
+}

@@ -10,6 +10,7 @@
 import { Injectable, Signal, signal } from '@angular/core';
 
 import { NoiseStep, SOUND_PALETTE, SoundDefinition, SoundKind, ToneStep } from './sound-palette';
+import { SoundboardSound } from './soundboard-palette';
 
 const STORAGE_KEY_SOUND_ENABLED = 'vibo:soundEnabled';
 const STORAGE_KEY_SOUND_VOLUME = 'vibo:soundVolume';
@@ -94,9 +95,25 @@ export class SoundService {
     if (!this.soundEnabledState()) return;
     if (SWIPE_GATED_KINDS.includes(kind) && !this.swipeSoundEnabledState()) return;
     const context = this.runningContext();
-    if (!context || this.isThrottled(kind)) return;
+    const last = this.lastPlayedAt.get(kind) ?? Number.NEGATIVE_INFINITY;
+    if (!context || performance.now() - last < SOUND_PALETTE[kind].throttleMs) return;
     this.lastPlayedAt.set(kind, performance.now());
     this.schedule(context, SOUND_PALETTE[kind]);
+  }
+
+
+  /**
+   * Renders a soundboard sound through the shared engine, honoring the
+   * master toggle, the volume and the autoplay unlock. Throttling is the
+   * callers' concern (sender press throttle, per-session receive gate), so
+   * the per-kind map is bypassed.
+   * @param sound Soundboard sound to render.
+   */
+  playSoundboard(sound: SoundboardSound): void {
+    if (!this.soundEnabledState()) return;
+    const context = this.runningContext();
+    if (!context) return;
+    this.schedule(context, sound.definition);
   }
 
 
@@ -167,16 +184,6 @@ export class SoundService {
    */
   private runningContext(): AudioContext | null {
     return this.context?.state === 'running' ? this.context : null;
-  }
-
-
-  /**
-   * Whether the kind played more recently than its minimum interval.
-   * @param kind Palette sound kind.
-   */
-  private isThrottled(kind: SoundKind): boolean {
-    const last = this.lastPlayedAt.get(kind) ?? Number.NEGATIVE_INFINITY;
-    return performance.now() - last < SOUND_PALETTE[kind].throttleMs;
   }
 
 

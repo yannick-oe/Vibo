@@ -5,7 +5,10 @@
  * bitrate with inband FEC and without DTX. Because the munged SDP is what
  * travels through signaling, the remote side receives the same parameters —
  * both directions of every peer link are covered when each client munges
- * its own local descriptions. No I/O, fully testable.
+ * its own local descriptions. The rewrite is scoped strictly to the audio
+ * m-section, so descriptions that also negotiate a screen-share video
+ * m-section pass through with their video lines untouched. No I/O, fully
+ * testable.
  */
 
 /** Target Opus average bitrate in bit/s (Discord "boosted" territory). */
@@ -35,42 +38,80 @@ const OPUS_QUALITY_PARAMS: ReadonlyArray<readonly [string, number]> = [
   ['maxplaybackrate', OPUS_MAX_PLAYBACK_RATE],
 ];
 
-const OPUS_RTPMAP_PATTERN = /^a=rtpmap:(\d+)\s+opus\/48000/im;
+const OPUS_RTPMAP_PATTERN = /^a=rtpmap:(\d+)\s+opus\/48000/i;
+
+const AUDIO_SECTION_PREFIX = 'm=audio';
+
+const SECTION_PREFIX = 'm=';
 
 const SDP_LINE_BREAK = '\r\n';
 
 
 /**
  * Rewrites the Opus fmtp parameters of a session description to the
- * high-quality profile; descriptions without an Opus codec (or without an
- * audio section) pass through unchanged.
+ * high-quality profile. Only lines inside the audio m-section are touched;
+ * descriptions without an audio section or without an Opus codec (and every
+ * video m-section) pass through unchanged.
  * @param sdp Raw SDP of a local offer or answer.
- * @returns The SDP with the Opus fmtp line upgraded or inserted.
+ * @returns The SDP with the audio section's Opus fmtp line upgraded or inserted.
  */
 export function enhanceOpusSdp(sdp: string): string {
-  const payloadType = findOpusPayloadType(sdp);
-  if (payloadType === null) return sdp;
   const lines = sdp.split(SDP_LINE_BREAK);
-  const fmtpIndex = lines.findIndex(line => line.startsWith(`a=fmtp:${payloadType} `));
-  if (fmtpIndex >= 0) {
-    lines[fmtpIndex] = upgradeFmtpLine(lines[fmtpIndex], payloadType);
-    return lines.join(SDP_LINE_BREAK);
-  }
-  const rtpmapIndex = lines.findIndex(line => line.startsWith(`a=rtpmap:${payloadType} `));
-  if (rtpmapIndex < 0) return sdp;
-  lines.splice(rtpmapIndex + 1, 0, buildFmtpLine(payloadType, []));
-  return lines.join(SDP_LINE_BREAK);
+  const start = lines.findIndex(line => line.startsWith(AUDIO_SECTION_PREFIX));
+  if (start < 0) return sdp;
+  const end = sectionEnd(lines, start);
+  const section = upgradeAudioSection(lines.slice(start, end));
+  return [...lines.slice(0, start), ...section, ...lines.slice(end)].join(SDP_LINE_BREAK);
 }
 
 
 /**
- * Finds the RTP payload type mapped to the Opus codec.
- * @param sdp Raw SDP text.
+ * Finds the exclusive end index of the m-section starting at the given
+ * line: the next m-line, or the end of the description.
+ * @param lines All SDP lines.
+ * @param start Index of the section's m-line.
+ */
+function sectionEnd(lines: readonly string[], start: number): number {
+  for (let index = start + 1; index < lines.length; index++) {
+    if (lines[index].startsWith(SECTION_PREFIX)) return index;
+  }
+  return lines.length;
+}
+
+
+/**
+ * Upgrades the Opus fmtp line within the audio section's lines, inserting
+ * one after the rtpmap when the offer carried no fmtp line at all.
+ * @param section Lines of the audio m-section only.
+ * @returns The section lines with the quality profile applied.
+ */
+function upgradeAudioSection(section: readonly string[]): string[] {
+  const payloadType = findOpusPayloadType(section);
+  if (payloadType === null) return [...section];
+  const lines = [...section];
+  const fmtpIndex = lines.findIndex(line => line.startsWith(`a=fmtp:${payloadType} `));
+  if (fmtpIndex >= 0) {
+    lines[fmtpIndex] = upgradeFmtpLine(lines[fmtpIndex], payloadType);
+    return lines;
+  }
+  const rtpmapIndex = lines.findIndex(line => line.startsWith(`a=rtpmap:${payloadType} `));
+  if (rtpmapIndex < 0) return lines;
+  lines.splice(rtpmapIndex + 1, 0, buildFmtpLine(payloadType, []));
+  return lines;
+}
+
+
+/**
+ * Finds the RTP payload type mapped to the Opus codec within a section.
+ * @param section Lines of the audio m-section.
  * @returns The payload type digits, or null when Opus is not offered.
  */
-function findOpusPayloadType(sdp: string): string | null {
-  const match = OPUS_RTPMAP_PATTERN.exec(sdp);
-  return match ? match[1] : null;
+function findOpusPayloadType(section: readonly string[]): string | null {
+  for (const line of section) {
+    const match = OPUS_RTPMAP_PATTERN.exec(line);
+    if (match) return match[1];
+  }
+  return null;
 }
 
 

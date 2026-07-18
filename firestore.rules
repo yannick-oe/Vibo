@@ -599,10 +599,13 @@ service cloud.firestore {
     }
 
     // Persistent voice channels: Firestore carries ONLY presence and WebRTC
-    // signaling — audio flows peer-to-peer (DTLS-SRTP) and never touches the
-    // database. Creation mirrors the text-channel gating (any signed-in
-    // user, the shared guest account included); rename/delete are out of
-    // scope this phase, hence update/delete: false.
+    // signaling — audio and screen-share video flow peer-to-peer (DTLS-SRTP)
+    // and never touch the database. Creation mirrors the text-channel gating
+    // (any signed-in user, the shared guest account included). The creator
+    // may rename (name only, same length guard) and delete; emptiness is not
+    // provable in rules (no subcollection queries), so delete is gated
+    // client-side on a participant-free roster and residual participant
+    // docs from a race age out via the stale filter.
     match /voiceChannels/{channelId} {
       allow read: if signedIn();
 
@@ -615,7 +618,14 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.createdAt == request.time;
 
-      allow update, delete: if false;
+      allow update: if signedIn()
+        && request.auth.uid == resource.data.createdBy
+        && affectedKeys().hasOnly(['name'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 40;
+
+      allow delete: if signedIn() && request.auth.uid == resource.data.createdBy;
 
       // Live participant sessions (doc id = client session, mirroring the
       // typing markers, so several windows of the shared guest account are
@@ -627,13 +637,14 @@ service cloud.firestore {
       match /voiceParticipants/{sessionId} {
         function voiceParticipantValid() {
           return request.resource.data.keys()
-              .hasOnly(['uid', 'sessionId', 'joinedAt', 'muted', 'deafened', 'lastSeen'])
+              .hasOnly(['uid', 'sessionId', 'joinedAt', 'muted', 'deafened', 'sharing', 'lastSeen'])
             && request.resource.data.keys()
-              .hasAll(['uid', 'sessionId', 'joinedAt', 'muted', 'deafened', 'lastSeen'])
+              .hasAll(['uid', 'sessionId', 'joinedAt', 'muted', 'deafened', 'sharing', 'lastSeen'])
             && request.resource.data.uid == request.auth.uid
             && request.resource.data.sessionId == sessionId
             && request.resource.data.muted is bool
             && request.resource.data.deafened is bool
+            && request.resource.data.sharing is bool
             && request.resource.data.lastSeen == request.time;
         }
 
@@ -646,12 +657,14 @@ service cloud.firestore {
         allow delete: if signedIn() && resource.data.uid == request.auth.uid;
       }
 
-      // Directed WebRTC signaling envelopes (self-cleaning mailbox): the
-      // addressee applies and deletes each one. The payload (SDP/ICE)
-      // contains IP addresses, so reads/deletes are provable only for the
-      // sender or the addressee via the pinned uids — which the client's
-      // queries always constrain. The shared guest uid can read fellow
-      // guest sessions' envelopes (same account; documented).
+      // Directed signaling envelopes (self-cleaning mailbox): the addressee
+      // applies and deletes each one. WebRTC negotiation plus soundboard
+      // broadcasts ('sound', shape-guarded to a single capped soundId). The
+      // negotiation payload (SDP/ICE) contains IP addresses, so reads and
+      // deletes are provable only for the sender or the addressee via the
+      // pinned uids — which the client's queries always constrain. The
+      // shared guest uid can read fellow guest sessions' envelopes (same
+      // account; documented).
       match /signals/{signalId} {
         allow read, delete: if signedIn()
           && (resource.data.toUid == request.auth.uid
@@ -671,8 +684,13 @@ service cloud.firestore {
           && request.resource.data.toUid is string
           && request.resource.data.toUid.size() >= 1
           && request.resource.data.toUid.size() <= 128
-          && request.resource.data.kind in ['offer', 'answer', 'candidate']
+          && request.resource.data.kind in ['offer', 'answer', 'candidate', 'sound']
           && request.resource.data.payload is map
+          && (request.resource.data.kind != 'sound'
+            || (request.resource.data.payload.keys().hasOnly(['soundId'])
+              && request.resource.data.payload.soundId is string
+              && request.resource.data.payload.soundId.size() >= 1
+              && request.resource.data.payload.soundId.size() <= 32))
           && request.resource.data.createdAt == request.time;
         allow update: if false;
       }

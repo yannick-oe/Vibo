@@ -46,6 +46,47 @@
                 </svg>
               </span>
             }
+            @if (participant.sharing) {
+              @if (hasScreenStream(participant)) {
+                <button
+                  class="voice-bar__member-screen voice-bar__member-screen--view"
+                  type="button"
+                  (click)="viewScreen(participant)"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <rect x="3" y="5" width="18" height="12" rx="2" />
+                    <path d="M9 21h6" />
+                  </svg>
+                  <span class="sr-only">
+                    Bildschirm von {{ displayName(participant.uid) }} ansehen
+                  </span>
+                </button>
+              } @else {
+                <span class="voice-bar__member-screen" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    focusable="false"
+                  >
+                    <rect x="3" y="5" width="18" height="12" rx="2" />
+                    <path d="M9 21h6" />
+                  </svg>
+                </span>
+              }
+            }
           </span>
           <span class="sr-only">
             {{ displayName(participant.uid) }}
@@ -56,6 +97,9 @@
               (Ton deaktiviert)
             } @else if (participant.muted) {
               (stummgeschaltet)
+            }
+            @if (participant.sharing) {
+              (teilt den Bildschirm)
             }
           </span>
         </li>
@@ -118,6 +162,63 @@
         </svg>
       </button>
 
+      @if (shareSupported) {
+        <button
+          class="voice-bar__control"
+          [class.voice-bar__control--share-on]="isSharing()"
+          type="button"
+          [disabled]="shareBlocked()"
+          [attr.aria-pressed]="isSharing()"
+          [attr.aria-label]="shareLabel()"
+          [title]="shareLabel()"
+          (click)="toggleShare()"
+        >
+          <svg
+            class="voice-bar__control-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <rect x="3" y="4.5" width="18" height="12.5" rx="2" />
+            <path d="M9 21h6" />
+            @if (isSharing()) {
+              <path d="M12 14v-5" />
+              <path d="M9.5 11.5 12 9l2.5 2.5" />
+            }
+          </svg>
+        </button>
+      }
+
+      <button
+        class="voice-bar__control"
+        type="button"
+        aria-haspopup="dialog"
+        [attr.aria-expanded]="soundboardOpen()"
+        [attr.aria-label]="soundboardLabel"
+        (click)="openSoundboard($event)"
+      >
+        <svg
+          class="voice-bar__control-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M9 18V6l9-2v11.5" />
+          <circle cx="6.5" cy="18" r="2.5" />
+          <circle cx="15.5" cy="15.5" r="2.5" />
+        </svg>
+      </button>
+
       <button
         class="voice-bar__control voice-bar__control--leave"
         type="button"
@@ -138,4 +239,11 @@
       </button>
     </div>
   </div>
+
+  @if (soundboardOpen()) {
+    <app-soundboard-popover
+      [anchor]="soundboardAnchor()"
+      (closed)="soundboardOpen.set(false)"
+    />
+  }
 }
