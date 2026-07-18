@@ -128,7 +128,10 @@ export function anchorAtPoint(x: number, y: number): DialogAnchor {
  * Resolves an anchor's vertical side against the measured card height: a
  * below-anchored card that would overflow the viewport bottom flips above its
  * trigger (and vice versa), unless the opposite side has even less room, in
- * which case the preferred side is kept and its height capped separately.
+ * which case the preferred side is kept and its height capped separately via
+ * {@link anchoredMaxHeightStyle} — an above-anchored card near the viewport
+ * bottom (voice-bar popovers in short windows) must never flip into the
+ * sliver below its trigger.
  * @param anchor Preferred anchor from anchorBelow/anchorAbove.
  * @param cardHeight Measured card height in pixels.
  */
@@ -140,6 +143,7 @@ export function placeVertically(anchor: DialogAnchor, cardHeight: number): Dialo
     return { ...anchor, top: undefined, bottom: window.innerHeight - anchor.triggerTop + ANCHOR_GAP_PX };
   }
   if (anchor.bottom !== undefined && anchor.triggerBottom !== undefined && !fitsAbove) {
+    if (anchor.triggerBottom + ANCHOR_GAP_PX + cardHeight > bottomLimit) return anchor;
     return { ...anchor, bottom: undefined, top: anchor.triggerBottom + ANCHOR_GAP_PX };
   }
   return anchor;
