@@ -53,7 +53,7 @@
           aria-hidden="true"
         />
         <img class="workspace__section-icon" src="app-icons/workspaces.svg" alt="" aria-hidden="true" />
-        <span class="workspace__section-title">Channels</span>
+        <span class="workspace__section-title">Textkanäle</span>
       </button>
       <button class="btn btn-icon btn-sm" type="button" aria-label="Channel hinzufügen" (click)="openDialog()">
         <img src="app-icons/add.svg" alt="" width="14" height="14" aria-hidden="true" />
@@ -100,6 +100,8 @@
       </ul>
     </div>
   </section>
+
+  <app-voice-section />
 
   <section class="workspace__section">
     <div class="workspace__section-head">
@@ -179,6 +181,10 @@
     </div>
   </section>
 </nav>
+
+@if (!isMobile() && isVoiceConnected()) {
+  <app-voice-bar />
+}
 
 @if (isMobile()) {
   <a class="workspace__fab" routerLink="/app/new-message" aria-label="Neue Nachricht">

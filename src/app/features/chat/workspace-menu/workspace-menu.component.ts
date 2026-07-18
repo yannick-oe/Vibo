@@ -19,7 +19,10 @@ import {
 } from '../../../services/message.service';
 import { DEFAULT_AVATAR_PATH, resolveAvatarStillSrc } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
+import { VoiceConnectionService } from '../../../services/voice-connection.service';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
+import { VoiceBarComponent } from '../../voice/voice-bar/voice-bar.component';
+import { VoiceSectionComponent } from '../../voice/voice-section/voice-section.component';
 import { MobileSearchViewComponent } from '../../search/mobile-search-view/mobile-search-view.component';
 import { UnreadBadgeComponent } from '../../../shared/unread-badge/unread-badge.component';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
@@ -56,6 +59,8 @@ interface SelfEntry {
     RouterLink,
     RouterLinkActive,
     UnreadBadgeComponent,
+    VoiceBarComponent,
+    VoiceSectionComponent,
   ],
   templateUrl: './workspace-menu.component.html',
   styleUrls: ['./workspace-menu.component.scss', './workspace-menu-friends.scss'],
@@ -87,6 +92,8 @@ export class WorkspaceMenuComponent {
   protected readonly isSearchOpen = signal(false);
 
   protected readonly isMobile = inject(LayoutService).isMobile;
+
+  protected readonly isVoiceConnected = inject(VoiceConnectionService).isConnected;
 
   protected readonly self = computed(() => this.buildSelfEntry());
 

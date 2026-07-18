@@ -32,8 +32,16 @@
     </aside>
   </div>
 
+  @if ((isMobile() || !isWorkspaceOpen()) && isVoiceConnected()) {
+    <app-voice-bar class="shell__voice-bar" variant="shell" />
+  }
+
   @if (channelCreate.isOpen()) {
     <app-channel-create-dialog (closed)="channelCreate.close()" />
+  }
+
+  @if (voiceCreate.isOpen()) {
+    <app-voice-create-dialog (closed)="voiceCreate.close()" />
   }
 
   @defer (when palette.isOpen()) {

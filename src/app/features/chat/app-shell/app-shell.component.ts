@@ -21,8 +21,12 @@ import { LayoutService } from '../../../services/layout.service';
 import { ProfileOverlayService } from '../../../services/profile-overlay.service';
 import { SoundService } from '../../../services/sound.service';
 import { ThreadService } from '../../../services/thread.service';
+import { VoiceConnectionService } from '../../../services/voice-connection.service';
+import { VoiceCreateService } from '../../../services/voice-create.service';
 import { NotificationToastComponent } from '../../../shared/notification-toast/notification-toast.component';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
+import { VoiceBarComponent } from '../../voice/voice-bar/voice-bar.component';
+import { VoiceCreateDialogComponent } from '../../voice/voice-create-dialog/voice-create-dialog.component';
 import { ChannelCreateDialogComponent } from '../channel-create-dialog/channel-create-dialog.component';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
 import { ReactionDetailsTooltipComponent } from '../reaction-details/reaction-details-tooltip.component';
@@ -59,6 +63,8 @@ type MobileView = 'menu' | 'chat' | 'thread';
     RouterOutlet,
     ThreadPanelComponent,
     TopbarComponent,
+    VoiceBarComponent,
+    VoiceCreateDialogComponent,
     WorkspaceMenuComponent,
   ],
   templateUrl: './app-shell.component.html',
@@ -75,6 +81,10 @@ export class AppShellComponent implements OnDestroy {
   private readonly threadService = inject(ThreadService);
 
   protected readonly channelCreate = inject(ChannelCreateService);
+
+  protected readonly voiceCreate = inject(VoiceCreateService);
+
+  protected readonly isVoiceConnected = inject(VoiceConnectionService).isConnected;
 
   protected readonly palette = inject(CommandPaletteService);
 

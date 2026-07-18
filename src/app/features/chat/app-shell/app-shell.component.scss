@@ -98,6 +98,12 @@
   view-transition-name: chat-content;
 }
 
+// Mobile voice bar: its own flex row below the panels, so the connected
+// state reserves real layout space instead of overlaying the composer.
+.shell__voice-bar {
+  flex-shrink: 0;
+}
+
 .shell__thread {
   width: 0;
   flex-shrink: 0;

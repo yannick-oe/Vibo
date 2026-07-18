@@ -1,11 +1,20 @@
 @use 'variables' as v;
 @use 'mixins' as m;
 
+// Column layout so the docked voice bar reserves its space below the
+// scrollable navigation instead of overlaying the list end.
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .workspace {
   display: flex;
   flex-direction: column;
   gap: v.space('lg');
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   padding: v.space('lg');
   overflow-y: auto;
   @include m.scrollbar-thin;
