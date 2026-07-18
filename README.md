@@ -35,7 +35,7 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 
 - **Freundschaftssystem**: Anfragen senden/annehmen/ablehnen, Entfreunden, **Blockieren** (friert die Unterhaltung beidseitig ein — auch in den Rules)
 - **Freunde-Ansicht** mit Tabs „Alle"/„Anfragen" und integrierter Nutzersuche
-- **Einladungslinks** für Channels (ablaufend, Token = Zugriffsnachweis)
+- **Einladungslinks** für Channels (ablaufend, Token = Zugriffsnachweis) — optional mit **Vanity-Slug** (…/#/invite/cozy-vibes): Der Channel-Ersteller vergibt einen sprechenden Link-Namen, dessen Eindeutigkeit über das Reservierungsmuster der Usernames gesichert ist — das atomare Anlegen des Slug-Dokuments IST die Verfügbarkeitsprüfung, beim Tippen fällt kein einziger Read an. Beim Einlösen wird immer zuerst das Token aufgelöst und erst bei einem Miss der Slug, ein Slug kann also nie ein Token überdecken.
 - **Profile** mit animierten kosmischen Avataren (Hover-to-Play-WebP, Standbild bei `prefers-reduced-motion`), Bannern, Badges, Custom-Status und Live-Präsenz (online/abwesend/offline)
 - **Auth:** E-Mail/Passwort, Google-Sign-in und der Ein-Klick-**Gastzugang**
 
