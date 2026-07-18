@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
-  DocumentReference,
   Firestore,
   Timestamp,
   addDoc,
@@ -27,7 +26,6 @@ import {
   setDoc,
   updateDoc,
   where,
-  writeBatch,
 } from '@angular/fire/firestore';
 import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 
@@ -39,10 +37,10 @@ import {
   DEFAULT_CHANNEL_NAME,
 } from '../shared/channels.constants';
 import { AuthService } from './auth.service';
+import { deleteChannelDeep } from './channel-teardown';
 import { ToastService } from './toast.service';
 
 const CHANNELS_LOAD_ERROR = 'Channels konnten nicht geladen werden.';
-const DELETE_BATCH_LIMIT = 450;
 
 /**
  * Streams all channels the signed-in user is a member of and persists new
@@ -221,8 +219,9 @@ export class ChannelService {
 
   /**
    * Removes the signed-in user from the channel. When the last member of a
-   * non-default channel leaves, the channel is deleted entirely including all
-   * messages and thread replies (client-side recursive delete, see CLAUDE.md).
+   * non-default channel leaves, the channel is deleted entirely including
+   * all messages, thread replies and the creator-owned vanity-slug
+   * reservation (client-side recursive delete, see channel-teardown.ts).
    * The default channel is never deleted, so new users can always join it.
    * @param channel Channel the user is leaving.
    */
@@ -230,7 +229,7 @@ export class ChannelService {
     const uid = this.authService.requireUid();
     const remaining = channel.memberIds.filter(memberId => memberId !== uid);
     if (remaining.length === 0 && !this.isDefaultChannel(channel)) {
-      return this.deleteChannelDeep(channel.id);
+      return deleteChannelDeep(this.firestore, operation => this.inContext(operation), channel, uid);
     }
     await this.inContext(() =>
       updateDoc(doc(this.firestore, `channels/${channel.id}`), { memberIds: arrayRemove(uid) }),
@@ -245,52 +244,6 @@ export class ChannelService {
    */
   private isDefaultChannel(channel: Channel): boolean {
     return channel.id === DEFAULT_CHANNEL_ID || channel.isDefault === true;
-  }
-
-
-  /**
-   * Deletes a channel with all message and reply documents. Firestore does
-   * not cascade subcollection deletes, so every document is collected and
-   * removed in chunked batches.
-   * @param channelId Firestore id of the channel.
-   */
-  private async deleteChannelDeep(channelId: string): Promise<void> {
-    const references = await this.collectChannelDocRefs(channelId);
-    await this.commitDeletes(references);
-  }
-
-
-  /**
-   * Collects the references of all reply, message and channel documents.
-   * @param channelId Firestore id of the channel.
-   */
-  private async collectChannelDocRefs(channelId: string): Promise<DocumentReference[]> {
-    const references: DocumentReference[] = [];
-    const messages = await this.inContext(() =>
-      getDocs(collection(this.firestore, `channels/${channelId}/messages`)),
-    );
-    for (const message of messages.docs) {
-      const replies = await this.inContext(() => getDocs(collection(message.ref, 'replies')));
-      references.push(...replies.docs.map(reply => reply.ref), message.ref);
-    }
-    references.push(doc(this.firestore, `channels/${channelId}`));
-    return references;
-  }
-
-
-  /**
-   * Deletes the given documents in batches below the Firestore batch limit.
-   * @param references Document references to delete, children first.
-   */
-  private async commitDeletes(references: DocumentReference[]): Promise<void> {
-    for (let start = 0; start < references.length; start += DELETE_BATCH_LIMIT) {
-      const chunk = references.slice(start, start + DELETE_BATCH_LIMIT);
-      await this.inContext(() => {
-        const batch = writeBatch(this.firestore);
-        chunk.forEach(reference => batch.delete(reference));
-        return batch.commit();
-      });
-    }
   }
 
 
