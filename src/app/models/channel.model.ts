@@ -22,6 +22,8 @@ export interface ChannelDoc {
   memberIds: string[];
   /** Creation time; serverTimestamp() sentinel on write, Timestamp on read. */
   createdAt: Timestamp | FieldValue;
+  /** Optional vanity invite slug; mirrors the inviteSlugs/{slug} claim. */
+  inviteSlug?: string;
   /** Time of the latest message; denormalized so the sidebar detects unread. */
   lastMessageAt?: Timestamp | FieldValue;
   /** Author of the latest message; denormalized for unread detection. */

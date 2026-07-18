@@ -307,6 +307,20 @@ service cloud.firestore {
           && request.resource.data.topic.size() <= 120;
       }
 
+      // Only the channel creator maintains the optional vanity invite
+      // slug; the pattern mirrors INVITE_SLUG_PATTERN in
+      // invite.constants.ts. Setting rides in the same batch as the
+      // inviteSlugs reservation create, removal in the same batch as the
+      // reservation delete (see /inviteSlugs); an absent field after the
+      // update is the removal case.
+      function creatorEditsInviteSlug() {
+        return affectedKeys().hasOnly(['inviteSlug'])
+          && request.auth.uid == resource.data.createdBy
+          && (!('inviteSlug' in request.resource.data)
+            || (request.resource.data.inviteSlug is string
+              && request.resource.data.inviteSlug.matches('[a-z0-9][a-z0-9-]{1,30}[a-z0-9]')));
+      }
+
       // A member denormalizes the last message onto the channel doc.
       function memberSetsLastMessage() {
         return request.auth.uid in resource.data.memberIds
@@ -345,12 +359,13 @@ service cloud.firestore {
           || isDefaultChannelSeed());
 
       // Members edit name/description, add members and may remove
-      // themselves (leave); the creator maintains the topic; non-members
-      // may only add their own uid (join-on-send).
+      // themselves (leave); the creator maintains the topic and the vanity
+      // invite slug; non-members may only add their own uid (join-on-send).
       allow update: if signedIn()
         && ((request.auth.uid in resource.data.memberIds && memberEditsChannel())
           || joinsSelf()
           || creatorEditsTopic()
+          || creatorEditsInviteSlug()
           || memberSetsLastMessage()
           || joinsAndSetsLastMessage());
 
@@ -413,6 +428,36 @@ service cloud.firestore {
         && request.resource.data.expiresAt is timestamp
         && request.resource.data.expiresAt > request.time
         && request.auth.uid in channelMembers(request.resource.data.channelId);
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+    }
+
+    // Vanity invite slugs at inviteSlugs/{slug}: a human-readable alias of
+    // a channel's invite link (…/#/invite/cozy-vibes); the document id IS
+    // the slug. Uniqueness follows the usernames reservation pattern —
+    // `create` only ever matches a non-existing document and updates are
+    // always denied, so a taken slug rejects the claim batch atomically
+    // (that failure is the availability check; no read-before-write). The
+    // id pattern mirrors INVITE_SLUG_PATTERN in invite.constants.ts:
+    // lowercase alphanumerics and hyphens, alphanumeric at both ends,
+    // 3–32 chars. Claiming is creator-only, proven with one get() on the
+    // referenced channel; the same batch stamps the slug onto the channel
+    // (creatorEditsInviteSlug) and deletes a replaced reservation. The
+    // redeem page resolves tokens FIRST and slugs only on a token miss,
+    // so a slug can never shadow a token.
+    match /inviteSlugs/{slug} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && slug.matches('[a-z0-9][a-z0-9-]{1,30}[a-z0-9]')
+        && request.resource.data.keys().hasOnly(['channelId', 'createdBy', 'createdAt'])
+        && request.resource.data.keys().hasAll(['channelId', 'createdBy', 'createdAt'])
+        && request.resource.data.channelId is string
+        && request.resource.data.channelId.size() >= 1
+        && request.resource.data.channelId.size() <= 128
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.auth.uid
+          == get(/databases/$(database)/documents/channels/$(request.resource.data.channelId)).data.createdBy;
       allow update: if false;
       allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
     }

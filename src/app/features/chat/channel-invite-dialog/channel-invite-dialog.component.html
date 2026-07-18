@@ -19,7 +19,43 @@
     </button>
   }
 
-  @if (createdUrl(); as url) {
+  @if (canManageSlug()) {
+    <form class="invite__slug" [formGroup]="slugForm" (ngSubmit)="saveSlug()">
+      <div class="form-field">
+        <label class="form-label" for="invite-slug">Eigener Link-Name</label>
+        <div class="invite__slug-row">
+          <span class="invite__slug-prefix" aria-hidden="true">{{ slugPrefix }}</span>
+          <input
+            id="invite-slug"
+            class="form-input form-input--outlined invite__slug-input"
+            type="text"
+            formControlName="slug"
+            placeholder="z.B. cozy-vibes"
+            [attr.maxlength]="slugMax"
+            aria-describedby="invite-slug-counter invite-slug-error"
+            [attr.aria-invalid]="slugError() !== ''"
+          />
+        </div>
+        <p class="invite__slug-counter" id="invite-slug-counter">
+          {{ slugLength() }}/{{ slugMax }} Zeichen
+        </p>
+        <p class="form-error" id="invite-slug-error">{{ slugError() }}</p>
+      </div>
+      <div class="invite__slug-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="!canSaveSlug()">Speichern</button>
+        <button
+          class="btn btn-secondary"
+          type="button"
+          [disabled]="isPending() || !channel().inviteSlug"
+          (click)="removeSlug()"
+        >
+          Entfernen
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (shareUrl(); as url) {
     <div class="invite__created">
       <p class="invite__created-url" [title]="url">{{ url }}</p>
       <button class="btn btn-secondary invite__created-copy" type="button" (click)="copy(url)">

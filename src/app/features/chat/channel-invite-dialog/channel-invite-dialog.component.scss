@@ -52,6 +52,40 @@
   flex-shrink: 0;
 }
 
+.invite__slug {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('sm');
+}
+
+.invite__slug-row {
+  display: flex;
+  align-items: center;
+  gap: v.space('xs');
+}
+
+.invite__slug-prefix {
+  flex-shrink: 0;
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+}
+
+.invite__slug-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.invite__slug-counter {
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  text-align: right;
+}
+
+.invite__slug-actions {
+  display: flex;
+  gap: v.space('sm');
+}
+
 .invite__section {
   display: flex;
   flex-direction: column;
