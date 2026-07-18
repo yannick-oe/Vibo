@@ -1,0 +1,41 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.create-voice__head {
+  @include m.flex-between;
+
+  gap: v.space('md');
+}
+
+.create-voice__title {
+  font-size: v.font-size('h4');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.create-voice__intro {
+  font-size: v.font-size('body');
+  color: v.color('text-gray');
+  line-height: v.$line-height-base;
+}
+
+.create-voice__form {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('lg');
+}
+
+.create-voice__label {
+  font-size: v.font-size('body');
+}
+
+.create-voice__counter {
+  margin-top: v.space('xs');
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  text-align: right;
+}
+
+.create-voice__actions {
+  @include m.flex-end;
+}

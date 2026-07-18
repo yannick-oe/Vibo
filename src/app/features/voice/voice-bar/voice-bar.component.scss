@@ -1,0 +1,202 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$control-size: 44px;
+$avatar-size: 28px;
+$avatar-overlap: -8px;
+$state-badge-size: 16px;
+$state-badge-icon: 10px;
+$speaking-ring-width: 2px;
+$speaking-pulse-width: 3px;
+$speaking-pulse-duration: 1200ms;
+
+:host {
+  display: block;
+}
+
+.voice-bar {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('sm-md');
+  padding: v.space('md') v.space('lg');
+  border-top: 1px solid v.color('lines');
+}
+
+.voice-bar__info {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+  min-width: 0;
+}
+
+.voice-bar__status {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('black');
+}
+
+.voice-bar__status-dot {
+  @include m.status-dot;
+}
+
+.voice-bar__channel {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.voice-bar__members {
+  display: flex;
+  align-items: center;
+  padding-left: v.space('sm');
+}
+
+.voice-bar__member {
+  margin-left: $avatar-overlap;
+
+  &:first-child {
+    margin-left: 0;
+  }
+}
+
+.voice-bar__avatar-wrap {
+  @include m.avatar-status-wrap;
+
+  border-radius: v.$radius-round;
+
+  &--speaking {
+    box-shadow: 0 0 0 $speaking-ring-width v.color('online');
+    animation: voice-bar-speaking-pulse $speaking-pulse-duration v.$ease-standard infinite;
+  }
+}
+
+.voice-bar__avatar {
+  display: block;
+  width: $avatar-size;
+  height: $avatar-size;
+  border-radius: v.$radius-round;
+  border: $speaking-ring-width solid v.color('white');
+  object-fit: cover;
+}
+
+.voice-bar__member-state {
+  @include m.flex-center;
+
+  position: absolute;
+  right: calc(-1 * v.space('xs'));
+  bottom: calc(-1 * v.space('xs'));
+  width: $state-badge-size;
+  height: $state-badge-size;
+  border-radius: v.$radius-round;
+  background-color: v.color('white');
+  color: v.color('error-text');
+  box-shadow: v.$shadow-xs;
+
+  svg {
+    width: $state-badge-icon;
+    height: $state-badge-icon;
+  }
+}
+
+.voice-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+}
+
+.voice-bar__control {
+  @include m.flex-center;
+  @include m.press-feedback;
+
+  min-width: $control-size;
+  min-height: $control-size;
+  border: none;
+  border-radius: v.$radius-sm;
+  background-color: v.color('bg');
+  color: v.color('black');
+  cursor: pointer;
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover {
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &--on {
+    color: v.color('error-text');
+
+    &:hover {
+      color: v.color('error-text');
+    }
+  }
+
+  &--leave {
+    color: v.color('error-text');
+
+    &:hover {
+      color: v.color('error-text');
+      background-color: color-mix(in srgb, #{v.color('error')} 14%, transparent);
+    }
+  }
+}
+
+.voice-bar__control-icon {
+  width: v.$icon-md;
+  height: v.$icon-md;
+}
+
+.voice-bar--shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: v.space('sm-md');
+  padding: v.space('sm') v.space('md');
+  border-top: 1px solid v.color('lines');
+  background-color: v.color('white');
+
+  .voice-bar__info {
+    gap: 0;
+  }
+
+  .voice-bar__members {
+    padding-left: 0;
+  }
+}
+
+@keyframes voice-bar-speaking-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 $speaking-ring-width v.color('online');
+  }
+
+  50% {
+    box-shadow: 0 0 0 $speaking-pulse-width v.color('online');
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-bar__control {
+    transition: none;
+  }
+
+  .voice-bar__avatar-wrap--speaking {
+    animation: none;
+  }
+}
+
+@include m.respond-xs {
+  .voice-bar--shell {
+    gap: v.space('sm');
+    padding: v.space('sm');
+  }
+}

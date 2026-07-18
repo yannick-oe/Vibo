@@ -1,0 +1,141 @@
+<section class="voice">
+  <div class="voice__section-head">
+    <button
+      class="voice__section-toggle"
+      type="button"
+      aria-controls="workspace-voice"
+      [attr.aria-expanded]="isOpen()"
+      (click)="toggleSection()"
+    >
+      <img
+        class="voice__caret"
+        [class.voice__caret--closed]="!isOpen()"
+        src="app-icons/arrow-drop-down.svg"
+        alt=""
+        aria-hidden="true"
+      />
+      <svg
+        class="voice__section-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M4 9.5v5h3.2l4.8 4V5.5l-4.8 4H4z" />
+        <path d="M15.5 9.2a4 4 0 0 1 0 5.6" />
+        <path d="M18 6.8a7.6 7.6 0 0 1 0 10.4" />
+      </svg>
+      <span class="voice__section-title">Sprachkanäle</span>
+    </button>
+    <button class="btn btn-icon btn-sm" type="button" aria-label="Sprachkanal hinzufügen" (click)="openDialog()">
+      <img src="app-icons/add.svg" alt="" width="14" height="14" aria-hidden="true" />
+    </button>
+  </div>
+
+  <div class="voice__collapsible" [class.voice__collapsible--open]="isOpen()">
+    <ul class="voice__list" id="workspace-voice">
+      @for (channel of channels(); track channel.id) {
+        <li class="voice__entry">
+          <button
+            class="voice__row"
+            [class.voice__row--active]="connectedChannelId() === channel.id"
+            type="button"
+            [attr.aria-label]="rowLabel(channel)"
+            (click)="join(channel)"
+          >
+            <svg
+              class="voice__glyph"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M4 9.5v5h3.2l4.8 4V5.5l-4.8 4H4z" />
+              <path d="M15.5 9.2a4 4 0 0 1 0 5.6" />
+              <path d="M18 6.8a7.6 7.6 0 0 1 0 10.4" />
+            </svg>
+            <span class="voice__row-name">{{ channel.name }}</span>
+            @if (participantsOf(channel.id).length > 0) {
+              <span class="voice__count" aria-hidden="true">
+                {{ participantsOf(channel.id).length }}/{{ maxParticipants }}
+              </span>
+            }
+          </button>
+
+          @if (participantsOf(channel.id).length > 0) {
+            <ul class="voice__members">
+              @for (participant of participantsOf(channel.id); track participant.sessionId) {
+                <li class="voice__member">
+                  <span
+                    class="voice__member-avatar-wrap"
+                    [class.voice__member-avatar-wrap--speaking]="isSpeaking(participant)"
+                  >
+                    <img
+                      class="voice__member-avatar"
+                      appAvatarFallback
+                      [src]="avatarFor(participant.uid)"
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span class="voice__member-name">{{ displayName(participant.uid) }}</span>
+                  @if (isSpeaking(participant)) {
+                    <span class="sr-only">spricht</span>
+                  }
+                  @if (participant.deafened) {
+                    <svg
+                      class="voice__state-glyph"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path d="M4 17v-4a8 8 0 0 1 16 0v4" />
+                      <path d="M4 15h2.5v5H4zM17.5 15H20v5h-2.5z" />
+                      <path d="M4.5 4l15 16" />
+                    </svg>
+                    <span class="sr-only">Ton deaktiviert</span>
+                  } @else if (participant.muted) {
+                    <svg
+                      class="voice__state-glyph"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <rect x="9" y="3.5" width="6" height="11" rx="3" />
+                      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" />
+                      <path d="M12 18v3" />
+                      <path d="M4.5 4l15 16" />
+                    </svg>
+                    <span class="sr-only">stummgeschaltet</span>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </li>
+      } @empty {
+        <li class="voice__empty">
+          Noch keine Sprachkanäle — erstelle den ersten über das Plus.
+        </li>
+      }
+    </ul>
+  </div>
+</section>

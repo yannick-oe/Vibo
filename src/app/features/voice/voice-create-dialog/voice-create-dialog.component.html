@@ -1,0 +1,43 @@
+<app-dialog-shell labelledBy="create-voice-title" size="members" (closed)="close()">
+  <header class="create-voice__head">
+    <h2 class="create-voice__title" id="create-voice-title">Sprachkanal erstellen</h2>
+    <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="close()">
+      <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+    </button>
+  </header>
+
+  <p class="create-voice__intro">
+    In Sprachkanälen unterhält sich dein Team live per Audio &mdash; einfach anklicken und beitreten.
+  </p>
+
+  <form class="create-voice__form" [formGroup]="nameForm" (ngSubmit)="create()">
+    <div class="form-field">
+      <label class="form-label create-voice__label" for="create-voice-name">Name des Sprachkanals</label>
+      <input
+        #nameInput
+        id="create-voice-name"
+        class="form-input form-input--outlined"
+        type="text"
+        formControlName="name"
+        placeholder="z.B. Teambesprechung"
+        [attr.maxlength]="nameMax"
+        aria-describedby="create-voice-name-error create-voice-name-counter"
+        [attr.aria-invalid]="nameInvalid()"
+      />
+      <p class="create-voice__counter" id="create-voice-name-counter">
+        {{ nameLength() }}/{{ nameMax }} Zeichen
+      </p>
+      <p class="form-error" id="create-voice-name-error">{{ nameError() }}</p>
+    </div>
+
+    <footer class="create-voice__actions">
+      <button
+        class="btn btn-primary"
+        type="submit"
+        [disabled]="nameControl.invalid || isPending()"
+      >
+        Erstellen
+      </button>
+    </footer>
+  </form>
+</app-dialog-shell>

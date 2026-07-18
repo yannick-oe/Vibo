@@ -597,5 +597,92 @@ service cloud.firestore {
         allow delete: if isParticipant(conversationId) && (resource == null || resource.data.uid == request.auth.uid);
       }
     }
+
+    // Persistent voice channels: Firestore carries ONLY presence and WebRTC
+    // signaling — audio flows peer-to-peer (DTLS-SRTP) and never touches the
+    // database. Creation mirrors the text-channel gating (any signed-in
+    // user, the shared guest account included); rename/delete are out of
+    // scope this phase, hence update/delete: false.
+    match /voiceChannels/{channelId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'createdBy', 'createdAt'])
+        && request.resource.data.keys().hasAll(['name', 'createdBy', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+
+      allow update, delete: if false;
+
+      // Live participant sessions (doc id = client session, mirroring the
+      // typing markers, so several windows of the shared guest account are
+      // distinct participants). Every write must stamp lastSeen with the
+      // server clock — the heartbeat IS the liveness proof; stale documents
+      // are filtered client-side after VOICE_STALE_MS. Deletes are own-uid
+      // scoped; the shared guest uid means one guest session may clear
+      // another's document — tolerated exactly like the typing docs.
+      match /voiceParticipants/{sessionId} {
+        function voiceParticipantValid() {
+          return request.resource.data.keys()
+              .hasOnly(['uid', 'sessionId', 'joinedAt', 'muted', 'deafened', 'lastSeen'])
+            && request.resource.data.keys()
+              .hasAll(['uid', 'sessionId', 'joinedAt', 'muted', 'deafened', 'lastSeen'])
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.sessionId == sessionId
+            && request.resource.data.muted is bool
+            && request.resource.data.deafened is bool
+            && request.resource.data.lastSeen == request.time;
+        }
+
+        allow create: if signedIn()
+          && voiceParticipantValid()
+          && request.resource.data.joinedAt == request.time;
+        allow update: if signedIn()
+          && voiceParticipantValid()
+          && request.resource.data.joinedAt == resource.data.joinedAt;
+        allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+      }
+
+      // Directed WebRTC signaling envelopes (self-cleaning mailbox): the
+      // addressee applies and deletes each one. The payload (SDP/ICE)
+      // contains IP addresses, so reads/deletes are provable only for the
+      // sender or the addressee via the pinned uids — which the client's
+      // queries always constrain. The shared guest uid can read fellow
+      // guest sessions' envelopes (same account; documented).
+      match /signals/{signalId} {
+        allow read, delete: if signedIn()
+          && (resource.data.toUid == request.auth.uid
+            || resource.data.fromUid == request.auth.uid);
+        allow create: if signedIn()
+          && request.resource.data.keys()
+            .hasOnly(['fromSession', 'fromUid', 'toSession', 'toUid', 'kind', 'payload', 'createdAt'])
+          && request.resource.data.keys()
+            .hasAll(['fromSession', 'fromUid', 'toSession', 'toUid', 'kind', 'payload', 'createdAt'])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.fromSession is string
+          && request.resource.data.fromSession.size() >= 1
+          && request.resource.data.fromSession.size() <= 128
+          && request.resource.data.toSession is string
+          && request.resource.data.toSession.size() >= 1
+          && request.resource.data.toSession.size() <= 128
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid.size() >= 1
+          && request.resource.data.toUid.size() <= 128
+          && request.resource.data.kind in ['offer', 'answer', 'candidate']
+          && request.resource.data.payload is map
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+      }
+    }
+
+    // Collection-group READ powering the app's single roster/occupancy
+    // stream (sidebar occupancy + in-channel roster from one listener).
+    // Writes are governed solely by the concrete voiceChannels match above.
+    match /{path=**}/voiceParticipants/{sessionId} {
+      allow read: if signedIn();
+    }
   }
 }
