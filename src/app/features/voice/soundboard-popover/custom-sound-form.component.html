@@ -1,19 +1,22 @@
 <form class="sound-form" [formGroup]="nameForm" (ngSubmit)="save()">
-  <div class="form-field">
-    <label class="form-label sound-form__label" for="custom-sound-file">{{ fileHint }}</label>
+  <div class="form-field sound-form__file-field">
+    <p class="form-hint" id="custom-sound-file-hint">{{ fileHint }}</p>
     <input
       id="custom-sound-file"
       class="sound-form__file"
       type="file"
       [accept]="acceptTypes"
       [disabled]="isChecking() || isPending()"
-      aria-describedby="custom-sound-file-error"
+      aria-describedby="custom-sound-file-hint custom-sound-file-error"
       [attr.aria-invalid]="fileError() !== ''"
       (change)="onFileSelected($event)"
     />
-    @if (fileInfo()) {
-      <p class="sound-form__info">{{ fileInfo() }}</p>
-    }
+    <label class="btn btn-secondary sound-form__trigger" for="custom-sound-file">
+      Datei auswählen
+    </label>
+    <p class="sound-form__info" [class.sound-form__info--empty]="fileInfo() === ''">
+      {{ fileInfo() || noFileNote }}
+    </p>
     <p class="form-error" id="custom-sound-file-error">{{ fileError() }}</p>
   </div>
 

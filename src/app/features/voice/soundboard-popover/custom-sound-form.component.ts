@@ -1,10 +1,11 @@
 /**
- * @file Add form of the custom soundboard sounds inside the popover: a
- * native audio file input (validated client-side — size cap, real decode,
- * duration cap — with German inline errors in a reserved slot), a name
- * field with live counter and the save action writing the base64 document.
- * Guests never see this form; the popover renders the guest notice
- * instead.
+ * @file Add form of the custom soundboard sounds inside the popover: an
+ * audio file input rendered as the accessible custom pattern (the real
+ * input stays visually hidden and focusable, a styled label triggers it,
+ * the selection is validated client-side — size cap, real decode, duration
+ * cap — with German inline errors in a reserved slot), a name field with
+ * live counter and the save action writing the base64 document. Guests
+ * never see this form; the popover renders the guest notice instead.
  */
 import {
   ChangeDetectionStrategy,
@@ -33,6 +34,7 @@ import {
 } from './sound-file-check';
 
 const NAME_REQUIRED_ERROR = 'Bitte gib einen Namen für den Sound ein.';
+const NO_FILE_NOTE = 'Keine Datei ausgewählt';
 const SAVE_ERROR_TOAST = 'Der Sound konnte nicht gespeichert werden.';
 const CAP_REACHED_TOAST = `Maximal ${MAX_CUSTOM_SOUNDS} eigene Sounds`;
 
@@ -62,6 +64,8 @@ export class CustomSoundFormComponent {
   protected readonly fileHint = SOUND_FILE_REQUIREMENTS_HINT;
 
   protected readonly acceptTypes = ACCEPTED_SOUND_MIME_TYPES.join(',');
+
+  protected readonly noFileNote = NO_FILE_NOTE;
 
   protected readonly nameMax = SOUND_NAME_MAX;
 

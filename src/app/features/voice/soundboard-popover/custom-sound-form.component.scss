@@ -13,42 +13,38 @@
   font-size: v.font-size('min');
 }
 
+.sound-form__file-field {
+  position: relative;
+}
+
 .sound-form__file {
-  font-size: v.font-size('min');
-  color: v.color('text-gray');
-  cursor: pointer;
+  @include m.visually-hidden;
 
-  &::file-selector-button {
-    @include m.press-feedback;
-
-    margin-right: v.space('sm');
-    padding: v.space('xs') v.space('sm');
-    border: none;
-    border-radius: v.$radius-sm;
-    background-color: v.color('bg');
-    font-family: inherit;
-    font-size: v.font-size('min');
-    font-weight: v.$font-weight-semibold;
-    color: v.color('black');
-    cursor: pointer;
-  }
-
-  &:focus-visible {
+  &:focus-visible + .sound-form__trigger {
     @include m.focus-ring;
   }
 
-  &:disabled {
-    cursor: default;
-    opacity: 0.6;
+  &:disabled + .sound-form__trigger {
+    color: v.color('text-gray');
+    border-color: v.color('text-gray');
+    cursor: not-allowed;
+    pointer-events: none;
   }
+}
+
+.sound-form__trigger {
+  align-self: flex-start;
 }
 
 .sound-form__info {
   @include m.text-ellipsis;
 
-  margin-top: v.space('xs');
   font-size: v.font-size('min');
-  color: v.color('text-gray');
+  color: v.color('black');
+
+  &--empty {
+    color: v.color('text-gray');
+  }
 }
 
 .sound-form__counter {
