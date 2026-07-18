@@ -40,35 +40,59 @@
     <ul class="voice__list" id="workspace-voice">
       @for (channel of channels(); track channel.id) {
         <li class="voice__entry">
-          <button
-            class="voice__row"
-            [class.voice__row--active]="connectedChannelId() === channel.id"
-            type="button"
-            [attr.aria-label]="rowLabel(channel)"
-            (click)="join(channel)"
-          >
-            <svg
-              class="voice__glyph"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-              focusable="false"
+          <div class="voice__row-wrap">
+            <button
+              class="voice__row"
+              [class.voice__row--active]="connectedChannelId() === channel.id"
+              type="button"
+              [attr.aria-label]="rowLabel(channel)"
+              (click)="join(channel)"
             >
-              <path d="M4 9.5v5h3.2l4.8 4V5.5l-4.8 4H4z" />
-              <path d="M15.5 9.2a4 4 0 0 1 0 5.6" />
-              <path d="M18 6.8a7.6 7.6 0 0 1 0 10.4" />
-            </svg>
-            <span class="voice__row-name">{{ channel.name }}</span>
-            @if (participantsOf(channel.id).length > 0) {
-              <span class="voice__count" aria-hidden="true">
-                {{ participantsOf(channel.id).length }}/{{ maxParticipants }}
-              </span>
+              <svg
+                class="voice__glyph"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M4 9.5v5h3.2l4.8 4V5.5l-4.8 4H4z" />
+                <path d="M15.5 9.2a4 4 0 0 1 0 5.6" />
+                <path d="M18 6.8a7.6 7.6 0 0 1 0 10.4" />
+              </svg>
+              <span class="voice__row-name">{{ channel.name }}</span>
+              @if (participantsOf(channel.id).length > 0) {
+                <span class="voice__count" aria-hidden="true">
+                  {{ participantsOf(channel.id).length }}/{{ maxParticipants }}
+                </span>
+              }
+            </button>
+            @if (isCreator(channel)) {
+              <button
+                class="voice__manage"
+                type="button"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="managedChannel()?.id === channel.id"
+                (click)="openManageMenu(channel, $event)"
+              >
+                <svg
+                  class="voice__manage-glyph"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <circle cx="12" cy="5" r="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="12" cy="19" r="2" />
+                </svg>
+                <span class="sr-only">Sprachkanal {{ channel.name }} verwalten</span>
+              </button>
             }
-          </button>
+          </div>
 
           @if (participantsOf(channel.id).length > 0) {
             <ul class="voice__members">
@@ -89,6 +113,45 @@
                   <span class="voice__member-name">{{ displayName(participant.uid) }}</span>
                   @if (isSpeaking(participant)) {
                     <span class="sr-only">spricht</span>
+                  }
+                  @if (participant.sharing) {
+                    @if (hasScreenStream(participant)) {
+                      <button class="voice__screen-btn" type="button" (click)="viewScreen(participant)">
+                        <svg
+                          class="voice__screen-glyph"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <rect x="3" y="4.5" width="18" height="12.5" rx="2" />
+                          <path d="M9 21h6" />
+                        </svg>
+                        <span class="sr-only">
+                          Bildschirm von {{ displayName(participant.uid) }} ansehen
+                        </span>
+                      </button>
+                    } @else {
+                      <svg
+                        class="voice__state-glyph voice__state-glyph--screen"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <rect x="3" y="4.5" width="18" height="12.5" rx="2" />
+                        <path d="M9 21h6" />
+                      </svg>
+                      <span class="sr-only">teilt den Bildschirm</span>
+                    }
                   }
                   @if (participant.deafened) {
                     <svg
@@ -139,3 +202,31 @@
     </ul>
   </div>
 </section>
+
+@if (managedChannel(); as managed) {
+  <app-dialog-shell
+    size="menu"
+    scrim="transparent"
+    [anchor]="manageAnchor()"
+    labelledBy="voice-manage-title"
+    (closed)="closeManageMenu()"
+  >
+    <span class="sr-only" id="voice-manage-title">Sprachkanal {{ managed.name }} verwalten</span>
+    <div class="voice__menu" role="menu">
+      <button class="voice__menu-item" type="button" role="menuitem" (click)="startRename()">
+        Umbenennen
+      </button>
+      <button class="voice__menu-item" type="button" role="menuitem" (click)="startDelete()">
+        Löschen
+      </button>
+    </div>
+  </app-dialog-shell>
+}
+
+@if (renameTarget(); as renameChannel) {
+  <app-voice-rename-dialog [channel]="renameChannel" (closed)="renameTarget.set(null)" />
+}
+
+@if (deleteTarget(); as deleteChannel) {
+  <app-voice-delete-dialog [channel]="deleteChannel" (closed)="deleteTarget.set(null)" />
+}

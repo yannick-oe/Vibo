@@ -3,6 +3,10 @@
 
 $caret-size: 12px;
 $state-glyph-size: 14px;
+$screen-button-size: 24px;
+$screen-glyph-size: 15px;
+$manage-button-size: 24px;
+$manage-glyph-size: 16px;
 $speaking-ring-width: 2px;
 $speaking-pulse-width: 3px;
 $speaking-pulse-duration: 1200ms;
@@ -96,6 +100,90 @@ $speaking-pulse-duration: 1200ms;
   display: flex;
   flex-direction: column;
   gap: v.space('sm');
+}
+
+.voice__row-wrap {
+  display: flex;
+  align-items: center;
+  gap: v.space('xs');
+
+  &:hover .voice__manage,
+  &:focus-within .voice__manage {
+    opacity: 1;
+  }
+}
+
+.voice__manage {
+  @include m.flex-center;
+
+  flex-shrink: 0;
+  width: $manage-button-size;
+  height: $manage-button-size;
+  padding: 0;
+  border: none;
+  border-radius: v.$radius-sm;
+  background: none;
+  color: v.color('text-gray');
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity v.$transition-fast, background-color v.$transition-fast,
+    color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+
+    opacity: 1;
+  }
+
+  &[aria-expanded='true'] {
+    opacity: 1;
+    color: v.color('primary');
+  }
+}
+
+@media (hover: none) {
+  .voice__manage {
+    opacity: 1;
+  }
+}
+
+.voice__manage-glyph {
+  width: $manage-glyph-size;
+  height: $manage-glyph-size;
+}
+
+.voice__menu {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+  white-space: nowrap;
+}
+
+.voice__menu-item {
+  padding: v.space('sm') v.space('lg');
+  border: none;
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('black');
+  text-align: left;
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
 }
 
 .voice__row {
@@ -215,6 +303,39 @@ $speaking-pulse-duration: 1200ms;
   width: $state-glyph-size;
   height: $state-glyph-size;
   color: v.color('text-gray');
+
+  &--screen {
+    color: v.color('primary');
+  }
+}
+
+.voice__screen-btn {
+  @include m.flex-center;
+
+  flex-shrink: 0;
+  width: $screen-button-size;
+  height: $screen-button-size;
+  padding: 0;
+  border: none;
+  border-radius: v.$radius-sm;
+  background: none;
+  color: v.color('primary');
+  cursor: pointer;
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+    color: v.color('primary-hover');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+.voice__screen-glyph {
+  width: $screen-glyph-size;
+  height: $screen-glyph-size;
 }
 
 .voice__empty {
@@ -239,7 +360,10 @@ $speaking-pulse-duration: 1200ms;
 @media (prefers-reduced-motion: reduce) {
   .voice__caret,
   .voice__collapsible,
-  .voice__row {
+  .voice__row,
+  .voice__screen-btn,
+  .voice__manage,
+  .voice__menu-item {
     transition: none;
   }
 

@@ -1,0 +1,31 @@
+<app-dialog-shell labelledBy="delete-voice-title" describedBy="delete-voice-text" size="members" (closed)="close()">
+  <header class="delete-voice__head">
+    <h2 class="delete-voice__title" id="delete-voice-title">Sprachkanal löschen</h2>
+    <button class="btn btn-icon btn-sm" type="button" aria-label="Dialog schließen" (click)="close()">
+      <img src="app-icons/close.svg" alt="" aria-hidden="true" />
+    </button>
+  </header>
+
+  <p class="delete-voice__text" id="delete-voice-text">
+    Möchtest du den Sprachkanal <strong>{{ channel().name }}</strong> wirklich löschen? Diese
+    Aktion kann nicht rückgängig gemacht werden.
+  </p>
+
+  @if (isOccupied()) {
+    <p class="delete-voice__hint">
+      Der Sprachkanal kann nur gelöscht werden, solange niemand verbunden ist.
+    </p>
+  }
+
+  <footer class="delete-voice__actions">
+    <button class="btn btn-secondary" type="button" (click)="close()">Abbrechen</button>
+    <button
+      class="btn btn-primary"
+      type="button"
+      [disabled]="isOccupied() || isPending()"
+      (click)="confirmDelete()"
+    >
+      Löschen
+    </button>
+  </footer>
+</app-dialog-shell>

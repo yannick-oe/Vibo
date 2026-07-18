@@ -21,8 +21,11 @@ import {
   Timestamp,
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   getDocs,
   serverTimestamp,
+  updateDoc,
 } from '@angular/fire/firestore';
 
 import { VoiceChannel, VoiceChannelDoc } from '../models/voice.model';
@@ -101,6 +104,38 @@ export class VoiceChannelService {
     );
     await this.refresh();
     return reference.id;
+  }
+
+
+  /**
+   * Renames a voice channel (creator-only, enforced by the rules) and
+   * refreshes the cached list so the acting client sees the new name
+   * immediately; other clients pick it up with their next list refresh.
+   * @param channelId Voice channel to rename.
+   * @param name New trimmed name (validated by the dialog).
+   */
+  async rename(channelId: string, name: string): Promise<void> {
+    await runInInjectionContext(this.injector, () =>
+      updateDoc(doc(this.firestore, `${VOICE_CHANNELS_COLLECTION}/${channelId}`), {
+        name: name.trim(),
+      }),
+    );
+    await this.refresh();
+  }
+
+
+  /**
+   * Deletes a voice channel document (creator-only, enforced by the rules;
+   * the dialog additionally gates on an empty roster) and refreshes the
+   * cached list. Residual participant documents from a join race age out
+   * via the client-side stale filter.
+   * @param channelId Voice channel to delete.
+   */
+  async remove(channelId: string): Promise<void> {
+    await runInInjectionContext(this.injector, () =>
+      deleteDoc(doc(this.firestore, `${VOICE_CHANNELS_COLLECTION}/${channelId}`)),
+    );
+    await this.refresh();
   }
 
 

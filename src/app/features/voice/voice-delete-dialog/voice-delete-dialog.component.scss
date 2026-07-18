@@ -1,0 +1,33 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.delete-voice__head {
+  @include m.flex-between;
+
+  gap: v.space('md');
+}
+
+.delete-voice__title {
+  font-size: v.font-size('h4');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+}
+
+.delete-voice__text {
+  font-size: v.font-size('body');
+  line-height: v.$line-height-base;
+  color: v.color('black');
+  overflow-wrap: break-word;
+}
+
+.delete-voice__hint {
+  font-size: v.font-size('min');
+  line-height: v.$line-height-base;
+  color: v.color('error-text');
+}
+
+.delete-voice__actions {
+  @include m.flex-end;
+
+  gap: v.space('sm-md');
+}

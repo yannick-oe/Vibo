@@ -32,6 +32,18 @@ export const MAX_VOICE_PARTICIPANTS = 5;
 /** Grace period before a failed/disconnected peer connection is dropped. */
 export const DISCONNECT_GRACE_MS = 5000;
 
+/** Ideal capture width of a shared screen in pixels. */
+export const SCREEN_IDEAL_WIDTH = 1920;
+
+/** Ideal capture height of a shared screen in pixels. */
+export const SCREEN_IDEAL_HEIGHT = 1080;
+
+/** Ideal capture frame rate of a shared screen in frames per second. */
+export const SCREEN_IDEAL_FPS = 30;
+
+/** Upper video bitrate per screen-share leg in bit/s (crisp text focus). */
+export const SCREEN_MAX_BITRATE = 2_000_000;
+
 /** Public STUN servers used for NAT traversal (primary plus one fallback). */
 export const STUN_SERVERS: readonly RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },

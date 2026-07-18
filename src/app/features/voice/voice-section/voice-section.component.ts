@@ -1,32 +1,45 @@
 /**
  * @file Collapsible "Sprachkanäle" sidebar section: one row per voice
  * channel (speaker glyph, name, live occupancy) with the connected
- * participants listed beneath — avatars, names, mute/deafen glyphs and the
- * local speaking ring. All occupancy data derives from the single
+ * participants listed beneath — avatars, names, mute/deafen/screen glyphs
+ * and the local speaking ring. All occupancy data derives from the single
  * collection-group roster stream; clicking a row joins the channel in
- * place (no route change).
+ * place (no route change). The channel creator additionally gets a ⋮
+ * management menu per row (rename, delete-while-empty).
  */
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
 import { VoiceChannel, VoiceParticipant } from '../../../models/voice.model';
+import { AuthService } from '../../../services/auth.service';
+import { ScreenViewerService } from '../../../services/screen-viewer.service';
 import { UserService } from '../../../services/user.service';
 import { VoiceChannelService } from '../../../services/voice-channel.service';
 import { VoiceConnectionService } from '../../../services/voice-connection.service';
 import { VoiceCreateService } from '../../../services/voice-create.service';
 import { VoiceRosterService } from '../../../services/voice-roster.service';
 import { AvatarFallbackDirective } from '../../../shared/avatar/avatar-fallback.directive';
+import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
+import { DialogAnchor, anchorToTrigger } from '../../../shared/dialog-shell/dialog-anchor';
 import { MAX_VOICE_PARTICIPANTS } from '../../../shared/voice.constants';
+import { VoiceDeleteDialogComponent } from '../voice-delete-dialog/voice-delete-dialog.component';
+import { VoiceRenameDialogComponent } from '../voice-rename-dialog/voice-rename-dialog.component';
 import { isParticipantSpeaking, memberAvatar, memberName } from '../voice-view.util';
 
 /**
  * Sidebar section listing every voice channel with its live roster.
  * Creation is triggered from the section header's plus button; the dialog
  * itself is rendered by the app shell (same containing-block workaround as
- * the text-channel dialog).
+ * the text-channel dialog). The management menu and its rename/delete
+ * dialogs render here — the dialog shell hoists itself to document.body.
  */
 @Component({
   selector: 'app-voice-section',
-  imports: [AvatarFallbackDirective],
+  imports: [
+    AvatarFallbackDirective,
+    DialogShellComponent,
+    VoiceDeleteDialogComponent,
+    VoiceRenameDialogComponent,
+  ],
   templateUrl: './voice-section.component.html',
   styleUrl: './voice-section.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,11 +55,23 @@ export class VoiceSectionComponent {
 
   private readonly userService = inject(UserService);
 
+  private readonly screenViewerService = inject(ScreenViewerService);
+
+  private readonly authService = inject(AuthService);
+
   protected readonly maxParticipants = MAX_VOICE_PARTICIPANTS;
 
   protected readonly channels = this.voiceChannelService.channels;
 
   protected readonly isOpen = signal(true);
+
+  protected readonly managedChannel = signal<VoiceChannel | null>(null);
+
+  protected readonly manageAnchor = signal<DialogAnchor | null>(null);
+
+  protected readonly renameTarget = signal<VoiceChannel | null>(null);
+
+  protected readonly deleteTarget = signal<VoiceChannel | null>(null);
 
   protected readonly connectedChannelId = computed(
     () => this.connectionService.connectedChannel()?.id ?? null,
@@ -75,6 +100,53 @@ export class VoiceSectionComponent {
    */
   protected join(channel: VoiceChannel): void {
     void this.connectionService.join({ id: channel.id, name: channel.name });
+  }
+
+
+  /**
+   * Whether the signed-in user created a channel (management affordance).
+   * @param channel Voice channel of the row.
+   */
+  protected isCreator(channel: VoiceChannel): boolean {
+    return channel.createdBy === this.authService.currentUser()?.uid;
+  }
+
+
+  /**
+   * Opens the management menu for a channel, anchored to its ⋮ trigger.
+   * @param channel Voice channel being managed.
+   * @param event Click event of the trigger button.
+   */
+  protected openManageMenu(channel: VoiceChannel, event: Event): void {
+    const trigger = event.currentTarget;
+    this.manageAnchor.set(trigger instanceof HTMLElement ? anchorToTrigger(trigger) : null);
+    this.managedChannel.set(channel);
+  }
+
+
+  /**
+   * Closes the management menu.
+   */
+  protected closeManageMenu(): void {
+    this.managedChannel.set(null);
+  }
+
+
+  /**
+   * Opens the rename dialog for the managed channel.
+   */
+  protected startRename(): void {
+    this.renameTarget.set(this.managedChannel());
+    this.managedChannel.set(null);
+  }
+
+
+  /**
+   * Opens the delete confirmation for the managed channel.
+   */
+  protected startDelete(): void {
+    this.deleteTarget.set(this.managedChannel());
+    this.managedChannel.set(null);
   }
 
 
@@ -122,5 +194,24 @@ export class VoiceSectionComponent {
    */
   protected isSpeaking(participant: VoiceParticipant): boolean {
     return isParticipantSpeaking(this.connectionService.speakingSessions(), participant);
+  }
+
+
+  /**
+   * Whether a participant's shared screen can be watched from here (a
+   * remote stream for their session has arrived over the mesh).
+   * @param participant Roster participant.
+   */
+  protected hasScreenStream(participant: VoiceParticipant): boolean {
+    return this.connectionService.remoteScreens().has(participant.sessionId);
+  }
+
+
+  /**
+   * Opens the screen-share viewer for a sharing participant.
+   * @param participant Roster participant with an active share.
+   */
+  protected viewScreen(participant: VoiceParticipant): void {
+    this.screenViewerService.open(participant.sessionId);
   }
 }

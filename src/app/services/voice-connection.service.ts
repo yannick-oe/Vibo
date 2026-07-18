@@ -1,17 +1,19 @@
 /**
  * @file The one voice connection of the app: joining and leaving voice
  * channels, the microphone capture, the own participant document with its
- * heartbeat, the mute/deafen controls and the join/leave sounds. The
- * WebRTC mesh itself lives in {@link VoiceMesh}; audio flows strictly
- * peer-to-peer — Firestore only ever carries presence and signaling.
- * Joining is the autoplay/microphone user gesture; leaving happens only
- * via the voice bar, on a seamless channel switch, or implicitly through
- * sign-out and tab close (peers detect the latter via the stale heartbeat
- * and the connection watchdog).
+ * heartbeat, the mute/deafen controls, the join/leave sounds, the bridge
+ * into the mesh for screen sharing and the dispatch of received soundboard
+ * broadcasts. The WebRTC mesh itself lives in {@link VoiceMesh}; audio and
+ * video flow strictly peer-to-peer — Firestore only ever carries presence
+ * and signaling. Joining is the autoplay/microphone user gesture; leaving
+ * happens only via the voice bar, on a seamless channel switch, or
+ * implicitly through sign-out and tab close (peers detect the latter via
+ * the stale heartbeat and the connection watchdog).
  */
 import { Injectable, Signal, computed, effect, inject, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 
+import { RosterChimes } from '../features/voice/webrtc/roster-chimes';
 import { VoiceMesh } from '../features/voice/webrtc/voice-mesh';
 import {
   MAX_VOICE_PARTICIPANTS,
@@ -21,6 +23,7 @@ import {
 import { AuthService } from './auth.service';
 import { ClientSessionService } from './client-session.service';
 import { SoundService } from './sound.service';
+import { SoundboardReceiveGate, soundboardSoundById } from './soundboard-palette';
 import { ToastService } from './toast.service';
 import { VoiceParticipantService } from './voice-participant.service';
 import { VoiceRosterService } from './voice-roster.service';
@@ -65,6 +68,8 @@ export class VoiceConnectionService {
 
   private readonly speakingSessionsState = signal<ReadonlySet<string>>(new Set());
 
+  private readonly remoteScreensState = signal<ReadonlyMap<string, MediaStream>>(new Map());
+
   private readonly isJoiningState = signal(false);
 
   /** Channel this client is connected to, or null. */
@@ -82,6 +87,9 @@ export class VoiceConnectionService {
   /** Session ids currently speaking (local analysis only). */
   readonly speakingSessions = this.speakingSessionsState.asReadonly();
 
+  /** Remote screen-share streams by sharing session id. */
+  readonly remoteScreens = this.remoteScreensState.asReadonly();
+
   /** Own client-session id, for roster highlighting. */
   readonly ownSessionId = this.clientSession.id;
 
@@ -93,7 +101,9 @@ export class VoiceConnectionService {
 
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
-  private previousRosterSessions: ReadonlySet<string> | null = null;
+  private readonly rosterChimes = new RosterChimes();
+
+  private readonly soundboardGate = new SoundboardReceiveGate();
 
   private muteBeforeDeafen = false;
 
@@ -120,7 +130,7 @@ export class VoiceConnectionService {
    */
   async join(channel: ConnectedVoiceChannel): Promise<void> {
     if (this.isJoiningState() || this.connectedChannelState()?.id === channel.id) return;
-    if (this.isChannelFull(channel.id)) return this.reportFull();
+    if (this.rejectIfFull(channel.id)) return;
     this.isJoiningState.set(true);
     try {
       await this.performJoin(channel);
@@ -186,10 +196,11 @@ export class VoiceConnectionService {
     this.localStream = stream;
     this.applyTrackMute();
     this.connectedChannelState.set({ ...channel });
-    if (!(await this.participantService.create(channel.id, this.flags()))) {
+    const flags = { muted: this.isMutedState(), deafened: this.isDeafenedState() };
+    if (!(await this.participantService.create(channel.id, flags))) {
       return this.abortJoin();
     }
-    this.previousRosterSessions = null;
+    this.rosterChimes.reset();
     this.openPlumbing(channel.id, stream);
     this.mesh?.initiateToExisting(existing);
     this.soundService.play('voiceJoin');
@@ -226,6 +237,8 @@ export class VoiceConnectionService {
       consumeSignal: signalId => this.signalingService.consume(channelId, signalId),
       isDeafened: () => this.isDeafenedState(),
       onSpeakingChange: speaking => this.speakingSessionsState.set(speaking),
+      onRemoteScreensChange: screens => this.remoteScreensState.set(screens),
+      onSoundSignal: (fromSession, soundId) => this.playRemoteSound(fromSession, soundId),
     });
     this.inboxSubscription = this.signalingService
       .streamInbox(channelId)
@@ -263,8 +276,9 @@ export class VoiceConnectionService {
     this.heartbeatTimer = null;
     this.localStream?.getTracks().forEach(track => track.stop());
     this.localStream = null;
-    this.previousRosterSessions = null;
+    this.rosterChimes.reset();
     this.speakingSessionsState.set(new Set());
+    this.remoteScreensState.set(new Map());
   }
 
 
@@ -277,45 +291,62 @@ export class VoiceConnectionService {
     if (!channel || !this.mesh) return;
     const participants = this.rosterService.participantsOf(channel.id);
     this.mesh.syncWithRoster(participants);
-    this.playRosterSounds(new Set(participants.map(participant => participant.sessionId)));
+    const chime = this.rosterChimes.evaluate(participants, this.clientSession.id);
+    if (chime) this.soundService.play(chime);
   }
 
 
   /**
-   * Plays voiceJoin/voiceLeave when the set of other sessions in the own
-   * channel grows or shrinks; the first evaluation after a join only
-   * primes the baseline.
-   * @param sessions Current session ids in the connected channel.
+   * Adds the local screen-share track to every peer and marks the own
+   * participant document as sharing; a no-op while not connected. Capture
+   * itself is owned by {@link ScreenShareService}.
+   * @param track Captured screen video track.
+   * @param stream Capture stream the track belongs to.
    */
-  private playRosterSounds(sessions: ReadonlySet<string>): void {
-    const previous = this.previousRosterSessions;
-    this.previousRosterSessions = sessions;
-    if (!previous) return;
-    const own = this.clientSession.id;
-    for (const sessionId of sessions) {
-      if (!previous.has(sessionId) && sessionId !== own) return this.soundService.play('voiceJoin');
-    }
-    for (const sessionId of previous) {
-      if (!sessions.has(sessionId) && sessionId !== own) return this.soundService.play('voiceLeave');
-    }
+  startScreenShare(track: MediaStreamTrack, stream: MediaStream): void {
+    const channel = this.connectedChannelState();
+    if (!channel || !this.mesh) return;
+    this.mesh.startShare(track, stream);
+    this.participantService.writeSharing(channel.id, true);
   }
 
 
   /**
-   * Whether a channel already carries the maximum number of participants.
+   * Removes the shared track from every peer again and clears the sharing
+   * flag; idempotent and a no-op while not connected.
+   */
+  stopScreenShare(): void {
+    const channel = this.connectedChannelState();
+    if (!channel || !this.mesh) return;
+    this.mesh.stopShare();
+    this.participantService.writeSharing(channel.id, false);
+  }
+
+
+  /**
+   * Plays a received soundboard broadcast through the shared sound engine;
+   * spam-gated per sending session, unknown ids are ignored silently.
+   * @param fromSession Session that pressed the soundboard.
+   * @param soundId Broadcast sound id.
+   */
+  private playRemoteSound(fromSession: string, soundId: string): void {
+    if (!this.soundboardGate.accepts(fromSession, performance.now())) return;
+    const sound = soundboardSoundById(soundId);
+    if (sound) this.soundService.playSoundboard(sound);
+  }
+
+
+  /**
+   * Rejects a join into a channel already at the participant cap with the
+   * capacity toast and the error sound.
    * @param channelId Channel being joined.
+   * @returns Whether the join was rejected.
    */
-  private isChannelFull(channelId: string): boolean {
-    return this.rosterService.participantsOf(channelId).length >= MAX_VOICE_PARTICIPANTS;
-  }
-
-
-  /**
-   * Shows the capacity toast with the error sound.
-   */
-  private reportFull(): void {
+  private rejectIfFull(channelId: string): boolean {
+    if (this.rosterService.participantsOf(channelId).length < MAX_VOICE_PARTICIPANTS) return false;
     this.toastService.show(CHANNEL_FULL_TOAST);
     this.soundService.play('error');
+    return true;
   }
 
 
@@ -353,19 +384,13 @@ export class VoiceConnectionService {
 
 
   /**
-   * The current mute/deafen flag pair for participant-document writes.
-   */
-  private flags(): { muted: boolean; deafened: boolean } {
-    return { muted: this.isMutedState(), deafened: this.isDeafenedState() };
-  }
-
-
-  /**
    * Transition-writes the mute/deafen flags onto the own participant
    * document while connected.
    */
   private writeFlags(): void {
     const channel = this.connectedChannelState();
-    if (channel) this.participantService.writeFlags(channel.id, this.flags());
+    if (!channel) return;
+    const flags = { muted: this.isMutedState(), deafened: this.isDeafenedState() };
+    this.participantService.writeFlags(channel.id, flags);
   }
 }

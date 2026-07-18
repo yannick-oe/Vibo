@@ -52,6 +52,7 @@ export class VoiceParticipantService {
       joinedAt: serverTimestamp(),
       muted: flags.muted,
       deafened: flags.deafened,
+      sharing: false,
       lastSeen: serverTimestamp(),
     };
     return runInInjectionContext(this.injector, () =>
@@ -99,6 +100,22 @@ export class VoiceParticipantService {
       updateDoc(doc(this.firestore, this.path(channelId)), {
         muted: flags.muted,
         deafened: flags.deafened,
+        lastSeen: serverTimestamp(),
+      }),
+    ).catch(() => undefined);
+  }
+
+
+  /**
+   * Transition-writes the screen-sharing flag (with the mandatory lastSeen
+   * refresh) on share start/stop; failures are swallowed.
+   * @param channelId Connected channel.
+   * @param sharing Whether this session now shares its screen.
+   */
+  writeSharing(channelId: string, sharing: boolean): void {
+    void runInInjectionContext(this.injector, () =>
+      updateDoc(doc(this.firestore, this.path(channelId)), {
+        sharing,
         lastSeen: serverTimestamp(),
       }),
     ).catch(() => undefined);
