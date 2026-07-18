@@ -23,12 +23,12 @@ import {
 } from '@angular/fire/firestore';
 
 import { Invite, InviteDoc } from '../models/invite.model';
+import { buildInviteUrl } from '../shared/invite.constants';
 import { AuthService } from './auth.service';
 
 const INVITES_COLLECTION = 'invites';
 export const INVITE_TTL_DAYS = 7;
 const DAY_MS = 86_400_000;
-const INVITE_ROUTE_FRAGMENT = '#/invite/';
 
 /**
  * Data access for invites/{token}. Reads are one-shot (invites are a
@@ -108,7 +108,7 @@ export class InviteService {
    * @param token Invite token.
    */
   inviteUrl(token: string): string {
-    return new URL(`${INVITE_ROUTE_FRAGMENT}${token}`, document.baseURI).href;
+    return buildInviteUrl(token);
   }
 
 

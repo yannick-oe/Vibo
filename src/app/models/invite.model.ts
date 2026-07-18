@@ -20,3 +20,17 @@ export interface InviteDoc {
 export interface Invite extends InviteDoc {
   readonly token: string;
 }
+
+/**
+ * Firestore document shape of one vanity invite slug at inviteSlugs/{slug}
+ * (the document id IS the slug). Claimed and released with the reservation
+ * pattern of the usernames registry: the atomic create is the
+ * availability check, updates never happen.
+ */
+export interface InviteSlugDoc {
+  /** Channel the slug link joins. */
+  channelId: string;
+  /** Uid of the channel creator who claimed the slug (may delete it). */
+  createdBy: string;
+  createdAt: Timestamp | FieldValue;
+}

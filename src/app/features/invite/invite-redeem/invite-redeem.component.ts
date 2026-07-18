@@ -1,9 +1,11 @@
 /**
  * @file Public invite redeem page (/invite/:token): waits for the restored
- * session, resolves the token, short-circuits existing members straight
- * into the channel, lets signed-in users join (guests excluded — shared
- * account) and hands signed-out visitors to the login/registration flow via
- * the consume-once pending-invite handover.
+ * session, resolves the route parameter — the token lookup always runs
+ * FIRST, a one-shot vanity-slug lookup only on a token miss, so a slug can
+ * never shadow a token — short-circuits existing members straight into the
+ * channel, lets signed-in users join (guests excluded — shared account)
+ * and hands signed-out visitors to the login/registration flow via the
+ * consume-once pending-invite handover.
  */
 import {
   ChangeDetectionStrategy,
@@ -19,6 +21,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
+import { InviteSlugService } from '../../../services/invite-slug.service';
 import { InviteService } from '../../../services/invite.service';
 import { MessageService } from '../../../services/message.service';
 import { PendingInviteService } from '../../../services/pending-invite.service';
@@ -51,6 +54,8 @@ export class InviteRedeemComponent {
   private readonly authService = inject(AuthService);
 
   private readonly inviteService = inject(InviteService);
+
+  private readonly inviteSlugService = inject(InviteSlugService);
 
   private readonly channelService = inject(ChannelService);
 
@@ -108,19 +113,31 @@ export class InviteRedeemComponent {
 
 
   /**
-   * Resolves the token to its channel: members short-circuit into the
-   * channel, missing/expired invites show the error state.
+   * Resolves the route parameter to its channel: members short-circuit
+   * into the channel, unresolvable invites show the error state.
    * @param uid Signed-in user's uid.
    */
   private async resolve(uid: string): Promise<void> {
-    const invite = await this.inviteService.resolveInvite(this.token()).catch(() => null);
-    if (!invite) return this.state.set('invalid');
-    const channel = await this.channelService.getChannelOnce(invite.channelId).catch(() => null);
+    const channelId = await this.resolveTargetChannelId();
+    if (!channelId) return this.state.set('invalid');
+    const channel = await this.channelService.getChannelOnce(channelId).catch(() => null);
     if (!channel) return this.state.set('invalid');
     if (channel.memberIds.includes(uid)) return this.enterChannel(channel.id);
     this.channelId.set(channel.id);
     this.channelName.set(channel.name);
     this.state.set('ready');
+  }
+
+
+  /**
+   * Resolves the route parameter to a channel id: the token lookup runs
+   * first and wins; only a token miss falls back to the one-shot vanity
+   * slug lookup, so a slug never shadows a token.
+   */
+  private async resolveTargetChannelId(): Promise<string | null> {
+    const invite = await this.inviteService.resolveInvite(this.token()).catch(() => null);
+    if (invite) return invite.channelId;
+    return this.inviteSlugService.resolveSlug(this.token()).catch(() => null);
   }
 
 
