@@ -1899,3 +1899,62 @@ follows Discord conventions rendered strictly with existing tokens. German UI th
   per-peer `<audio>` elements (join click is the gesture; a rejected `play()` re-arms
   once on the next pointer gesture), mic permission UX, and backgrounded-tab throttling
   of the heartbeat. Flagged for a manual device pass.
+
+## Voice finale: screen sharing, soundboard, channel management (2026-07-18)
+Completes the voice-chat topic on top of the shipped voice channels. No Figma frames —
+Discord conventions, existing tokens, German UI. The listener inventory is UNCHANGED:
+everything below rides the existing collection-group roster stream and the
+connection-scoped signals inbox (§14).
+
+- **Screen sharing is P2P renegotiation over the existing mesh** — no new transport. The
+  SHARER adds the captured video track to every established `RTCPeerConnection` and
+  re-offers through the existing `signals` envelopes; the receiving side answers an offer
+  arriving on an established connection in place (`signalingState === 'stable'` with a
+  remote description ⇒ renegotiation; otherwise the initial-join glare rules apply
+  unchanged). Late joiners get the running share automatically: when the sharer initiates
+  (back-fill), the video track is in the first offer; when the joiner initiates, the
+  sharer answers audio-only and immediately re-offers with the track. The Opus SDP munger
+  is scoped to the `m=audio` section, so video m-lines pass through untouched.
+- **One active share per channel, client-enforced.** The participant doc gains
+  `sharing: boolean` (transition writes only); while anyone shares, other share buttons
+  disable with the hint „‹Name› teilt bereits den Bildschirm". Two simultaneous starts can
+  race past the guard — tolerated like the join cap: both shares run, every peer simply
+  renders both glyphs, the next stop resolves it.
+- **Uplink math behind the single-sharer cap:** each video leg is capped at
+  `SCREEN_MAX_BITRATE` = 2 Mbit/s with `degradationPreference: 'maintain-resolution'`
+  (crisp text for demos, 1080p/30 ideal capture, `contentHint: 'detail'`). Worst case at
+  full mesh occupancy: (5−1) × 2 Mbit/s = **8 Mbit/s video uplink** on top of the
+  ≤ 512 kbit/s audio — already at the ceiling of ordinary consumer uplinks, hence exactly
+  ONE sharer per channel.
+- **No tab/system audio this phase** (`getDisplayMedia({ audio: false })`): mixing a
+  second remote audio stream past the deafen logic and the speaking analysers is real
+  complexity for a niche gain; the audio pipeline stays untouched by video tracks.
+- **Capability gate:** the share button renders only where
+  `navigator.mediaDevices.getDisplayMedia` exists (missing on iOS Safari) — VIEWING works
+  everywhere; the roster screen glyph opens a dialog-shell viewer (16:9 letterbox stage,
+  CLS 0, native-fullscreen button, auto-close with toast „Bildschirmübertragung beendet"
+  when the track ends). Stop paths are all equivalent and idempotent: toggle, the
+  browser's native stop bar (`track.onended`), leave/switch (mesh teardown + participant
+  doc reset).
+- **Soundboard broadcasts ride the signals mailbox** as a new envelope kind `'sound'`
+  carrying only `{ soundId }`: one doc per connected non-stale peer (≤ 4 writes at the
+  cap), applied-then-deleted by each addressee's existing inbox listener. Recipes are
+  synthesized in `soundboard-palette.ts` (horn/tada/drum/zap ≤ 1 s, named constants, the
+  palette's reverb voice) — no audio assets, nothing stored. Sender presses are throttled
+  (`SOUNDBOARD_THROTTLE_MS` = 2 s) and receivers additionally gate per sending session
+  (spam guard). Playback respects the LOCAL master sound toggle and volume — a user with
+  sounds off hears nothing, accepted by design; unknown ids are ignored silently.
+- **Channel management is creator-only** (⋮ on the row, visible on hover/focus, always on
+  touch): „Umbenennen" reuses the create dialog's field/counter/trim; „Löschen" confirms
+  and is enabled only while the client sees zero non-stale participants. Firestore rules
+  cannot prove subcollection emptiness, so the rules allow the creator's delete
+  unconditionally — a join racing the delete leaves residual participant docs that age out
+  via the 90 s stale filter (the self-heal refresh then drops the unknown channel id).
+- **Propagation honesty:** the channel LIST stays a one-shot fetch (see the listener-budget
+  entry above), so OTHER clients see renames/deletions only with their next sign-in/reload
+  or self-heal cycle; the acting client refreshes immediately. Same accepted trade-off as
+  the empty-channel visibility note.
+- **Rules deploy caveat:** the `voiceParticipants` exact key set now includes `sharing`,
+  so participant docs created BEFORE the rules deploy fail their next heartbeat update and
+  go stale within 90 s. Deploy the consolidated rules before live testing; anyone
+  connected across the deploy simply rejoins.
