@@ -28,6 +28,7 @@ $sheet-settle-ease: v.$sheet-settle-ease;
   flex-direction: column;
   gap: v.space('lg');
   width: min(v.dialog-width('default'), 100%);
+  max-height: calc(100vh - #{v.space('xl')});
   max-height: calc(100dvh - #{v.space('xl')});
   padding: v.space('xl-xxl');
   border-radius: v.$radius-xl;

@@ -238,6 +238,7 @@
 @mixin sheet-card {
   width: 100%;
   max-width: 100%;
+  max-height: calc(100vh - #{v.space('xxl')});
   max-height: calc(100dvh - #{v.space('xxl')});
   border-radius: v.$radius-xl v.$radius-xl 0 0;
   animation: sheet-slide-up v.$transition-slow both;
