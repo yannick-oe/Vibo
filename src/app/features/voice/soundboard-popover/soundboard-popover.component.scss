@@ -4,12 +4,28 @@
 $sound-min-size: 44px;
 $sound-min-width: 96px;
 $icon-size: 18px;
+$scroll-viewport-reserve: v.space('xxl') + v.space('xxl') + v.space('xl');
 
 .soundboard__title {
+  flex-shrink: 0;
   padding: v.space('xs') v.space('sm') 0;
   font-size: v.font-size('min');
   font-weight: v.$font-weight-semibold;
   color: v.color('text-gray');
+}
+
+.soundboard__scroll {
+  @include m.scrollbar-thin;
+
+  display: flex;
+  flex-direction: column;
+  gap: v.space('lg');
+  min-height: v.space('xxl');
+  max-height: calc(100vh - #{$scroll-viewport-reserve});
+  max-height: calc(100dvh - #{$scroll-viewport-reserve});
+  overflow-y: auto;
+  overflow-x: clip;
+  overscroll-behavior: contain;
 }
 
 .soundboard__group-title {
