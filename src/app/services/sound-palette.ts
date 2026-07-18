@@ -8,7 +8,16 @@
  */
 
 /** Identifier of one UI sound in the palette. */
-export type SoundKind = 'send' | 'receive' | 'delete' | 'reaction' | 'error' | 'swipe' | 'swipeClose';
+export type SoundKind =
+  | 'send'
+  | 'receive'
+  | 'delete'
+  | 'reaction'
+  | 'error'
+  | 'swipe'
+  | 'swipeClose'
+  | 'voiceJoin'
+  | 'voiceLeave';
 
 /** One oscillator note of a sound with its schedule and envelope peak. */
 export interface ToneStep {
@@ -78,6 +87,15 @@ const REACTION_NOTE_DURATION_SECONDS = 0.18;
 const REACTION_OCTAVE_DURATION_SECONDS = 0.06;
 const REACTION_NOTE_PEAK_GAIN = 0.11;
 const REACTION_OCTAVE_PEAK_GAIN = 0.05;
+
+const VOICE_JOIN_THROTTLE_MS = 600;
+const VOICE_LOW_HZ = 392;
+const VOICE_HIGH_HZ = 587.33;
+const VOICE_SECOND_NOTE_AT_SECONDS = 0.1;
+const VOICE_NOTE_DURATION_SECONDS = 0.16;
+const VOICE_TAIL_DURATION_SECONDS = 0.24;
+const VOICE_NOTE_PEAK_GAIN = 0.12;
+const VOICE_TAIL_PEAK_GAIN = 0.14;
 
 const SWIPE_THROTTLE_MS = 350;
 const SWIPE_FILTER_LOW_HZ = 500;
@@ -206,6 +224,57 @@ const SWIPE_CLOSE_SOUND: SoundDefinition = {
   },
 };
 
+/**
+ * Voice join: a soft rising fifth (G4 → D5) in the melodic reverb space —
+ * played when the user connects to a voice channel and when a peer joins.
+ */
+const VOICE_JOIN_SOUND: SoundDefinition = {
+  throttleMs: VOICE_JOIN_THROTTLE_MS,
+  reverbSend: MELODIC_REVERB_SEND,
+  tones: [
+    {
+      wave: 'sine',
+      startHz: VOICE_LOW_HZ,
+      atSeconds: 0,
+      durationSeconds: VOICE_NOTE_DURATION_SECONDS,
+      peakGain: VOICE_NOTE_PEAK_GAIN,
+      attackSeconds: SOFT_ATTACK_SECONDS,
+    },
+    {
+      wave: 'sine',
+      startHz: VOICE_HIGH_HZ,
+      atSeconds: VOICE_SECOND_NOTE_AT_SECONDS,
+      durationSeconds: VOICE_TAIL_DURATION_SECONDS,
+      peakGain: VOICE_TAIL_PEAK_GAIN,
+      attackSeconds: SOFT_ATTACK_SECONDS,
+    },
+  ],
+};
+
+/** Voice leave: the falling counterpart of the join chime (D5 → G4). */
+const VOICE_LEAVE_SOUND: SoundDefinition = {
+  throttleMs: VOICE_JOIN_THROTTLE_MS,
+  reverbSend: MELODIC_REVERB_SEND,
+  tones: [
+    {
+      wave: 'sine',
+      startHz: VOICE_HIGH_HZ,
+      atSeconds: 0,
+      durationSeconds: VOICE_NOTE_DURATION_SECONDS,
+      peakGain: VOICE_NOTE_PEAK_GAIN,
+      attackSeconds: SOFT_ATTACK_SECONDS,
+    },
+    {
+      wave: 'sine',
+      startHz: VOICE_LOW_HZ,
+      atSeconds: VOICE_SECOND_NOTE_AT_SECONDS,
+      durationSeconds: VOICE_TAIL_DURATION_SECONDS,
+      peakGain: VOICE_TAIL_PEAK_GAIN,
+      attackSeconds: SOFT_ATTACK_SECONDS,
+    },
+  ],
+};
+
 /** The complete palette keyed by sound kind. */
 export const SOUND_PALETTE: Record<SoundKind, SoundDefinition> = {
   send: SEND_SOUND,
@@ -215,4 +284,6 @@ export const SOUND_PALETTE: Record<SoundKind, SoundDefinition> = {
   error: ERROR_SOUND,
   swipe: SWIPE_SOUND,
   swipeClose: SWIPE_CLOSE_SOUND,
+  voiceJoin: VOICE_JOIN_SOUND,
+  voiceLeave: VOICE_LEAVE_SOUND,
 };
