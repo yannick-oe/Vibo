@@ -55,6 +55,33 @@ const ZAP_END_HZ = 110;
 const ZAP_DURATION_SECONDS = 0.22;
 const ZAP_PEAK_GAIN = 0.06;
 
+const TROMBONE_SLIDES: readonly (readonly [number, number])[] = [
+  [311.13, 293.66],
+  [293.66, 277.18],
+  [277.18, 261.63],
+  [261.63, 207.65],
+];
+const TROMBONE_NOTE_SPACING_SECONDS = 0.24;
+const TROMBONE_NOTE_DURATION_SECONDS = 0.22;
+const TROMBONE_FINAL_DURATION_SECONDS = 0.45;
+const TROMBONE_NOTE_PEAK_GAIN = 0.07;
+const TROMBONE_FINAL_PEAK_GAIN = 0.08;
+const TROMBONE_ATTACK_SECONDS = 0.04;
+
+const RIMSHOT_FIRST_START_HZ = 180;
+const RIMSHOT_FIRST_END_HZ = 80;
+const RIMSHOT_SECOND_START_HZ = 160;
+const RIMSHOT_SECOND_END_HZ = 70;
+const RIMSHOT_SECOND_AT_SECONDS = 0.14;
+const RIMSHOT_THUD_DURATION_SECONDS = 0.1;
+const RIMSHOT_FIRST_PEAK_GAIN = 0.3;
+const RIMSHOT_SECOND_PEAK_GAIN = 0.34;
+const RIMSHOT_CYMBAL_AT_SECONDS = 0.3;
+const RIMSHOT_CYMBAL_DURATION_SECONDS = 0.5;
+const RIMSHOT_CYMBAL_START_HZ = 7000;
+const RIMSHOT_CYMBAL_END_HZ = 4000;
+const RIMSHOT_CYMBAL_PEAK_GAIN = 0.1;
+
 /**
  * Horn: a playful airhorn — three detached sawtooth voices on a B-flat
  * major triad honking downward together at the tail.
@@ -133,12 +160,70 @@ const ZAP_SOUND: SoundDefinition = {
   ],
 };
 
+/**
+ * Trombone: the sad "wah wah wah wahhh" — four descending sawtooth notes
+ * (E♭4 → D4 → D♭4 → C4), each sliding down into the next pitch, the last
+ * one held longest and slumping a further fourth (to G♯3).
+ */
+const TROMBONE_SOUND: SoundDefinition = {
+  throttleMs: SOUNDBOARD_THROTTLE_MS,
+  reverbSend: SOUNDBOARD_REVERB_SEND,
+  tones: TROMBONE_SLIDES.map(([startHz, endHz], index) => ({
+    wave: 'sawtooth' as OscillatorType,
+    startHz,
+    endHz,
+    atSeconds: index * TROMBONE_NOTE_SPACING_SECONDS,
+    durationSeconds:
+      index === TROMBONE_SLIDES.length - 1
+        ? TROMBONE_FINAL_DURATION_SECONDS
+        : TROMBONE_NOTE_DURATION_SECONDS,
+    peakGain:
+      index === TROMBONE_SLIDES.length - 1 ? TROMBONE_FINAL_PEAK_GAIN : TROMBONE_NOTE_PEAK_GAIN,
+    attackSeconds: TROMBONE_ATTACK_SECONDS,
+  })),
+};
+
+/**
+ * Rimshot: the dry ba-dum-tss — two fast low thuds (downward sine glides,
+ * like the drum) answered by a short falling noise-burst cymbal.
+ */
+const RIMSHOT_SOUND: SoundDefinition = {
+  throttleMs: SOUNDBOARD_THROTTLE_MS,
+  tones: [
+    {
+      wave: 'sine',
+      startHz: RIMSHOT_FIRST_START_HZ,
+      endHz: RIMSHOT_FIRST_END_HZ,
+      atSeconds: 0,
+      durationSeconds: RIMSHOT_THUD_DURATION_SECONDS,
+      peakGain: RIMSHOT_FIRST_PEAK_GAIN,
+    },
+    {
+      wave: 'sine',
+      startHz: RIMSHOT_SECOND_START_HZ,
+      endHz: RIMSHOT_SECOND_END_HZ,
+      atSeconds: RIMSHOT_SECOND_AT_SECONDS,
+      durationSeconds: RIMSHOT_THUD_DURATION_SECONDS,
+      peakGain: RIMSHOT_SECOND_PEAK_GAIN,
+    },
+  ],
+  noise: {
+    filterStartHz: RIMSHOT_CYMBAL_START_HZ,
+    filterEndHz: RIMSHOT_CYMBAL_END_HZ,
+    atSeconds: RIMSHOT_CYMBAL_AT_SECONDS,
+    durationSeconds: RIMSHOT_CYMBAL_DURATION_SECONDS,
+    peakGain: RIMSHOT_CYMBAL_PEAK_GAIN,
+  },
+};
+
 /** The selectable soundboard sounds in display order. */
 export const SOUNDBOARD_SOUNDS: readonly SoundboardSound[] = [
   { id: 'horn', label: 'Tröte', definition: HORN_SOUND },
   { id: 'tada', label: 'Tada', definition: TADA_SOUND },
   { id: 'drum', label: 'Trommel', definition: DRUM_SOUND },
   { id: 'zap', label: 'Laser', definition: ZAP_SOUND },
+  { id: 'trombone', label: 'Posaune', definition: TROMBONE_SOUND },
+  { id: 'rimshot', label: 'Ba-dum-tss', definition: RIMSHOT_SOUND },
 ];
 
 
