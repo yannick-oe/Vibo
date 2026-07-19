@@ -28,7 +28,7 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 - **Emoji-Reaktionen** (Picker, Schnellreaktionen, „Wer hat reagiert"-Tooltip) plus **große Reaktionen** mit Fullscreen-Effekten (Konfetti, Herzen, Rakete …)
 - **Anpinnen** von Nachrichten, **@Erwähnungen**, Inline-**Antworten** mit Zitat-Snapshot
 - **Aktivitäts-Benachrichtigungen** (Glocke + Toast) für Thread-Antworten, Reaktionen, Erwähnungen und Antworten — Fan-out sender­seitig, ein einziger schmaler Listener pro Nutzer
-- **⌘K/Strg+K-Befehlspalette** (lazy geladen), **globale Suche** über zugängliche Channels und eigene Unterhaltungen, **Giphy-GIF-Picker** (PG-13-gefiltert auf jedem Request)
+- **⌘K/Strg+K-Befehlspalette** (lazy geladen), **globale Suche** über zugängliche Channels und eigene Unterhaltungen, **Giphy-GIF-Picker** (PG-13-gefiltert auf jedem Request) mit Startansicht im Discord-Stil (Kategorie-Kacheln mit gecachten Vorschauen, „Angesagt"), **GIF-Favoriten** per Stern (ein Firestore-Dokument pro Nutzer, One-Shot gelesen) und dauerhaft sichtbarer „Powered by GIPHY"-Attribution
 - **Lesebestätigungen** im WhatsApp-Stil (grau → grau → blau) mit „Gelesen von"-Liste, Tipp-Indikator, Ungelesen-Badges
 
 **Social & Sharing**
@@ -41,15 +41,15 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 
 **Sprachkanäle**
 
-- **Persistente Voice-Channels** im Discord-Stil — Audio läuft **strikt Peer-to-Peer** (Vollvernetzung bis 5 Teilnehmer, DTLS-SRTP, 128-kbit/s-Stereo-Opus mit FEC); Firestore transportiert **ausschließlich Presence und Signaling, niemals Medien**
+- **Persistente Voice-Channels** im Discord-Stil — Audio läuft **strikt Peer-to-Peer** (Vollvernetzung bis 5 Teilnehmer, DTLS-SRTP, Stereo-Opus mit FEC); Firestore transportiert **ausschließlich Presence und Signaling, niemals Medien**. Die Audioqualität reicht bis zu **384 kbit/s Stereo** (Opus-VBR-Obergrenze, keine Dauerlast).
 - **Screen-Sharing** über Renegotiation auf derselben Mesh (ein Sharer pro Kanal, 2 Mbit/s pro Leg, `maintain-resolution` für scharfen Text), Viewer-Dialog mit Fullscreen
-- **Soundboard**: sechs synthetisierte Presets (u. a. Tröte, Posaune, Ba-dum-tss) **plus eigene Sounds** — kleine Audiodateien (≤ 150 KB, ≤ 3 s), als Base64-Blobs direkt in Firestore gespeichert (bewusstes Spark-Pattern, siehe Architektur)
+- **Soundboard**: zehn kuratierte Presets (u. a. Woah, Drumroll, Evil Laugh) als loudness-normalisierte MP3-Dateien, lazy geladen und pro Session gecacht — ausgelöst wird per kurzlebigem Signal mit Sound-Kennung, Audiodaten fließen nie durch Firestore; keine Uploads
 - Mute/Deafen mit Discord-Paritäts-Verhalten, lokale Speaking-Erkennung (AnalyserNode, null Firestore-Writes), Creator-only Umbenennen/Löschen
 
 **Sound-Design**
 
-- Zentrale **Web-Audio-Engine ohne einzige Audiodatei**: alle UI-Sounds (Senden, Empfangen, Löschen, Reaktion, Fehler, Voice-Join/-Leave) und Soundboard-Presets werden zur Laufzeit synthetisiert, melodische Klänge laufen durch einen **code-generierten Convolver-Reverb**
-- Einstellungen mit Master-Toggle, eigenem Lautstärke-Slider und Opt-in-Seitenleisten-Sound; eigene Soundboard-Sounds laufen durch denselben Master-Gain
+- Zentrale **Web-Audio-Engine**: alle UI-Sounds (Senden, Empfangen, Löschen, Reaktion, Fehler, Voice-Join/-Leave) werden **zur Laufzeit synthetisiert** (kein einziges UI-Sound-Asset), melodische Klänge laufen durch einen **code-generierten Convolver-Reverb**; die Soundboard-Presets werden lazy dekodiert und laufen durch denselben Master-Gain
+- Einstellungen mit Master-Toggle, eigenem Lautstärke-Slider und Opt-in-Seitenleisten-Sound
 
 **PWA**
 
@@ -139,15 +139,11 @@ Firestore-Listener sind die teuerste laufende Ressource der App — deshalb ist 
 
 **Kontextgebunden (nur solange die jeweilige Ansicht offen ist):** das Live-Fenster der neuesten 50 Nachrichten der offenen Unterhaltung, deren Tipp-Marker und Lesemarken, pro Sidebar-Unterhaltung zwei Kleinst-Dokument-Listener für die Ungelesen-Ableitung, bei offenem Thread die Ursprungsnachricht + Antworten, und **während einer Voice-Verbindung** die eigene Signal-Inbox (Equality-Query auf `toSession` + `toUid`).
 
-**Bewusst KEIN Listener:** die Voice-Kanal-Liste (One-Shot-Fetch mit Selbstheilung), gepinnte Nachrichten (One-Shot pro Öffnen), die Custom-Soundboard-Liste (One-Shot beim Öffnen des Popovers), die globale Suche (On-Demand-Fetches). Sichtbare Konsequenzen — z. B. dass ein leerer, fremd erstellter Sprachkanal erst mit dem nächsten Reload erscheint — sind dokumentierte Trade-offs, keine Bugs.
+**Bewusst KEIN Listener:** die Voice-Kanal-Liste (One-Shot-Fetch mit Selbstheilung), gepinnte Nachrichten (One-Shot pro Öffnen), die GIF-Favoriten (One-Shot beim Öffnen des Pickers, pro Session gecacht), die globale Suche (On-Demand-Fetches). Sichtbare Konsequenzen — z. B. dass ein leerer, fremd erstellter Sprachkanal erst mit dem nächsten Reload erscheint — sind dokumentierte Trade-offs, keine Bugs.
 
 ### Gefensterte Nachrichten-Historie
 
 Jede offene Unterhaltung lädt über **ein** Live-Fenster (`orderBy createdAt desc, limit 50`); ältere Historie kommt auf Anforderung als One-Shot-Seiten (`getDocs` + `startAfter`) dazu. Geladene Nachrichten werden per ID akkumuliert und nie verworfen — das gleitende Live-Fenster nimmt dem Leser nichts weg, was er schon hat. Erkennt der Stream eine Diskontinuität (≥ 50 neue Dokumente auf einmal, etwa nach einem Offline-Resync), setzt sich der Store auf die neue Seite zurück, damit keine Lücke entsteht.
-
-### Firestore als Tiny-Blob-Store (Custom-Soundboard)
-
-Eigene Soundboard-Sounds sind **kleine Base64-Blobs in Firestore-Dokumenten** — eine bewusste Architekturentscheidung, kein Verlegenheits-Workaround: Firebase Storage erfordert auf neuen Projekten den **Blaze-Plan** (Bezahlplan mit hinterlegter Zahlungsmethode), und eine öffentliche Demo mit geteiltem Gast-Account soll keine Kostenfläche haben. Die Caps machen das Pattern sicher: Datei ≤ 150 KB, Dauer ≤ 3 s, maximal 8 Sounds im Workspace — im Maximum ~1,6 MB, einmal pro Session gelesen. Empfänger eines Broadcasts laden das einzelne Dokument beim ersten Bedarf, cachen den dekodierten Buffer und merken sich fehlende IDs negativ. Validiert wird zweifach: im Client (Größe, echtes `decodeAudioData`, Dauer — mit deutschen Inline-Fehlern) und in den Rules (exaktes Key-Set, Typ- und Längen-Guards, 200.000-Zeichen-Cap = exakt die Base64-Inflation von 150 KB).
 
 ### Dialog-Shell mit Body-Hoist
 
@@ -155,7 +151,7 @@ Alle Dialoge, Popover und Bottom-Sheets rendern durch **eine** gemeinsame Shell 
 
 ### Service Worker: Prefetch fürs Shell, Lazy für Medien
 
-Die ngsw-Asset-Strategie ist zweigeteilt: Die `app`-Gruppe **prefetcht** das Shell (index.html, gehashte JS/CSS, Manifest, Icons); die `media-lazy`-Gruppe (`installMode: lazy`) deckt `/emojis/**`, `/avatars/**`, `/fonts/**`, `/app-icons/**`, `/logos/**` ab — das **~8 MB große Twemoji-Set wird nie vorgeladen**, sondern Emoji für Emoji beim tatsächlichen Gebrauch gecacht. Firestore-, Auth- und Giphy-Requests laufen **am Worker vorbei** (keine dataGroups): Firestore bringt seine eigene Offline-Schicht mit.
+Die ngsw-Asset-Strategie ist zweigeteilt: Die `app`-Gruppe **prefetcht** das Shell (index.html, gehashte JS/CSS, Manifest, Icons); die `media-lazy`-Gruppe (`installMode: lazy`) deckt `/emojis/**`, `/avatars/**`, `/fonts/**`, `/app-icons/**`, `/logos/**`, `/sounds/**` ab — das **~8 MB große Twemoji-Set wird nie vorgeladen**, sondern Emoji für Emoji beim tatsächlichen Gebrauch gecacht; die Soundboard-Presets folgen derselben Policy. Firestore-, Auth- und Giphy-Requests laufen **am Worker vorbei** (keine dataGroups): Firestore bringt seine eigene Offline-Schicht mit.
 
 ### Sicherheit
 
@@ -165,7 +161,7 @@ Die ngsw-Asset-Strategie ist zweigeteilt: Die `app`-Gruppe **prefetcht** das She
 
 ### Dokumentierte Trade-offs
 
-Die volle Begründung jeder Abweichung steht datiert in **[DEVIATIONS.md](DEVIATIONS.md)** — u. a. Hash-Routing statt SSR (statisches Hosting ohne `mod_rewrite`), das eager geladene Firebase-SDK (Mobile-Performance-Preis zugunsten eines stabilen Auth-Bootstraps), STUN-only ohne TURN-Relay (symmetrische NAT-Paare ~10–15 % verbinden nicht — pro Peer-Leg, nie als Kanalfehler) und die client-enforced Caps (Voice-Kapazität, Soundboard-Anzahl), deren Races bewusst toleriert werden.
+Die volle Begründung jeder Abweichung steht datiert in **[DEVIATIONS.md](DEVIATIONS.md)** — u. a. Hash-Routing statt SSR (statisches Hosting ohne `mod_rewrite`), das eager geladene Firebase-SDK (Mobile-Performance-Preis zugunsten eines stabilen Auth-Bootstraps), STUN-only ohne TURN-Relay (symmetrische NAT-Paare ~10–15 % verbinden nicht — pro Peer-Leg, nie als Kanalfehler) und die client-enforced Caps (Voice-Kapazität), deren Races bewusst toleriert werden.
 
 ---
 
@@ -244,6 +240,7 @@ design-system.md     # kanonische Quelle aller Design-Tokens
 - **Emoji-Artwork:** [Twemoji](https://github.com/jdecked/twemoji) (jdecked-Fork), lizenziert [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) — komplett self-hosted als SVG (generiert via `scripts/generate-emoji.mjs`).
 - **Emoji-Metadaten** (deutsche Namen, Keywords, Kategorien): [emojibase](https://github.com/milesj/emojibase) (`emojibase-data`, de-Locale), lizenziert [MIT](https://opensource.org/licenses/MIT).
 - **GIFs:** Powered by [GIPHY](https://giphy.com/) (REST API).
+- **Soundboard-Sounds:** [Pixabay](https://pixabay.com/) ([Content License](https://pixabay.com/service/license-summary/) — Namensnennung nicht erforderlich, aber gern gegeben).
 - **Icons:** [Material Symbols](https://fonts.google.com/icons) (Google Fonts).
 - **Schriften:** [Inter](https://rsms.me/inter/) und [Nunito](https://fonts.google.com/specimen/Nunito) — self-hosted als Latin-subsettete WOFF2 (kein Google-Fonts-CDN).
 - **Avatar-Motion:** generiert mit [Kling AI](https://klingai.com/) (Image-to-Video), exportiert zu self-hosted WebP-Loops.

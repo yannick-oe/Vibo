@@ -2046,3 +2046,82 @@ Close-out documentation of an accepted residual in the invite-slug lifecycle (fe
   widened delete rule (weakening creator ownership) or server-side cleanup (Cloud Functions —
   excluded on Spark), and the observable cost is one permanently taken name whose link degrades
   into the normal invalid state.
+
+## Soundboard: curated presets replace synthesized presets AND custom uploads (2026-07-19)
+Nitro-parity decision: the soundboard now ships **10 curated audio presets** (Woah, What,
+Wait a minute, Nein doch, I got this, Horn, Hehe Boi, Fart, Evil Laugh, Drumroll) and the
+**custom-sound upload feature is removed entirely** — form, validation, `CustomSoundService`,
+the `soundboardSounds` collection and its rules block.
+
+- **Why uploads went away:** user-uploaded audio playable by every signed-in user is an
+  operator moderation/liability surface (public portfolio app, shared guest account, no
+  moderation tooling). Curated presets eliminate that exposure completely. Remaining
+  `soundboardSounds` documents are deleted manually via the Firebase Console after the rules
+  deploy.
+- **The tiny-blob pattern stays documented** (2026-07-18 entry above) as the deliberate
+  Spark-compatible technique it demonstrated — the removal is a product decision, not a
+  retraction of the architecture.
+- **Preset pipeline:** sources are unmodified Pixabay downloads (Content License; attribution
+  not required, given in the README) under `tools/assets-src/soundboard/`;
+  `tools/transcode-soundboard.mjs` (re-runnable, ffmpeg) trims leading/trailing silence only,
+  loudness-normalizes via two-pass EBU R128 loudnorm (I=-16, TP=-1.5, linear apply), downmixes
+  to mono 48 kHz and writes metadata-stripped ~96 kbps MP3s to `public/sounds/soundboard/`
+  (~253 kB total, every clip ≤ 3.9 s). MP3 is the deliberate delivery format — universal
+  `decodeAudioData` support including iOS Safari.
+- **Playback:** lazy fetch + decode on FIRST play per preset per session (opening the popover
+  fetches nothing), decoded buffers cached in memory, failures negative-cached; playback runs
+  through the existing SoundService master gain (toggle + volume). The synthesized UI sounds
+  (send/receive/join chimes etc.) are untouched — only the six synthesized soundboard presets
+  (Tröte, Tada, Trommel, Laser, Posaune, Ba-dum-tss) were replaced.
+- **Broadcast path unchanged:** presses still send one `sound` envelope per connected peer
+  carrying only the preset id; receivers resolve the id against the curated list and ignore
+  unknown ids silently (also covering stale custom-sound ids from not-yet-reloaded clients).
+- **ngsw:** `/sounds/**` joins the `media-lazy` asset group (`installMode: lazy`) — presets are
+  never prefetched, mirroring the Twemoji policy.
+- **Popover:** a single grid of the 10 presets ("Standard"/"Eigene" split, add form, preview
+  and delete UI removed); the guest sees the identical board — there is nothing guest-gated on
+  the soundboard anymore.
+
+## GIF picker: Discord-style start view, favorites and permanent GIPHY attribution (2026-07-19)
+The picker no longer opens on a flat trending grid (no Figma design for any of this; Discord
+conventions adopted deliberately).
+
+- **Start view:** tiles for „Favoriten" (first, hidden for guests), „Angesagt" (the existing
+  trending feed) and 10 fixed category terms (lmao, uff, sure, bruh, facepalm, yikes, wow, gg,
+  nope, vibes — `GIF_CATEGORY_TERMS`). Category tiles show a representative preview
+  (fixed_height_small, first search result, rating=pg-13 like every request), fetched only when
+  the start view renders and cached in memory AND localStorage (`vibo:gifCategoryPreviews`,
+  24 h TTL) — within the TTL the start view costs ZERO Giphy requests. `prefers-reduced-motion`
+  renders Giphy's still variants.
+- **Favorites:** star overlay on every result (top-right, ≥ 44 px target, `aria-pressed`;
+  hover/focus-within on fine pointers, always visible on coarse). Stored at
+  `userGifFavorites/{uid}` as ONE doc ({ gifs[], updatedAt }, cap 50 newest-first
+  `MAX_GIF_FAVORITES`); one-shot read per session on picker open, each toggle rewrites the doc
+  (merge), rollback on write failure. Rules: owner-only, guest excluded via `demoGuestUid()`;
+  per-entry shapes are not provable over lists in rules — guarded are doc keys, list type,
+  size cap, server-time `updatedAt`.
+- **Attribution:** „Powered by GIPHY" is permanently visible in the picker footer (all views,
+  `min` type token, `text-gray`, AA in both themes, reserved slot — zero CLS). Text-based
+  attribution per Giphy's terms; applies to the beta key too.
+- **Unchanged:** sending, message rendering and the stored message format. `GifResult` gained
+  `id`/`preview`/`previewStill` fields (Giphy renditions) — message-build persists the same
+  five fields as before.
+
+## Pin badge: unseen indicator instead of permanent count (2026-07-19)
+The header pin control no longer shows the total pinned count permanently: opening the pinned
+view records the context's pin count in localStorage (`vibo:pins-seen:` + messages path) and
+the badge renders only while the live count exceeds the recorded state — new pins after the
+last open badge again, opening clears immediately. Unpinning below the recorded state clamps
+the stored value (in `PinnedMessagesService`, which owns every count mutation), so no stale or
+negative badge can appear and a later new pin badges correctly. Zero new Firestore reads — the
+existing per-context aggregate count feeds the comparison; the trigger's aria-label reflects
+the unseen state („… (N neu)").
+
+## Voice audio: Opus ceiling raised to 384 kbps (2026-07-19)
+`OPUS_MAX_AVERAGE_BITRATE` (sdp-quality.ts) rises from 128,000 to 384,000 bit/s — a deliberate
+Discord-Nitro-parity decision; stereo, inband FEC, DTX-off and the 48 kHz playback rate stay
+unchanged. Opus is VBR: `maxaveragebitrate` is a CEILING, not a constant load — speech sits far
+below it and only dense full-band material approaches it. Worst-case mesh math at the 5-user
+cap: 4 peer legs × 384 kbps ≈ **1.5 Mbit/s upload ceiling** for audio, alongside the existing
+screen-share budget of 2 Mbit/s per leg (SCREEN_MAX_BITRATE) — acceptable for the target
+audience of the demo; real-world audio load remains a fraction of the ceiling.
