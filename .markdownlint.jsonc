@@ -1,0 +1,19 @@
+{
+  // Long prose lines are the house style (one thought per line, no hard wrap).
+  "MD013": false,
+
+  // Dated log entries open with their summary line directly under the heading (house style).
+  "MD022": { "lines_below": 0 },
+
+  // Adjacent standalone note blockquotes in design-system.md are deliberate, not one split quote.
+  "MD028": false,
+
+  // Intro sentences flow directly into their bullet lists (house style).
+  "MD032": false,
+
+  // Bold feature-group headers in README are the deliberate style.
+  "MD036": false,
+
+  // Hand-formatted table pipes; prettier is intentionally unconfigured.
+  "MD060": false
+}
