@@ -1,19 +1,16 @@
 /**
- * @file Sender side of the voice-channel soundboard: a press — preset or
- * custom sound — plays locally and broadcasts one 'sound' signaling
- * envelope to every connected non-stale peer of the channel (≤ 4 writes at
- * the mesh cap); the receivers' existing inbox listeners dispatch and
- * delete them like any other envelope. Presses share one throttle across
- * presets and custom sounds; playback on every side respects the local
- * master sound toggle and volume (peers with sounds off hear nothing —
- * accepted, documented).
+ * @file Sender side of the voice-channel soundboard: a preset press plays
+ * locally and broadcasts one 'sound' signaling envelope to every connected
+ * non-stale peer of the channel (≤ 4 writes at the mesh cap); the
+ * receivers' existing inbox listeners dispatch and delete them like any
+ * other envelope. Presses are throttled; playback on every side respects
+ * the local master sound toggle and volume (peers with sounds off hear
+ * nothing — accepted, documented).
  */
 import { Injectable, inject } from '@angular/core';
 
-import { CustomSound } from '../models/soundboard.model';
-import { CustomSoundService } from './custom-sound.service';
-import { SOUNDBOARD_THROTTLE_MS, SoundboardSound } from './soundboard-palette';
-import { SoundService } from './sound.service';
+import { SOUNDBOARD_THROTTLE_MS, SoundboardPreset } from '../shared/soundboard.constants';
+import { SoundboardPlayerService } from './soundboard-player.service';
 import { ConnectedVoiceChannel, VoiceConnectionService } from './voice-connection.service';
 import { VoiceRosterService } from './voice-roster.service';
 import { VoiceSignalingService } from './voice-signaling.service';
@@ -31,43 +28,27 @@ export class SoundboardService {
 
   private readonly signalingService = inject(VoiceSignalingService);
 
-  private readonly soundService = inject(SoundService);
-
-  private readonly customSoundService = inject(CustomSoundService);
+  private readonly playerService = inject(SoundboardPlayerService);
 
   private lastPressMs = Number.NEGATIVE_INFINITY;
 
 
   /**
-   * Plays a preset soundboard sound locally and broadcasts it to the
-   * channel; throttled per press, no-op while not connected.
-   * @param sound Pressed soundboard sound.
+   * Plays a pressed preset locally and broadcasts its id to the channel;
+   * throttled per press, no-op while not connected.
+   * @param preset Pressed soundboard preset.
    */
-  press(sound: SoundboardSound): void {
+  press(preset: SoundboardPreset): void {
     const channel = this.claimPress();
     if (!channel) return;
-    this.soundService.playSoundboard(sound);
-    this.broadcast(channel.id, sound.id);
+    void this.playerService.play(preset);
+    this.broadcast(channel.id, preset.id);
   }
 
 
   /**
-   * Plays a custom soundboard sound locally and broadcasts its id to the
-   * channel; shares the press throttle with the presets, no-op while not
-   * connected. Receivers fetch the sound on first need.
-   * @param sound Pressed custom sound.
-   */
-  pressCustom(sound: CustomSound): void {
-    const channel = this.claimPress();
-    if (!channel) return;
-    void this.customSoundService.play(sound);
-    this.broadcast(channel.id, sound.id);
-  }
-
-
-  /**
-   * Claims one press inside the shared throttle window; null while not
-   * connected or still throttled.
+   * Claims one press inside the throttle window; null while not connected
+   * or still throttled.
    */
   private claimPress(): ConnectedVoiceChannel | null {
     const channel = this.connectionService.connectedChannel();
@@ -80,7 +61,7 @@ export class SoundboardService {
   /**
    * Sends one envelope per connected non-stale peer of the channel.
    * @param channelId Connected voice channel.
-   * @param soundId Id of the pressed sound.
+   * @param soundId Id of the pressed preset.
    */
   private broadcast(channelId: string, soundId: string): void {
     const own = this.connectionService.ownSessionId;

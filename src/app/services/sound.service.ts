@@ -4,15 +4,14 @@
  * before the unlock are dropped silently, never queued), a master volume
  * gain, a lazily built synthesized reverb (generated impulse response, no
  * audio assets) melodic sounds send into at a low wet level, per-kind
- * replay throttles, a dry playback path for decoded custom-sound buffers
- * and the settings signals (master toggle, volume, sidebar sound opt-in)
- * persisted via the sound-settings storage helpers.
+ * replay throttles, a dry playback path for decoded soundboard-preset
+ * buffers and the settings signals (master toggle, volume, sidebar sound
+ * opt-in) persisted via the sound-settings storage helpers.
  */
 import { Injectable, Signal, signal } from '@angular/core';
 
 import { NoiseStep, SOUND_PALETTE, SoundDefinition, SoundKind, ToneStep } from './sound-palette';
 import { readStoredBoolean, readStoredVolume, storeSetting } from './sound-settings.storage';
-import { SoundboardSound } from './soundboard-palette';
 
 const STORAGE_KEY_SOUND_ENABLED = 'vibo:soundEnabled';
 const STORAGE_KEY_SOUND_VOLUME = 'vibo:soundVolume';
@@ -105,25 +104,10 @@ export class SoundService {
 
 
   /**
-   * Renders a soundboard sound through the shared engine, honoring the
-   * master toggle, the volume and the autoplay unlock. Throttling is the
-   * callers' concern (sender press throttle, per-session receive gate), so
-   * the per-kind map is bypassed.
-   * @param sound Soundboard sound to render.
-   */
-  playSoundboard(sound: SoundboardSound): void {
-    if (!this.soundEnabledState()) return;
-    const context = this.runningContext();
-    if (!context) return;
-    this.schedule(context, sound.definition);
-  }
-
-
-  /**
-   * Plays a decoded audio buffer (custom soundboard sound) through the
-   * master gain, honoring the master toggle, the volume and the autoplay
-   * unlock. Throttling is the callers' concern, mirroring
-   * {@link playSoundboard}; the buffer stays dry (no reverb send).
+   * Plays a decoded audio buffer (soundboard preset) through the master
+   * gain, honoring the master toggle, the volume and the autoplay unlock.
+   * Throttling is the callers' concern (sender press throttle, per-session
+   * receive gate); the buffer stays dry (no reverb send).
    * @param buffer Decoded audio buffer to play.
    */
   playBuffer(buffer: AudioBuffer): void {

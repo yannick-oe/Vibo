@@ -1,44 +1,62 @@
 /**
- * @file Shared constants of the custom soundboard sounds: the Firestore
- * collection, the upload caps and the accepted audio MIME types. Custom
- * sounds are stored as tiny base64 blobs directly in Firestore — the
- * deliberate Spark-compatible alternative to Firebase Storage (which would
- * require the Blaze billing plan); the caps below keep every document far
- * under Firestore's 1 MiB document limit and are mirrored in
- * firestore.rules.
+ * @file Shared constants of the voice-channel soundboard: the curated
+ * preset list (id, German-facing display name, asset path) and the shared
+ * press/receive throttle interval. Presets are loudness-normalized MP3
+ * files under public/sounds/soundboard/ (produced by
+ * tools/transcode-soundboard.mjs from the Pixabay sources in
+ * tools/assets-src/soundboard/); broadcasts carry only the preset id
+ * through the existing 'sound' signaling envelopes, and ids that resolve
+ * to no preset are ignored silently on the receiving side.
  */
 
-/** Firestore collection holding the custom soundboard sound documents. */
-export const SOUNDBOARD_SOUNDS_COLLECTION = 'soundboardSounds';
+/** Base path of the shipped preset files (relative for subfolder deploys). */
+export const SOUNDBOARD_ASSET_BASE = 'sounds/soundboard/';
 
-/** Maximum length of a custom sound name (mirrored in firestore.rules). */
-export const SOUND_NAME_MAX = 24;
+/** Minimum interval between two soundboard presses in milliseconds. */
+export const SOUNDBOARD_THROTTLE_MS = 2000;
 
-/** Maximum raw size of an uploaded audio file in bytes. */
-export const MAX_SOUND_FILE_BYTES = 150_000;
+/** One curated soundboard preset. */
+export interface SoundboardPreset {
+  /** Stable id carried in the signaling envelope (≤ 32 chars, rules cap). */
+  readonly id: string;
+  /** Visible display name of the soundboard button. */
+  readonly label: string;
+  /** App-relative path of the preset's MP3 file. */
+  readonly assetPath: string;
+}
 
-/** Maximum decoded duration of a custom sound in milliseconds. */
-export const MAX_SOUND_DURATION_MS = 3_000;
 
 /**
- * Workspace-wide cap of stored custom sounds. Client-enforced only — two
- * clients creating simultaneously can race past it (tolerated, documented
- * in DEVIATIONS.md).
+ * Builds one preset entry with its conventional asset path (the id doubles
+ * as the kebab-case file name).
+ * @param id Stable preset id.
+ * @param label Visible display name.
  */
-export const MAX_CUSTOM_SOUNDS = 8;
+function preset(id: string, label: string): SoundboardPreset {
+  return { id, label, assetPath: `${SOUNDBOARD_ASSET_BASE}${id}.mp3` };
+}
 
-/**
- * Base64 size cap of the stored data field (mirrored in firestore.rules):
- * base64 inflates 3 raw bytes to 4 characters, so the 150 KB raw cap
- * encodes to exactly 200,000 characters.
- */
-export const MAX_SOUND_BASE64_CHARS = 200_000;
 
-/** Audio MIME types the upload input accepts. */
-export const ACCEPTED_SOUND_MIME_TYPES: readonly string[] = [
-  'audio/mpeg',
-  'audio/mp4',
-  'audio/ogg',
-  'audio/wav',
-  'audio/webm',
+/** The curated soundboard presets in display order. */
+export const SOUNDBOARD_PRESETS: readonly SoundboardPreset[] = [
+  preset('woah', 'Woah'),
+  preset('what', 'What'),
+  preset('wait-a-minute', 'Wait a minute'),
+  preset('nein-doch', 'Nein doch'),
+  preset('i-got-this', 'I got this'),
+  preset('horn', 'Horn'),
+  preset('hehe-boi', 'Hehe Boi'),
+  preset('fart', 'Fart'),
+  preset('evil-laugh', 'Evil Laugh'),
+  preset('drumroll', 'Drumroll'),
 ];
+
+
+/**
+ * Resolves a soundboard preset by its broadcast id.
+ * @param soundId Id carried in a 'sound' signaling envelope.
+ * @returns The preset, or null for unknown ids (ignored silently).
+ */
+export function soundboardPresetById(soundId: string): SoundboardPreset | null {
+  return SOUNDBOARD_PRESETS.find(entry => entry.id === soundId) ?? null;
+}

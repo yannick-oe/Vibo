@@ -29,6 +29,7 @@
           "/fonts/**",
           "/app-icons/**",
           "/logos/**",
+          "/sounds/**",
           "/emoji-data.de.json"
         ]
       }

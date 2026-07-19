@@ -1,11 +1,13 @@
 /**
  * @file Message pinning: the pinned flag mutation, the one-shot pinned-list
- * query for the header dialog and the pinned count of the open chat context.
+ * query for the header dialog, the pinned count of the open chat context
+ * and the per-context "pins seen" state backing the header's unseen badge
+ * (persisted in localStorage, clamped whenever the count drops below it).
  * Deliberately listener-free — the count is fetched once per context switch
  * (aggregate read) and kept in sync locally for the user's own pin actions;
  * foreign pins refresh on the next context open.
  */
-import { Injectable, Injector, inject, runInInjectionContext, signal } from '@angular/core';
+import { Injectable, Injector, computed, inject, runInInjectionContext, signal } from '@angular/core';
 import {
   FieldValue,
   Firestore,
@@ -20,6 +22,7 @@ import {
   where,
 } from '@angular/fire/firestore';
 
+import { readSeenPinCount, storeSeenPinCount } from '../features/chat/pinned-messages/pins-seen.storage';
 import { Message, MessageDoc } from '../models/message.model';
 
 /** Maximum pinned messages fetched for the header dialog. */
@@ -51,23 +54,45 @@ export class PinnedMessagesService {
 
   private readonly count = signal(0);
 
+  private readonly seenCount = signal(0);
+
   /** Pinned-message count of the current context (stale-tolerant, see @file). */
   readonly pinnedCount = this.count.asReadonly();
 
+  /** Pins of the current context not yet seen in the pinned view. */
+  readonly unseenCount = computed(() => Math.max(0, this.count() - this.seenCount()));
+
 
   /**
-   * Switches the pinned context to a messages collection and fetches its
-   * pinned count once via aggregate query.
+   * Switches the pinned context to a messages collection, fetches its
+   * pinned count once via aggregate query and reconciles the persisted
+   * seen state against the fresh count.
    * @param messagesPath Messages collection of the open channel/conversation.
    */
   async openContext(messagesPath: string): Promise<void> {
     this.contextPath.set(messagesPath);
+    this.count.set(0);
+    this.seenCount.set(readSeenPinCount(messagesPath));
     const pinnedQuery = query(
       collection(this.firestore, messagesPath),
       where(PINNED_FIELD, '==', true),
     );
     const snapshot = await this.inContext(() => getCountFromServer(pinnedQuery));
-    if (this.contextPath() === messagesPath) this.count.set(snapshot.data().count);
+    if (this.contextPath() !== messagesPath) return;
+    this.count.set(snapshot.data().count);
+    this.clampSeen(messagesPath);
+  }
+
+
+  /**
+   * Records the current pin state as seen (the pinned view was opened);
+   * the unseen badge disappears immediately.
+   */
+  markSeen(): void {
+    const context = this.contextPath();
+    if (!context) return;
+    storeSeenPinCount(context, this.count());
+    this.seenCount.set(this.count());
   }
 
 
@@ -82,6 +107,20 @@ export class PinnedMessagesService {
     const context = this.contextPath();
     if (!context || !messagePath.startsWith(`${context}/`)) return;
     this.count.update(current => Math.max(0, current + (pinned ? 1 : -1)));
+    this.clampSeen(context);
+  }
+
+
+  /**
+   * Clamps the seen state down to the current count after unpins below the
+   * recorded value, so a later new pin badges correctly instead of hiding
+   * behind a stale recorded state.
+   * @param messagesPath Context whose seen state is reconciled.
+   */
+  private clampSeen(messagesPath: string): void {
+    if (this.seenCount() <= this.count()) return;
+    storeSeenPinCount(messagesPath, this.count());
+    this.seenCount.set(this.count());
   }
 
 

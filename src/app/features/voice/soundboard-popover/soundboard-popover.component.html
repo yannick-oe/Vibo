@@ -2,89 +2,12 @@
   <h2 class="soundboard__title" id="soundboard-title">Soundboard</h2>
 
   <div class="soundboard__scroll">
-    <section class="soundboard__group" aria-labelledby="soundboard-standard-title">
-      <h3 class="soundboard__group-title" id="soundboard-standard-title">Standard</h3>
-      <div class="soundboard__grid">
-        @for (sound of sounds; track sound.id) {
-          <button class="soundboard__sound" type="button" (click)="press(sound)">
-            {{ sound.label }}
-          </button>
-        }
-      </div>
-    </section>
-
-    <section class="soundboard__group soundboard__group--custom" aria-labelledby="soundboard-custom-title">
-      <h3 class="soundboard__group-title" id="soundboard-custom-title">Eigene</h3>
-
-      @if (customSounds().length === 0) {
-        <p class="soundboard__empty">{{ emptyNote }}</p>
-      } @else {
-        <ul class="soundboard__custom-list">
-          @for (sound of customSounds(); track sound.id) {
-            <li class="soundboard__custom-row">
-              @if (confirmingId() === sound.id) {
-                <p class="soundboard__confirm-question">Wirklich löschen?</p>
-                <button class="btn btn-primary btn-sm" type="button" (click)="confirmDelete(sound)">
-                  Löschen
-                </button>
-                <button class="btn btn-secondary btn-sm" type="button" (click)="cancelDelete()">
-                  Abbrechen
-                </button>
-              } @else {
-                <button class="soundboard__sound soundboard__custom-press" type="button" (click)="pressCustom(sound)">
-                  {{ sound.name }}
-                </button>
-                <button
-                  class="soundboard__icon-button"
-                  type="button"
-                  [attr.aria-label]="'Sound ' + sound.name + ' anhören'"
-                  (click)="preview(sound)"
-                >
-                  <svg class="soundboard__icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M8 5v14l11-7z" fill="currentColor" />
-                  </svg>
-                </button>
-                @if (canDelete(sound)) {
-                  <button
-                    class="soundboard__icon-button soundboard__icon-button--delete"
-                    type="button"
-                    [attr.aria-label]="'Sound ' + sound.name + ' löschen'"
-                    (click)="requestDelete(sound.id)"
-                  >
-                    <svg class="soundboard__icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M6 6l12 12M18 6L6 18"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        fill="none"
-                      />
-                    </svg>
-                  </button>
-                }
-              }
-            </li>
-          }
-        </ul>
-      }
-
-      @if (isGuest()) {
-        <p class="soundboard__guest-note">{{ guestNote }}</p>
-      } @else if (formOpen()) {
-        <app-custom-sound-form (saved)="onSaved()" (cancelled)="formOpen.set(false)" />
-      } @else {
-        <button
-          class="btn btn-secondary btn-sm soundboard__add"
-          type="button"
-          [disabled]="atCap()"
-          (click)="formOpen.set(true)"
-        >
-          Sound hinzufügen
+    <div class="soundboard__grid">
+      @for (preset of presets; track preset.id) {
+        <button class="soundboard__sound" type="button" (click)="press(preset)">
+          {{ preset.label }}
         </button>
-        @if (atCap()) {
-          <p class="soundboard__cap-note">{{ capNote }}</p>
-        }
       }
-    </section>
+    </div>
   </div>
 </app-dialog-shell>
