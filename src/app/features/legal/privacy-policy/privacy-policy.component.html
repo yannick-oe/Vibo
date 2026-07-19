@@ -31,8 +31,9 @@
     <h2>3. Verarbeitete Daten, Zwecke und Rechtsgrundlagen</h2>
     <p>
       a) Registrierung und Benutzerkonto: Wir verarbeiten Anzeigenamen, E-Mail-Adresse, Ihr
-      verschlüsselt gespeichertes Passwort sowie den gewählten Avatar zur Bereitstellung eines
-      persönlichen Kontos (Art 6 Abs 1 lit b DSGVO).
+      verschlüsselt gespeichertes Passwort sowie die gewählte Profilgestaltung (Avatar, Banner,
+      Statustext, Abzeichen) zur Bereitstellung eines persönlichen Kontos
+      (Art 6 Abs 1 lit b DSGVO).
     </p>
     <p>
       b) Anmeldung: Die Anmeldung ist per E-Mail und Passwort, über „Anmelden mit Google" oder als
@@ -42,17 +43,20 @@
     </p>
     <p>
       c) Nutzung der Anwendung: Im Betrieb verarbeiten wir die von Ihnen erstellten Inhalte
-      (Kanäle, Nachrichten, Reaktionen) sowie technische Zuordnungsdaten zur Bereitstellung der
-      Kommunikationsfunktionen (Art 6 Abs 1 lit b DSGVO).
+      (Kanäle, Nachrichten, Reaktionen, angepinnte Nachrichten, Freundschaften und
+      Blockierungen sowie Einladungslinks samt selbst vergebener Link-Namen) und technische
+      Zuordnungsdaten zur Bereitstellung der Kommunikationsfunktionen (Art 6 Abs 1 lit b DSGVO).
     </p>
     <p>
       d) Online-Status: Zur Statusanzeige wird ein Zeitstempel Ihrer letzten Aktivität verarbeitet
       (berechtigtes Interesse, Art 6 Abs 1 lit f DSGVO).
     </p>
     <p>
-      e) Lokale Speicherung: Technisch notwendige Einstellungen werden lokal im Speicher Ihres
-      Browsers (localStorage) abgelegt. Es werden keine Tracking- oder Marketing-Cookies
-      eingesetzt.
+      e) Lokale Speicherung: Technisch notwendige Einstellungen und unversendete
+      Nachrichtenentwürfe werden lokal im Speicher Ihres Browsers (localStorage, unter dem
+      Präfix „vibo:") abgelegt. Es werden keine Tracking-, Analyse- oder Marketing-Werkzeuge
+      eingesetzt; Schriften und Emoji-Grafiken liefert die App selbst aus, ohne Abruf bei
+      Dritt-Servern.
     </p>
   </section>
 
@@ -86,7 +90,25 @@
   </section>
 
   <section>
-    <h2>6. Sprachkanäle (Peer-to-Peer-Audio)</h2>
+    <h2>6. Einbindung von YouTube-Videos</h2>
+    <p>
+      Nachrichten mit einem YouTube-Link zeigen unterhalb des Textes eine Videovorschau
+      (Click-to-Play). Vor dem Abspielen lädt die App ausschließlich das Vorschaubild des
+      Videos; dieses stammt vom YouTube-Bildserver (i.ytimg.com) der Google Ireland Limited,
+      dabei wird Ihre IP-Adresse an Google übermittelt. Erst wenn Sie die Vorschau anklicken,
+      wird der Player über die Domain youtube-nocookie.com (erweiterter Datenschutzmodus)
+      eingebettet und das Video abgespielt; ab diesem Zeitpunkt verarbeitet Google weitere
+      Daten wie Geräteinformationen und Wiedergabedaten. Die Verarbeitung erfolgt auf Grundlage
+      unseres berechtigten Interesses an der direkten Darstellung verlinkter Videos
+      (Art 6 Abs 1 lit f DSGVO). Die Datenschutzerklärung von Google finden Sie unter:
+      <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
+        policies.google.com/privacy</a
+      >.
+    </p>
+  </section>
+
+  <section>
+    <h2>7. Sprachkanäle (Peer-to-Peer-Audio)</h2>
     <p>
       Die App bietet Sprachkanäle für Audio-Gespräche in Echtzeit. Ihr Mikrofon wird
       ausschließlich verwendet, während Sie mit einem Sprachkanal verbunden sind, und erst,
@@ -112,10 +134,16 @@
       sehen dabei Ihre IP-Adresse und Ihren Port, jedoch keinerlei Audio- oder Bildinhalte.
       Die Verarbeitung erfolgt zur Bereitstellung der Sprachfunktion (Art 6 Abs 1 lit b DSGVO).
     </p>
+    <p>
+      In Sprachkanälen steht außerdem ein Soundboard zur Verfügung. Selbst hochgeladene
+      Soundboard-Sounds (kurze Audio-Clips von maximal 3 Sekunden) werden — anders als das
+      Gesprächs-Audio — als Daten in der Firestore-Datenbank gespeichert und sind dort für
+      alle angemeldeten Nutzer abspielbar, bis die erstellende Person sie löscht.
+    </p>
   </section>
 
   <section>
-    <h2>7. Speicherdauer</h2>
+    <h2>8. Speicherdauer</h2>
     <p>
       Personenbezogene Daten werden nur so lange gespeichert, wie es für die genannten Zwecke
       erforderlich ist bzw. bis zur Löschung Ihres Kontos. Inhalte des Gäste-Profils werden bei
@@ -124,7 +152,7 @@
   </section>
 
   <section>
-    <h2>8. Ihre Rechte</h2>
+    <h2>9. Ihre Rechte</h2>
     <p>Ihnen stehen die Rechte auf</p>
     <ul>
       <li>Auskunft (Art 15),</li>
@@ -141,7 +169,7 @@
   </section>
 
   <section>
-    <h2>9. Beschwerderecht</h2>
+    <h2>10. Beschwerderecht</h2>
     <p>
       Sie haben das Recht, sich bei einer Aufsichtsbehörde zu beschweren. In Österreich ist dies
       die Österreichische Datenschutzbehörde, Barichgasse 40-42, 1030 Wien
@@ -150,7 +178,7 @@
   </section>
 
   <section>
-    <h2>10. Kontakt</h2>
+    <h2>11. Kontakt</h2>
     <p>
       Bei Fragen zum Datenschutz:
       <a href="mailto:oetelshoven.dev@gmail.com">oetelshoven.dev@gmail.com</a>
