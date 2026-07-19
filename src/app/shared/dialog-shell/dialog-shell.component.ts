@@ -104,6 +104,12 @@ export class DialogShellComponent implements AfterViewInit, OnDestroy {
 
   protected readonly anchoredMaxHeight = computed(() => anchoredMaxHeightStyle(this.activeAnchor()));
 
+  protected readonly anchoredLeft = computed(() => this.activeAnchor()?.left !== undefined);
+
+  protected readonly anchoredRight = computed(() => this.activeAnchor()?.right !== undefined);
+
+  protected readonly anchoredBottom = computed(() => this.activeAnchor()?.bottom !== undefined);
+
   protected readonly drag = new SheetDragController({
     card: () => this.card().nativeElement,
     isSheetMode: () => this.isSheetMode(),
