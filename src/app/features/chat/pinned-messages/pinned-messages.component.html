@@ -7,8 +7,8 @@
   (click)="open()"
 >
   <img src="app-icons/keep.svg" alt="" width="20" height="20" aria-hidden="true" />
-  @if (count() > 0) {
-    <span class="pins__badge" aria-hidden="true">{{ count() }}</span>
+  @if (unseen() > 0) {
+    <span class="pins__badge" aria-hidden="true">{{ unseen() }}</span>
   }
 </button>
 

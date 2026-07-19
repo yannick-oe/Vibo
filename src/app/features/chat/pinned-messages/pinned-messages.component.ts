@@ -1,9 +1,11 @@
 /**
- * @file Header pin button (always-rendered slot with count badge) plus the
- * pinned-messages dialog of the open channel/DM: one-shot pinned query,
- * newest first, entries rendered via the shared message-content pipeline
- * with an unpin ("Lösen") action. Deliberately no jump-to-message — with
- * windowed history the target may not be loaded (see DEVIATIONS.md).
+ * @file Header pin button (always-rendered slot with an unseen badge that
+ * clears on open, seen state persisted per context in localStorage) plus
+ * the pinned-messages dialog of the open channel/DM: one-shot pinned
+ * query, newest first, entries rendered via the shared message-content
+ * pipeline with an unpin ("Lösen") action. Deliberately no
+ * jump-to-message — with windowed history the target may not be loaded
+ * (see DEVIATIONS.md).
  */
 import {
   ChangeDetectionStrategy,
@@ -54,10 +56,12 @@ export class PinnedMessagesComponent {
 
   protected readonly entries = signal<Message[] | null>(null);
 
-  protected readonly count = this.pinnedMessages.pinnedCount;
+  protected readonly unseen = this.pinnedMessages.unseenCount;
 
   protected readonly triggerLabel = computed(() =>
-    this.count() > 0 ? `Angepinnte Nachrichten anzeigen (${this.count()})` : 'Angepinnte Nachrichten anzeigen',
+    this.unseen() > 0
+      ? `Angepinnte Nachrichten anzeigen (${this.unseen()} neu)`
+      : 'Angepinnte Nachrichten anzeigen',
   );
 
 
@@ -79,9 +83,13 @@ export class PinnedMessagesComponent {
   }
 
 
-  /** Opens the dialog and fetches the pinned list once. */
+  /**
+   * Opens the dialog, records the current pin state as seen (the unseen
+   * badge disappears immediately) and fetches the pinned list once.
+   */
   protected open(): void {
     if (!this.messagesPath()) return;
+    this.pinnedMessages.markSeen();
     this.isOpen.set(true);
     void this.loadEntries();
   }
