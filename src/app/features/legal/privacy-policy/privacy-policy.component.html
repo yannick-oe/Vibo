@@ -135,10 +135,11 @@
       Die Verarbeitung erfolgt zur Bereitstellung der Sprachfunktion (Art 6 Abs 1 lit b DSGVO).
     </p>
     <p>
-      In Sprachkanälen steht außerdem ein Soundboard zur Verfügung. Selbst hochgeladene
-      Soundboard-Sounds (kurze Audio-Clips von maximal 3 Sekunden) werden — anders als das
-      Gesprächs-Audio — als Daten in der Firestore-Datenbank gespeichert und sind dort für
-      alle angemeldeten Nutzer abspielbar, bis die erstellende Person sie löscht.
+      In Sprachkanälen steht außerdem ein Soundboard mit einer festen, von Vibo
+      bereitgestellten Auswahl an Sounds zur Verfügung. Beim Auslösen eines Sounds wird
+      lediglich eine kurzlebige Kennung des Sounds als Signal über Firestore an die
+      Teilnehmenden des Sprachkanals übermittelt und nach Gebrauch gelöscht; Audiodaten
+      werden dabei weder übertragen noch gespeichert.
     </p>
   </section>
 
