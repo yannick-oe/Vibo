@@ -741,45 +741,33 @@ service cloud.firestore {
       }
     }
 
-    // Custom soundboard sounds: user-uploaded audio stored as tiny base64
-    // blobs directly in Firestore — the deliberate Spark-compatible
-    // alternative to Firebase Storage (which requires the Blaze plan).
-    // Caps mirror shared/soundboard.constants.ts; the data cap is the
-    // base64 inflation of the 150 KB raw-file cap (3 bytes → 4 chars =
-    // exactly 200,000 characters). The workspace-wide count cap (8) is
-    // client-enforced only — document counts are not provable in rules.
-    // The shared guest account may play and broadcast the sounds but never
-    // create them: hidden client-side AND excluded here via its uid (the
-    // non-founder half of the demo friendship id above); delete is
-    // creator-only, which excludes the guest implicitly.
+    // The shared guest account's uid (the non-founder half of the demo
+    // friendship id above), referenced wherever the guest is excluded
+    // server-side from per-user writes.
     function demoGuestUid() {
       return 'EtMKQ4MK5Be5xZhXhngptGXr1Ee2';
     }
 
-    match /soundboardSounds/{soundId} {
-      allow read: if signedIn();
-      allow create: if signedIn()
+    // Per-user GIF favorites: exactly ONE document per user whose full
+    // list is rewritten on every star toggle (client-capped at 50 entries,
+    // newest first — MAX_GIF_FAVORITES in gif-favorites.service.ts).
+    // Owner-only read/write; the shared guest account is excluded from
+    // writes (star and tile are also hidden client-side). Entries are
+    // client-built display data at the same trust level as sending a
+    // message; per-entry key/type validation over a list is not
+    // expressible in rules, so the guards cover the document shape, the
+    // list type, the size cap and the server-time updatedAt.
+    match /userGifFavorites/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
         && request.auth.uid != demoGuestUid()
-        && request.resource.data.keys()
-          .hasOnly(['name', 'createdBy', 'createdAt', 'mimeType', 'durationMs', 'data'])
-        && request.resource.data.keys()
-          .hasAll(['name', 'createdBy', 'createdAt', 'mimeType', 'durationMs', 'data'])
-        && request.resource.data.name is string
-        && request.resource.data.name.size() >= 1
-        && request.resource.data.name.size() <= 24
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.mimeType is string
-        && request.resource.data.mimeType.size() >= 1
-        && request.resource.data.mimeType.size() <= 40
-        && request.resource.data.durationMs is number
-        && request.resource.data.durationMs > 0
-        && request.resource.data.durationMs <= 3000
-        && request.resource.data.data is string
-        && request.resource.data.data.size() >= 1
-        && request.resource.data.data.size() <= 200000;
-      allow update: if false;
-      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+        && request.resource.data.keys().hasOnly(['gifs', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['gifs', 'updatedAt'])
+        && request.resource.data.gifs is list
+        && request.resource.data.gifs.size() <= 50
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
     }
 
     // Collection-group READ powering the app's single roster/occupancy
