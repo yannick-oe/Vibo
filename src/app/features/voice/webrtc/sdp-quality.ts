@@ -11,8 +11,8 @@
  * testable.
  */
 
-/** Target Opus average bitrate in bit/s (Discord "boosted" territory). */
-export const OPUS_MAX_AVERAGE_BITRATE = 128000;
+/** Opus average-bitrate ceiling in bit/s (Nitro parity; VBR keeps speech far below it). */
+export const OPUS_MAX_AVERAGE_BITRATE = 384000;
 
 /** Enables stereo decoding (1 = on). */
 export const OPUS_STEREO = 1;
