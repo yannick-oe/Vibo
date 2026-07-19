@@ -560,8 +560,8 @@ Roadmap V2 Phase 1. No Figma frames for any of the four; all strictly token-base
     fragile observer/reserved-height system — the goals (bounded DOM, sticky category navigation,
     no image storm) are met more robustly. Say the word to switch to the scrolling-sections model.
   - **Retired:** `EMOJI_SET` and `GRID_EMOJI_SET` (superseded — the grid now comes from
-    `EmojiDataService`, in-message detection from the RGI regex). **Kept:** the seed `EMOJI_CATALOG`
-    + `emojiName`/`reactionTriggerLabel`, because reaction chips, action-bar quick reactions and
+    `EmojiDataService`, in-message detection from the RGI regex). **Kept:** the seed `EMOJI_CATALOG` +
+    `emojiName`/`reactionTriggerLabel`, because reaction chips, action-bar quick reactions and
     notification toasts render **outside** the picker and need a *synchronous* German name before
     the lazy full catalogue is fetched (unknown names fall back to the emoji character).
 
@@ -866,7 +866,6 @@ the maintainer's choice we **kept the existing content** and added only what was
   that **restores the app default on teardown**, so a legal page's title does not linger after
   navigation (the app otherwise sets no per-route titles).
 
-
 ## Profile badges / Abzeichen (2026-06-20)
 Additive profile **badges shown next to the name**, an on-brand cosmic/dev enhancement **beyond the
 DA Figma** (no Figma design exists). The `users/{uid}` self-update rule is field-permissive, so the
@@ -957,8 +956,8 @@ rules change) is kept; the **rendering was upgraded from tame CSS gradients to a
   (2–3 parallax depth layers, hundreds of twinkling stars, capped by a named const), `cosmic-aurora`
   (sine-distorted gradient ribbons drawn with **`screen` (additive) compositing** so they bloom in
   the indigo/magenta token palette), `cosmic-nebula` (drifting additive blobs for the nebula preset),
-  `cosmic-shooting-star` (a rare streak on a randomized cooldown), and `cosmic-scene` (palette resolve
-  + seed + per-frame orchestration). All counts/speeds/sizes are **named consts**; the scene is
+  `cosmic-shooting-star` (a rare streak on a randomized cooldown), and `cosmic-scene` (palette resolve +
+  seed + per-frame orchestration). All counts/speeds/sizes are **named consts**; the scene is
   DPR-scaled and GPU-friendly.
 - **Intrinsically dark in both themes** (a night-sky window): two new tokens `--banner-space` /
   `--banner-star` are defined once in `:root` (same value in light and dark) so the scene is dark
@@ -1763,8 +1762,8 @@ live repro against the dev server (pre-fix), re-verified green post-fix (55 chec
 
 ## Phase 8: message pins, ||spoiler||, YouTube embeds (2026-07-17)
 
-- **Message pins (no Figma design).** `pinned: boolean` on top-level message docs (channel
-  + DM); thread replies and system messages are not pinnable — **client-enforced** (the
+- **Message pins (no Figma design).** `pinned: boolean` on top-level message docs (channel +
+  DM); thread replies and system messages are not pinnable — **client-enforced** (the
   rules additionally omit the pin clause on the replies subcollections). The ⋮ trigger now
   appears on EVERY message row's hover bar / long-press flow, no longer own-only; the menu
   is context-dependent and never empty: "Anpinnen"/"Lösen" for every member/participant,
@@ -2026,3 +2025,24 @@ broadcast still rides the existing signals mailbox as the same `'sound'` envelop
   `SoundboardDispatchService` — also breaking the DI cycle a combined sender/receiver service
   would have with the connection service; the localStorage helpers of `SoundService` moved to
   `sound-settings.storage.ts` to keep the engine under 400 LOC with the new buffer path.
+
+## Vanity-slug lifecycle: orphaned reservation after a foreign teardown (2026-07-19)
+Close-out documentation of an accepted residual in the invite-slug lifecycle (feature shipped
+2026-07-18: reservation-pattern uniqueness, creator-only management per rules).
+
+- **Channel teardown releases the slug reservation only when the leaver is the creator.** The
+  deep teardown (`channel-teardown.ts`) removes replies, messages and the channel doc in chunked
+  atomic batches; the slug doc joins that sweep only when the leaving last member IS
+  `channel.createdBy`, because `inviteSlugs/{slug}` deletes are creator-only in the rules — a
+  denied slug delete would reject its entire batch (the one that also carries the channel doc)
+  and abort the teardown mid-flight.
+- **A teardown by a foreign last member therefore orphans the reservation.** The slug doc
+  outlives its channel: the redeem page still resolves the slug to the now-missing channel id,
+  the channel read comes back empty and the EXISTING invalid-invite state renders — no crash, no
+  special case — but the name stays occupied. Nobody can re-claim it (claims are create-only, so
+  they collide with the surviving doc) and no management surface remains (the slug UI lives in
+  the deleted channel's invite dialog; the rules would still permit the creator's delete, there
+  is just no UI path to it). Accepted at project scale: freeing the name would need either a
+  widened delete rule (weakening creator ownership) or server-side cleanup (Cloud Functions —
+  excluded on Spark), and the observable cost is one permanently taken name whose link degrades
+  into the normal invalid state.
