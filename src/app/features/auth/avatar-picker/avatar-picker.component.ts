@@ -138,7 +138,6 @@ export class AvatarPickerComponent implements AfterViewInit {
    * Shows the success toast, then routes back to a pending channel invite
    * (registration signs the user in, so the redeem page can offer the
    * join directly) or to the login page.
-   * TODO: redirect to the main app instead once it exists.
    */
   private finishSuccessfully(): void {
     this.isSuccess.set(true);
