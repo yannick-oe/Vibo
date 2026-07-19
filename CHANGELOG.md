@@ -1,0 +1,99 @@
+# Changelog
+
+Alle nennenswerten Änderungen an Vibo, kuratiert nach Feature-Bereichen im Stil von [Keep a Changelog](https://keepachangelog.com/de/) — Details und Begründungen stehen im Entscheidungs-Log [DEVIATIONS.md](DEVIATIONS.md).
+
+## [Unreleased]
+
+## [1.0.0] – 2026-07-19
+
+### Chat & Ergonomie
+
+- Echtzeit-Channels, Direktnachrichten und Threads mit denormalisierten Thread-Vorschauen (Reply-Anzahl und letzte Antwort ohne zusätzliche Reads)
+- Nachrichten bearbeiten (15-Minuten-Fenster, auch in den Security Rules erzwungen) und löschen — „Für mich" / „Für alle" mit WhatsApp-artigem Tombstone
+- Emoji-Reaktionen mit Picker, Schnellreaktionen und „Wer hat reagiert"-Tooltip plus große Reaktionen mit Fullscreen-Effekten (Konfetti, Herzen, Rakete u. a.)
+- Inline-Antworten mit Zitat-Snapshot, @Erwähnungen mit Hervorhebung, Aktivitäts-Benachrichtigungen über Glocke und Toast (senderseitiger Fan-out, ein schmaler Listener pro Nutzer)
+- Lesebestätigungen im WhatsApp-Stil samt „Gelesen von"-Liste, Tipp-Indikator, Ungelesen-Badges, „Neu"-Trenner und Entwurfs-Speicherung pro Unterhaltung
+- Beitritts-Systemnachrichten mit Winken-Button
+
+### Performance & Windowing
+
+- Gefensterte Nachrichtenströme: ein Live-Listener über die neueste Seite, ältere Historie als One-Shot-Seiten beim Hochscrollen (Sentinel-Pagination)
+- Ladeskelette mit Schimmer-Effekt in Chat, Freunde-Ansicht und Benachrichtigungen
+- Subsettete, vorab geladene Fonts und priorisiertes Intro-Logo für den LCP
+- Statische WebP-Standbilder für Avatare auf Listenflächen, Hover-to-Play nur wo es zählt
+- Giphy-Embeds als byte-sparende Fixed-Width-WebP-Renditionen (gemessen bis −91 % pro GIF)
+- Lighthouse-Finalwerte: Desktop 99 / 100 / 100 / 100, dokumentierte Trade-offs in DEVIATIONS.md
+
+### Motion & View Transitions
+
+- Zentrale Motion-Tokens (Dauern, Easings, Press-Feedback) für einheitliche Mikro-Interaktionen
+- Scoped View Transitions als Cross-Fade bei Routenwechseln
+- FLIP-animierte Sidebar-Reorders bei Recency-Sortierung der Direktnachrichten
+- Einmalige Eintritts-Animation nur für echt neue Nachrichten (Wall-Clock-Baseline, CLS 0)
+- `prefers-reduced-motion` überall respektiert — Effekte entfallen, Funktionen bleiben
+
+### Sound-Design
+
+- Zentrale Web-Audio-Engine: alle UI-Sounds werden zur Laufzeit synthetisiert, kein einziges UI-Sound-Asset im Bundle
+- Code-generierter Convolver-Reverb für die melodischen Klänge
+- Einstellungs-Dialog mit Master-Toggle, eigenem Lautstärke-Slider samt Vorhören und Opt-in-Seitenleisten-Sound
+- Voice-Join- und Voice-Leave-Chimes in derselben Palette
+
+### Social, Einladungen & Vanity-Slugs
+
+- Freundschaftssystem: Anfragen senden/annehmen/ablehnen, Entfreunden und Blockieren (friert die Unterhaltung beidseitig ein, auch in den Rules)
+- Freunde-Ansicht im Discord-Stil mit Tabs „Alle"/„Anfragen" und integrierter Nutzersuche
+- Eindeutige, unveränderliche Usernames über das atomare Reservierungsmuster
+- Ablaufende Channel-Einladungslinks (Token = Zugriffsnachweis) mit Widerruf und Einlöse-Seite
+- Vanity-Slugs für Einladungen (…/#/invite/cozy-vibes) — Eindeutigkeit über dasselbe Reservierungsmuster, null Reads beim Tippen
+
+### Navigation & Präsenz
+
+- ⌘K/Strg+K-Befehlspalette (lazy geladen) mit Recency-Ranking der Freunde-DMs
+- Globale Suche über zugängliche Channels und eigene Unterhaltungen
+- Live-Präsenz online/abwesend/offline mit gemeinsamem Presence-Dot auf allen Flächen
+- Scroll-to-Latest-Button in Nachrichtenliste und Thread
+- Mobile Navigation mit getrennten Vollbild-Ansichten und Bottom-Sheets mit echter Drag-Physik
+
+### Pins, Markdown & Embeds
+
+- Nachrichten anpinnen mit universellem Optionsmenü und Pin-Dialog im Header; das Pin-Badge zeigt nur ungesehene Pins
+- Markdown (fett/kursiv, Listen, Zitate, Links) mit syntaxhervorgehobenen Codeblöcken inkl. Copy-Button
+- ||Spoiler||-Runs mit maskierten Vorschauen
+- YouTube-Embeds als Click-to-Play-Fassade — vor dem Klick lädt nur das Thumbnail
+
+### PWA
+
+- Installierbar mit Manifest, Icons und Angular Service Worker
+- Bereits besuchte Views funktionieren offline (Firestore-Offline-Persistenz, Multi-Tab)
+- Update-Flow ohne Zwangs-Reload: Toast „Neue Version verfügbar" mit Aktion „Neu laden"
+- Das ~8 MB große Twemoji-Set wird nie vorgeladen, sondern Emoji für Emoji beim Gebrauch gecacht
+
+### Sprachkanäle & Screen-Sharing
+
+- Persistente Voice-Channels im Discord-Stil — Audio strikt Peer-to-Peer (Vollvernetzung bis 5 Teilnehmer, DTLS-SRTP); Firestore transportiert ausschließlich Presence und Signaling, niemals Medien
+- Stereo-Opus mit Forward Error Correction und einer VBR-Obergrenze von 384 kbit/s
+- Screen-Sharing über Renegotiation auf derselben Mesh (ein Sharer pro Kanal, scharfer Text via `maintain-resolution`), Viewer-Dialog mit Fullscreen
+- Mute/Deafen mit Discord-Paritäts-Verhalten, lokale Speaking-Erkennung ohne Firestore-Writes
+- Creator-only Umbenennen und Löschen leerer Kanäle
+
+### Soundboard
+
+- Zehn kuratierte, loudness-normalisierte MP3-Presets (u. a. Woah, Drumroll, Evil Laugh) ersetzen die früheren synthetisierten Presets und Custom-Uploads
+- Presets werden lazy geladen und pro Session gecacht; ausgelöst wird per kurzlebigem Signal mit Sound-Kennung — Audiodaten fließen nie durch Firestore
+- Empfangsseitiges Gate gegen Sound-Spam bleibt aktiv
+
+### GIFs & Favoriten
+
+- Giphy-GIF-Picker mit `rating=pg-13` auf jedem einzelnen Request
+- Persistente Kategorie-Chips („Favoriten", „Angesagt", zehn kuratierte Begriffe) über einem großen Masonry-Grid — Öffnen kostet genau einen Giphy-Request, Sentinel-Nachladen in 24er-Seiten bis 96 Ergebnisse
+- GIF-Favoriten per Stern: ein Firestore-Dokument pro Nutzer, One-Shot gelesen und pro Session gecacht
+- Dauerhaft sichtbare „Powered by GIPHY"-Attribution in jedem Zustand des Pickers
+- Versendete GIFs rendern als byte-sparende WebP-Rendition mit reserviertem Seitenverhältnis (CLS 0)
+
+### Recht & Dokumentation
+
+- Österreichisches Impressum und DSGVO-Datenschutzerklärung als eigene Seiten mit vollständiger Datenaufzählung (inkl. YouTube-Fassade, Soundboard und Giphy)
+- Portfolio-README auf Deutsch mit Architektur-Highlights und Listener-Inventar
+- Laufend gepflegtes Entscheidungs-Log DEVIATIONS.md mit datierten Einträgen
+- Markdownlint-Konfiguration über alle getrackten Markdown-Dateien

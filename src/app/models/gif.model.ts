@@ -13,9 +13,9 @@ export interface GifResult {
   readonly url: string;
   /** Still-frame URL shown under prefers-reduced-motion. */
   readonly still: string;
-  /** Small animated preview URL (Giphy fixed_height_small rendition). */
+  /** Animated grid rendition URL (Giphy fixed_width rendition). */
   readonly preview: string;
-  /** Still frame of the small preview for prefers-reduced-motion. */
+  /** Still frame of the grid rendition for prefers-reduced-motion. */
   readonly previewStill: string;
   /** Intrinsic width in pixels, reserving an aspect ratio so the bubble never shifts. */
   readonly width: number;
@@ -31,7 +31,7 @@ export interface GifFavorite {
   readonly id: string;
   /** Giphy title (accessible label). */
   readonly title: string;
-  /** Small animated preview URL rendered in the favorites grid. */
+  /** Animated grid rendition URL rendered in the favorites grid. */
   readonly previewUrl: string;
   /** Animated GIF URL used when the favorite is sent. */
   readonly url: string;

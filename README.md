@@ -28,7 +28,7 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 - **Emoji-Reaktionen** (Picker, Schnellreaktionen, „Wer hat reagiert"-Tooltip) plus **große Reaktionen** mit Fullscreen-Effekten (Konfetti, Herzen, Rakete …)
 - **Anpinnen** von Nachrichten, **@Erwähnungen**, Inline-**Antworten** mit Zitat-Snapshot
 - **Aktivitäts-Benachrichtigungen** (Glocke + Toast) für Thread-Antworten, Reaktionen, Erwähnungen und Antworten — Fan-out sender­seitig, ein einziger schmaler Listener pro Nutzer
-- **⌘K/Strg+K-Befehlspalette** (lazy geladen), **globale Suche** über zugängliche Channels und eigene Unterhaltungen, **Giphy-GIF-Picker** (PG-13-gefiltert auf jedem Request) mit Startansicht im Discord-Stil (Kategorie-Kacheln mit gecachten Vorschauen, „Angesagt"), **GIF-Favoriten** per Stern (ein Firestore-Dokument pro Nutzer, One-Shot gelesen) und dauerhaft sichtbarer „Powered by GIPHY"-Attribution
+- **⌘K/Strg+K-Befehlspalette** (lazy geladen), **globale Suche** über zugängliche Channels und eigene Unterhaltungen, **Giphy-GIF-Picker** (PG-13-gefiltert auf jedem Request) mit persistenten Kategorie-Chips über einem großen Masonry-Grid („Favoriten", „Angesagt", zehn kuratierte Begriffe; Sentinel-Nachladen in 24er-Seiten bis 96 Ergebnisse), **GIF-Favoriten** per Stern (ein Firestore-Dokument pro Nutzer, One-Shot gelesen) und dauerhaft sichtbarer „Powered by GIPHY"-Attribution
 - **Lesebestätigungen** im WhatsApp-Stil (grau → grau → blau) mit „Gelesen von"-Liste, Tipp-Indikator, Ungelesen-Badges
 
 **Social & Sharing**
@@ -161,7 +161,7 @@ Die ngsw-Asset-Strategie ist zweigeteilt: Die `app`-Gruppe **prefetcht** das She
 
 ### Dokumentierte Trade-offs
 
-Die volle Begründung jeder Abweichung steht datiert in **[DEVIATIONS.md](DEVIATIONS.md)** — u. a. Hash-Routing statt SSR (statisches Hosting ohne `mod_rewrite`), das eager geladene Firebase-SDK (Mobile-Performance-Preis zugunsten eines stabilen Auth-Bootstraps), STUN-only ohne TURN-Relay (symmetrische NAT-Paare ~10–15 % verbinden nicht — pro Peer-Leg, nie als Kanalfehler) und die client-enforced Caps (Voice-Kapazität), deren Races bewusst toleriert werden.
+Die volle Begründung jeder Abweichung steht datiert in **[DEVIATIONS.md](DEVIATIONS.md)** — u. a. Hash-Routing statt SSR (statisches Hosting ohne `mod_rewrite`), das eager geladene Firebase-SDK (Mobile-Performance-Preis zugunsten eines stabilen Auth-Bootstraps), STUN-only ohne TURN-Relay (symmetrische NAT-Paare ~10–15 % verbinden nicht — pro Peer-Leg, nie als Kanalfehler) und die client-enforced Caps (Voice-Kapazität), deren Races bewusst toleriert werden. Eine kuratierte, nutzerorientierte Zusammenfassung aller Releases führt das [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

@@ -1,7 +1,7 @@
 /**
- * @file Thin Giphy REST client (trending + search + category previews) for
- * the lazily loaded GIF picker. Every request runs through one builder that
- * always sends rating=pg-13, so no path can surface adult content.
+ * @file Thin Giphy REST client (trending + search with offset pagination)
+ * for the lazily loaded GIF picker. Every request runs through one builder
+ * that always sends rating=pg-13, so no path can surface adult content.
  */
 import { Injectable } from '@angular/core';
 
@@ -12,9 +12,11 @@ const GIPHY_BASE = 'https://api.giphy.com/v1/gifs';
 
 const GIPHY_RATING = 'pg-13';
 
-const GIPHY_LIMIT = 24;
+/** Results fetched per picker page (initial fill and each sentinel load). */
+export const GIF_PAGE_SIZE = 24;
 
-const GIPHY_PREVIEW_LIMIT = 1;
+/** Hard cap on paged results per term or query (4 pages of GIF_PAGE_SIZE). */
+export const GIF_MAX_RESULTS = 96;
 
 /** Giphy rendition: url plus the intrinsic size (Giphy returns size as strings). */
 interface GiphyImage {
@@ -30,8 +32,8 @@ interface GiphyGif {
   readonly images: {
     readonly fixed_height: GiphyImage;
     readonly fixed_height_still: { readonly url: string };
-    readonly fixed_height_small: GiphyImage;
-    readonly fixed_height_small_still: { readonly url: string };
+    readonly fixed_width: GiphyImage;
+    readonly fixed_width_still: { readonly url: string };
   };
 }
 
@@ -42,8 +44,11 @@ interface GiphyResponse {
 
 
 /**
- * Maps a raw Giphy result to the app's GifResult; the still frames back the
- * reduced-motion rendering and the width/height reserve the bubble.
+ * Maps a raw Giphy result to the app's GifResult; the stored/sent fields
+ * stay on the fixed_height rendition (unchanged message format) while the
+ * preview pair carries the fixed_width rendition for the masonry grid. The
+ * still frames back the reduced-motion rendering and the width/height
+ * reserve the aspect ratio (identical across renditions of one media).
  * @param gif Raw Giphy result.
  */
 function toGifResult(gif: GiphyGif): GifResult {
@@ -52,8 +57,8 @@ function toGifResult(gif: GiphyGif): GifResult {
     id: gif.id,
     url: image.url,
     still: gif.images.fixed_height_still.url,
-    preview: gif.images.fixed_height_small.url,
-    previewStill: gif.images.fixed_height_small_still.url,
+    preview: gif.images.fixed_width.url,
+    previewStill: gif.images.fixed_width_still.url,
     width: Number(image.width),
     height: Number(image.height),
     alt: gif.title || 'GIF',
@@ -62,9 +67,9 @@ function toGifResult(gif: GiphyGif): GifResult {
 
 
 /**
- * Loads PG-rated GIFs from Giphy for the picker. Trending, search and the
- * category previews share a single request builder that always sends
- * rating=pg-13; the picker debounces the search term before calling.
+ * Loads PG-rated GIFs from Giphy for the picker. Trending and search share
+ * a single request builder that always sends rating=pg-13 and pages via
+ * offset; the picker debounces the search term before calling.
  */
 @Injectable({ providedIn: 'root' })
 export class GiphyService {
@@ -72,43 +77,39 @@ export class GiphyService {
 
 
   /**
-   * Loads the current trending GIFs.
+   * Loads one page of the current trending GIFs.
+   * @param offset Result offset of the page (0 for the first page).
    */
-  trending(): Promise<GifResult[]> {
-    return this.load('trending', '', GIPHY_LIMIT);
+  trending(offset: number): Promise<GifResult[]> {
+    return this.load('trending', '', offset);
   }
 
 
   /**
-   * Searches GIFs for the given term.
+   * Loads one page of the search results for the given term.
    * @param term Non-empty search term.
+   * @param offset Result offset of the page (0 for the first page).
    */
-  search(term: string): Promise<GifResult[]> {
-    return this.load('search', term, GIPHY_LIMIT);
+  search(term: string, offset: number): Promise<GifResult[]> {
+    return this.load('search', term, offset);
   }
 
 
   /**
-   * Loads the representative preview GIF of a start-view category tile
-   * (the term's first search result).
-   * @param term Category term of the tile.
-   * @returns The first result, or null when the term has none.
-   */
-  async categoryPreview(term: string): Promise<GifResult | null> {
-    const results = await this.load('search', term, GIPHY_PREVIEW_LIMIT);
-    return results[0] ?? null;
-  }
-
-
-  /**
-   * Fetches a Giphy endpoint with the shared pg-13 rating and maps the
-   * results; rejects on a non-OK response so callers can show an error.
+   * Fetches a Giphy endpoint with the shared pg-13 rating, page size and
+   * offset, and maps the results; rejects on a non-OK response so callers
+   * can show an error.
    * @param endpoint Giphy endpoint segment ("trending" or "search").
    * @param term Search term; empty for trending.
-   * @param limit Maximum number of results.
+   * @param offset Result offset of the requested page.
    */
-  private async load(endpoint: string, term: string, limit: number): Promise<GifResult[]> {
-    const params = new URLSearchParams({ api_key: this.apiKey, rating: GIPHY_RATING, limit: String(limit) });
+  private async load(endpoint: string, term: string, offset: number): Promise<GifResult[]> {
+    const params = new URLSearchParams({
+      api_key: this.apiKey,
+      rating: GIPHY_RATING,
+      limit: String(GIF_PAGE_SIZE),
+      offset: String(offset),
+    });
     if (term) params.set('q', term);
     const response = await fetch(`${GIPHY_BASE}/${endpoint}?${params.toString()}`);
     if (!response.ok) throw new Error(`Giphy request failed: ${response.status}`);

@@ -237,6 +237,14 @@ $sheet-detent-offset-fallback: #{$sheet-detent-tall-dvh - $sheet-detent-half-dvh
 $sheet-settle-fallback-duration: 250ms;
 $sheet-settle-ease: cubic-bezier(0.35, 0.35, 0.15, 1);
 
+// GIF picker masonry: columns render Giphy's fixed_width rendition (200px
+// wide, variable height); the desktop panel width derives from the column
+// count, gaps and the card padding so the grid sits exactly inside it.
+$gif-column-width: 200px;
+$gif-grid-columns-desktop: 3;
+$gif-grid-columns-mobile: 2;
+$gif-grid-gap: space('sm');
+
 $dialog-widths: (
   'default':     872px,
   'members':     415px,
@@ -244,6 +252,9 @@ $dialog-widths: (
   'profile':     500px,
   'settings':    500px,
   'viewer':      1080px,
+  'gif':         $gif-grid-columns-desktop * $gif-column-width
+                 + ($gif-grid-columns-desktop - 1) * $gif-grid-gap
+                 + 2 * space('xl-xxl'),
 );
 
 @function dialog-width($key) {

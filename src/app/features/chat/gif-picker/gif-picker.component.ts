@@ -1,45 +1,56 @@
 /**
- * @file Lazily loaded GIF picker: a Discord-style start view (Favoriten,
- * Angesagt and one tile per category term, each with a cached
- * representative preview) over the trending/search/category result grids
- * and the favorites grid; selecting a GIF emits it for the composer to
- * send. Every Giphy request is pg-13 rated by the service; the permanently
- * visible „Powered by GIPHY" footer satisfies the Giphy attribution terms.
+ * @file Lazily loaded GIF picker: persistent category chips („Favoriten",
+ * „Angesagt" and the curated category terms) over one large masonry grid,
+ * mirroring the emoji picker's category navigation. The grid fills directly
+ * on open (one trending request); chips and the debounced search share the
+ * grid, and an IntersectionObserver sentinel pages further results in up to
+ * a hard cap (chat windowing pattern). Every Giphy request is pg-13 rated
+ * by the service; the permanently visible „Powered by GIPHY" footer
+ * satisfies the Giphy attribution terms.
  */
-import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 
-import { GifFavorite, GifResult } from '../../../models/gif.model';
+import { GifResult } from '../../../models/gif.model';
 import { AuthService } from '../../../services/auth.service';
 import { GifFavoritesService } from '../../../services/gif-favorites.service';
-import { GiphyService } from '../../../services/giphy.service';
+import { GIF_MAX_RESULTS, GIF_PAGE_SIZE, GiphyService } from '../../../services/giphy.service';
 import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
-import { gifStillRendition } from '../gif-rendition';
 import {
-  CategoryPreview,
-  GIF_CATEGORY_TERMS,
-  readCachedPreviews,
-  storeCachedPreviews,
-} from './gif-category-previews';
+  FAVORITES_CHIP_ID,
+  GifChip,
+  TRENDING_CHIP_ID,
+  buildChips,
+  chipTerm,
+} from './gif-picker.constants';
+import { dedupeById, favoriteToResult } from './gif-picker.results';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
 const TITLE_ID = 'gif-picker-title';
 
-const TRENDING_TITLE = 'Angesagt';
-
 const FAVORITES_EMPTY_NOTE = 'Noch keine Favoriten — markiere GIFs mit dem Stern.';
 
-/** The picker's visible surface: start tiles, a result grid or favorites. */
-type GifPickerView = 'start' | 'results' | 'favorites';
+const SENTINEL_MARGIN_PX = 300;
 
 /**
- * Modal GIF picker opened from the composer. Opens on the category start
- * view; tiles, debounced search input and the favorites star drive the
- * result grids. The dialog shell provides the dialog role, focus trap,
- * Escape and focus return.
+ * Modal GIF picker opened from the composer. „Angesagt" is active on open
+ * and fills the masonry grid immediately; chip taps and the debounced
+ * search swap the grid's feed, „Favoriten" renders the cached favorites
+ * document. The dialog shell provides the dialog role, focus trap, Escape
+ * and focus return.
  */
 @Component({
   selector: 'app-gif-picker',
@@ -55,15 +66,13 @@ export class GifPickerComponent {
 
   protected readonly titleId = TITLE_ID;
 
-  protected readonly categoryTerms = GIF_CATEGORY_TERMS;
+  protected readonly favoritesChipId = FAVORITES_CHIP_ID;
 
   protected readonly favoritesEmptyNote = FAVORITES_EMPTY_NOTE;
 
   protected readonly searchControl = new FormControl('', { nonNullable: true });
 
-  protected readonly view = signal<GifPickerView>('start');
-
-  protected readonly resultsTitle = signal('');
+  protected readonly activeChip = signal<string | null>(TRENDING_CHIP_ID);
 
   protected readonly gifs = signal<GifResult[]>([]);
 
@@ -71,9 +80,13 @@ export class GifPickerComponent {
 
   protected readonly hasError = signal(false);
 
-  protected readonly previews = signal<Record<string, CategoryPreview>>({});
+  protected readonly endReached = signal(false);
 
   protected readonly favoritesReady = signal(false);
+
+  private readonly sentinel = viewChild<ElementRef<HTMLElement>>('sentinel');
+
+  private readonly scrollRegion = viewChild.required<ElementRef<HTMLElement>>('scroll');
 
   private readonly giphy = inject(GiphyService);
 
@@ -83,132 +96,201 @@ export class GifPickerComponent {
 
   protected readonly isGuest = this.authService.isGuest;
 
-  protected readonly favoriteResults = computed(() =>
+  protected readonly chips = computed<readonly GifChip[]>(() => buildChips(this.isGuest()));
+
+  protected readonly showsFavorites = computed(() => this.activeChip() === FAVORITES_CHIP_ID);
+
+  private readonly favoriteResults = computed(() =>
     this.favoritesService.favorites().map(favoriteToResult),
   );
 
+  protected readonly displayedGifs = computed<readonly GifResult[]>(() =>
+    this.showsFavorites() ? this.favoriteResults() : this.gifs(),
+  );
+
+  private feedTerm: string | null = null;
+
+  private lastChip: string = TRENDING_CHIP_ID;
+
+  private nextOffset = 0;
+
+  private requestToken = 0;
+
+  private pageInFlight = false;
+
 
   /**
-   * Wires the debounced search input and starts the one-shot loads of the
-   * category previews and the favorites document.
+   * Wires the debounced search input, starts the one-shot favorites load,
+   * attaches the pagination sentinel watcher and fills the grid with the
+   * trending feed (the single request an open costs).
    */
   constructor() {
     this.searchControl.valueChanges
       .pipe(debounceTime(SEARCH_DEBOUNCE_MS), distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe(term => this.runQuery(term.trim()));
-    void this.loadCategoryPreviews();
+      .subscribe(term => this.onSearchTerm(term.trim()));
     void this.favoritesService.ensureLoaded().then(() => this.favoritesReady.set(true));
+    this.watchSentinel();
+    this.startFeed(null);
   }
 
 
   /**
-   * Runs a search for a typed term or returns to the start view when the
-   * input was cleared.
+   * Activates a chip: clears a typed search term, remembers the chip for
+   * the search-clear restore and loads its feed („Favoriten" renders the
+   * cached document without any request).
+   * @param chipId Id of the pressed chip.
+   */
+  protected selectChip(chipId: string): void {
+    this.searchControl.setValue('');
+    this.lastChip = chipId;
+    this.activeChip.set(chipId);
+    if (chipId !== FAVORITES_CHIP_ID) this.startFeed(chipTerm(chipId));
+  }
+
+
+  /**
+   * Applies a debounced search term: a non-empty term takes the grid over
+   * (no chip active), a cleared field returns to the previously active
+   * chip.
    * @param term Trimmed search term.
    */
-  private runQuery(term: string): void {
-    if (!term) return this.view.set('start');
-    this.resultsTitle.set(term);
-    void this.load(this.giphy.search(term));
+  private onSearchTerm(term: string): void {
+    if (!term) return this.restoreChipAfterSearch();
+    this.activeChip.set(null);
+    this.startFeed(term);
   }
 
 
   /**
-   * Opens the trending feed from its start-view tile.
+   * Re-activates the chip that was active before the search took the grid
+   * over; a no-op when a chip tap already cleared the field itself.
    */
-  protected openTrending(): void {
-    this.resultsTitle.set(TRENDING_TITLE);
-    void this.load(this.giphy.trending());
+  private restoreChipAfterSearch(): void {
+    if (this.activeChip() !== null) return;
+    this.activeChip.set(this.lastChip);
+    if (this.lastChip !== FAVORITES_CHIP_ID) this.startFeed(chipTerm(this.lastChip));
   }
 
 
   /**
-   * Opens a category's results from its start-view tile.
-   * @param term Category term of the pressed tile.
+   * Resets the grid to a new feed and loads its first page.
+   * @param term Search term of the feed; null for trending.
    */
-  protected openCategory(term: string): void {
-    this.resultsTitle.set(term);
-    void this.load(this.giphy.search(term));
-  }
-
-
-  /**
-   * Opens the favorites grid from its start-view tile.
-   */
-  protected openFavorites(): void {
-    this.view.set('favorites');
-  }
-
-
-  /**
-   * Returns to the start view, clearing a typed search term.
-   */
-  protected back(): void {
-    this.searchControl.setValue('');
-    this.view.set('start');
-  }
-
-
-  /**
-   * Awaits a Giphy request into the result grid, toggling loading and the
-   * error state so a failed or rate-limited request degrades gracefully.
-   * @param request Pending Giphy request.
-   */
-  private async load(request: Promise<GifResult[]>): Promise<void> {
-    this.view.set('results');
-    this.isLoading.set(true);
+  private startFeed(term: string | null): void {
+    this.feedTerm = term;
+    this.nextOffset = 0;
+    this.gifs.set([]);
+    this.endReached.set(false);
     this.hasError.set(false);
-    try {
-      this.gifs.set(await request);
-    } catch {
-      this.hasError.set(true);
-      this.gifs.set([]);
-    } finally {
-      this.isLoading.set(false);
-    }
+    void this.loadPage();
   }
 
 
   /**
-   * Loads the start-view tile previews: served entirely from the two-layer
-   * cache within its TTL, otherwise fetched once per term and cached when
-   * complete.
+   * Re-observes the pagination sentinel whenever it (re)enters the DOM or
+   * a page lands, so a sentinel still inside the prefetch margin keeps
+   * paging without another scroll event.
    */
-  private async loadCategoryPreviews(): Promise<void> {
-    const cached = readCachedPreviews();
-    if (cached) return this.previews.set(cached);
-    const entries = await Promise.all(
-      GIF_CATEGORY_TERMS.map(async term => [term, await this.previewOf(term)] as const),
+  private watchSentinel(): void {
+    effect(onCleanup => {
+      this.gifs();
+      const sentinel = this.sentinel()?.nativeElement;
+      if (!sentinel) return;
+      const observer = this.createSentinelObserver();
+      observer.observe(sentinel);
+      onCleanup(() => observer.disconnect());
+    });
+  }
+
+
+  /**
+   * Builds the IntersectionObserver that pages further results in as the
+   * sentinel nears the scroll region's lower edge.
+   */
+  private createSentinelObserver(): IntersectionObserver {
+    return new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting) this.loadMore();
+      },
+      { root: this.scrollRegion().nativeElement, rootMargin: `0px 0px ${SENTINEL_MARGIN_PX}px 0px` },
     );
-    const previews: Record<string, CategoryPreview> = {};
-    for (const [term, preview] of entries) if (preview) previews[term] = preview;
-    this.previews.set(previews);
-    if (Object.keys(previews).length === GIF_CATEGORY_TERMS.length) storeCachedPreviews(previews);
   }
 
 
   /**
-   * Fetches one category's representative preview; failures resolve to
-   * null so a single miss never breaks the start view.
-   * @param term Category term of the tile.
+   * Loads the next page of the active feed when the sentinel reports
+   * visibility; no-op while a page is in flight, at the cap or on the
+   * favorites view.
    */
-  private async previewOf(term: string): Promise<CategoryPreview | null> {
+  private loadMore(): void {
+    if (this.pageInFlight || this.endReached() || this.showsFavorites()) return;
+    if (this.nextOffset === 0) return;
+    void this.loadPage();
+  }
+
+
+  /**
+   * Fetches one page of the active feed at the current offset, dropping
+   * stale responses (the feed changed mid-flight) so a slow page can never
+   * overwrite a newer feed.
+   */
+  private async loadPage(): Promise<void> {
+    const token = ++this.requestToken;
+    const offset = this.nextOffset;
+    this.pageInFlight = true;
+    if (offset === 0) this.isLoading.set(true);
     try {
-      const gif = await this.giphy.categoryPreview(term);
-      return gif ? { url: gif.preview, still: gif.previewStill } : null;
+      const page = await this.fetchPage(offset);
+      if (token === this.requestToken) this.appendPage(page);
     } catch {
-      return null;
+      if (token === this.requestToken) this.failPage(offset);
+    } finally {
+      if (token === this.requestToken) this.finishPage(offset);
     }
   }
 
 
   /**
-   * Resolves the cached preview of a category tile; null renders the
-   * tile's plain fallback.
-   * @param term Category term of the tile.
+   * Runs the feed's Giphy request for one page.
+   * @param offset Result offset of the page.
    */
-  protected previewFor(term: string): CategoryPreview | null {
-    return this.previews()[term] ?? null;
+  private fetchPage(offset: number): Promise<GifResult[]> {
+    const term = this.feedTerm;
+    return term === null ? this.giphy.trending(offset) : this.giphy.search(term, offset);
+  }
+
+
+  /**
+   * Appends a landed page de-duplicated by id, advances the offset and
+   * flags the end after a short page or at the result cap.
+   * @param page Landed page of the active feed.
+   */
+  private appendPage(page: GifResult[]): void {
+    this.nextOffset += GIF_PAGE_SIZE;
+    this.gifs.set(dedupeById([...this.gifs(), ...page]));
+    if (page.length < GIF_PAGE_SIZE || this.nextOffset >= GIF_MAX_RESULTS) this.endReached.set(true);
+  }
+
+
+  /**
+   * Degrades a failed page gracefully: a failed first page shows the error
+   * state, any failure stops further pagination of the feed.
+   * @param offset Offset the failed request was sent with.
+   */
+  private failPage(offset: number): void {
+    if (offset === 0) this.hasError.set(true);
+    this.endReached.set(true);
+  }
+
+
+  /**
+   * Clears the in-flight flag and the initial loading state of a settled
+   * page request.
+   * @param offset Offset the settled request was sent with.
+   */
+  private finishPage(offset: number): void {
+    this.pageInFlight = false;
+    if (offset === 0) this.isLoading.set(false);
   }
 
 
@@ -258,23 +340,4 @@ export class GifPickerComponent {
   protected close(): void {
     this.closed.emit();
   }
-}
-
-
-/**
- * Maps a stored favorite back to a sendable GIF result; the still frames
- * derive from Giphy's sibling renditions.
- * @param favorite Stored favorite entry.
- */
-function favoriteToResult(favorite: GifFavorite): GifResult {
-  return {
-    id: favorite.id,
-    url: favorite.url,
-    still: gifStillRendition(favorite.url) ?? favorite.url,
-    preview: favorite.previewUrl,
-    previewStill: gifStillRendition(favorite.previewUrl) ?? favorite.previewUrl,
-    width: favorite.width,
-    height: favorite.height,
-    alt: favorite.title,
-  };
 }

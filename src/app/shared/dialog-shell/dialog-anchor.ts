@@ -20,7 +20,8 @@ export type DialogSize =
   | 'settings'
   | 'menu'
   | 'search'
-  | 'viewer';
+  | 'viewer'
+  | 'gif';
 
 /**
  * Viewport position a dialog card is anchored to. Exactly one vertical edge

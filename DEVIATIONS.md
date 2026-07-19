@@ -2083,6 +2083,10 @@ the `soundboardSounds` collection and its rules block.
   the soundboard anymore.
 
 ## GIF picker: Discord-style start view, favorites and permanent GIPHY attribution (2026-07-19)
+*Superseded the same day (owner feedback): the tile start view was replaced by persistent
+category chips over one masonry grid — see the redesign entry below. The favorites and
+attribution decisions in this entry stand unchanged.*
+
 The picker no longer opens on a flat trending grid (no Figma design for any of this; Discord
 conventions adopted deliberately).
 
@@ -2125,3 +2129,81 @@ below it and only dense full-band material approaches it. Worst-case mesh math a
 cap: 4 peer legs × 384 kbps ≈ **1.5 Mbit/s upload ceiling** for audio, alongside the existing
 screen-share budget of 2 Mbit/s per leg (SCREEN_MAX_BITRATE) — acceptable for the target
 audience of the demo; real-world audio load remains a fraction of the ceiling.
+
+## GIF picker redesign: category chips over one masonry grid (2026-07-19)
+Owner feedback on the tile start view (entry above): the intermediate view felt cramped. The
+picker now mirrors the emoji picker's category navigation — no start view at all, one large
+directly-filled grid.
+
+- **Removed:** `gif-category-previews.ts` — the entire category-preview infrastructure
+  (representative tile fetches, the in-memory layer AND the `vibo:gifCategoryPreviews`
+  localStorage 24 h TTL cache) plus the tile grid UI. Chips are text-only; the stale
+  localStorage key is never read again and stays inert. Giphy accounting improves: opening
+  the picker costs exactly **1** request (trending) instead of 11 on a cold cache.
+- **Layout:** search on top (unchanged), below it a persistent horizontally scrollable chip
+  bar — „Favoriten" (star icon, hidden for the guest), „Angesagt", the ten category terms
+  (`GIF_CATEGORY_TERMS`, moved to `gif-picker.constants.ts`) — over ONE continuous masonry
+  grid (CSS columns; `$gif-grid-columns-desktop` 3, `$gif-grid-columns-mobile` 2 ≤ 992 px).
+  Grid items render Giphy's **fixed_width** rendition: `GifResult.preview`/`previewStill`
+  re-mapped from fixed_height_small — stored favorites stay compatible in both directions
+  because `previewUrl` is rendition-agnostic and every rendition of a media shares its aspect
+  ratio. Width/height attributes reserve each box (CLS 0), `loading="lazy"`, stills under
+  `prefers-reduced-motion`. Column-wise DOM order means Tab walks the grid column by column —
+  accepted, it matches the masonry reading order.
+- **Chips a11y:** the emoji picker's tabs pattern mirrored (`role="tablist"`/`role="tab"`,
+  `aria-selected`), keyboard-operable with the shared focus ring, 44 px minimum target.
+- **Behavior:** „Angesagt" is active and filled on open (the single request); a chip tap
+  loads that term's first page into the same grid (1 request); typing takes the grid over
+  (no chip active) and clearing the field restores the previously active chip; „Favoriten"
+  renders the session-cached document (0 requests, cap 50, existing German empty state).
+- **Pagination:** `GIF_PAGE_SIZE` 24 per request; an IntersectionObserver sentinel (chat
+  windowing pattern, 300 px prefetch margin, re-observed after every landed page so a
+  still-visible sentinel keeps paging) appends offset pages up to `GIF_MAX_RESULTS` 96 per
+  term/query, then the subtle hint „Keine weiteren GIFs". Pages are de-duplicated by id
+  (offset pages of a shifting feed can overlap); a request token drops stale responses on
+  feed switches; every request keeps `rating=pg-13`.
+- **Panel:** new `'gif'` dialog width token derived from the masonry (3 × 200 px fixed_width
+  columns + 2 gaps + 2 × card padding = 696 px); the panel height is pinned to the viewport
+  (`100dvh` minus a token reserve, vh fallback) so it stays stable across loading/loaded
+  states — an earlier `flex: 1` made `flex-basis: 0%` override the explicit height and the
+  card breathed with content (caught by the headless height-stability check). Search + chip
+  bar stay pinned; ONLY the grid scrolls (soundboard overflow hardening:
+  `overscroll-behavior: contain`, `overflow-x: clip`, thin scrollbar). Mobile keeps the plain
+  bottom sheet at full width.
+- **Found & fixed during verification — bogus dialog-shell anchor classes (app-wide):**
+  Angular templates compile the safe navigation `a()?.b` to `null` (not `undefined`) when
+  `a()` is null, so `activeAnchor()?.left !== undefined` evaluated TRUE for every
+  anchor-less dialog — all three `--anchor-*` classes landed on every centered card and
+  every mobile sheet, and the compound corner-flip rules (specificity 0,2,0) silently
+  replaced the documented sheet slide-up entrance with `menu-inflate` and squared a corner
+  on centered cards. The checks now live in typed component computeds
+  (`anchoredLeft`/`anchoredRight`/`anchoredBottom`) where TypeScript semantics apply.
+  Verified: anchored popovers keep their classes plus inline position, centered cards and
+  sheets carry none, sheets enter with `sheet-slide-up` again.
+- **Verified headless** (production build, both themes, 1280 px and 320 px): 27/27 sweep
+  checks — chips keyboard-operable and horizontally scrollable, grid fill 24, sentinel page
+  2, end hint at the 96 cap, request accounting open/chip/page = 1/1/1, only the grid region
+  scrolls, document scroll width = viewport — plus 9/9 favorites checks with a registered
+  account (44 px star target, `aria-pressed` toggle, favorites grid served from cache with 0
+  requests, German empty state) and an end-to-end GIF send (stored message format unchanged;
+  the chat message renders the derived 200w.webp rendition as documented on 2026-07-16).
+
+## Production verification against the live deployment (2026-07-19, v1.0 scope)
+Owner-measured final pass in Chrome incognito against
+`https://vibo.yannick-oetelshoven.at/#/app/channel/general`:
+
+- **Lighthouse 95 / 100 / 96 / 100** (Performance / Accessibility / Best Practices / SEO) —
+  identical to the documented final scores.
+- **DevTools console completely clean.** Network: **88 requests / 390 kB transferred /
+  load ~168 ms**, with 304 revalidation on the static assets.
+- Every remaining audit finding maps onto a documented accepted deviation: the
+  low-res/image-delivery flags come from the animated avatar renditions (256 px animated
+  WebP shown at small display sizes — the animation is the feature) and the YouTube facade's
+  `hqdefault` thumbnail. A `maxresdefault`-with-fallback upgrade was considered and declined:
+  not guaranteed per video, an extra error-path request, no score change. Cache lifetimes
+  remain the documented host behavior; unused JS remains the eager-Firebase trade-off.
+
+## Bootstrap failure logging: the one deliberate console.error (2026-07-19)
+The single `console.error` in the `bootstrapApplication` catch (main.ts) is a deliberate
+accepted deviation from the no-console rule: a failed bootstrap is the only failure point
+with no UI surface to report into, so the framework-default handler is retained.
