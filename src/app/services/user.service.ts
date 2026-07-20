@@ -15,6 +15,7 @@ import {
 import { Observable, catchError, of, switchMap } from 'rxjs';
 
 import { UserDoc } from '../models/user.model';
+import { isVerifiedOrGuest } from './account-security.service';
 import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
 
@@ -68,13 +69,19 @@ export class UserService {
 
   /**
    * Streams the users collection ordered by name; emits an empty list while
-   * signed out so the subscription never reads without permission. The query
-   * is created in the injection context as required by AngularFire.
+   * signed out or unverified, mirroring the security rules — the list query
+   * has no signup-time carve-out, so starting it for the freshly created,
+   * still-unverified account mid-registration would only raise the load
+   * error. The source re-emits on token refresh (idToken-based), so the
+   * query starts right after the verified claim is proven. The query is
+   * created in the injection context as required by AngularFire.
    */
   private streamUsers(): Observable<UserDoc[]> {
     return toObservable(this.authService.currentUser).pipe(
       switchMap(current =>
-        current ? runInInjectionContext(this.injector, () => this.queryUsers()) : of([]),
+        current && isVerifiedOrGuest(current)
+          ? runInInjectionContext(this.injector, () => this.queryUsers())
+          : of([]),
       ),
     );
   }
