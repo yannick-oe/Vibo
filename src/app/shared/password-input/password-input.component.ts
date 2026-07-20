@@ -2,7 +2,16 @@
  * @file Password input pill with a visibility toggle, usable in reactive
  * forms via ControlValueAccessor or standalone in presentational forms.
  */
-import { ChangeDetectionStrategy, Component, forwardRef, input, signal, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  forwardRef,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 const SHOW_LABEL = 'Passwort anzeigen';
@@ -46,9 +55,20 @@ export class PasswordInputComponent implements ControlValueAccessor {
 
   protected readonly isDisabled = signal(false);
 
+  private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
+
   private onChange: (value: string) => void = () => undefined;
 
   private onTouched: () => void = () => undefined;
+
+
+  /**
+   * Moves keyboard focus into the native input field, so hosting dialogs
+   * can focus their first field on open.
+   */
+  focusInput(): void {
+    this.field().nativeElement.focus();
+  }
 
 
   /**

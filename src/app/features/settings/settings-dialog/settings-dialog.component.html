@@ -62,9 +62,21 @@
   </section>
 
   @if (canChangePassword()) {
-    <section class="settings-dialog__section" aria-labelledby="settings-password-title">
-      <h3 class="settings-dialog__section-title" id="settings-password-title">Passwort ändern</h3>
-      <app-password-change />
+    <section class="settings-dialog__section" aria-labelledby="settings-account-title">
+      <h3 class="settings-dialog__section-title" id="settings-account-title">Konto</h3>
+      <button class="settings-dialog__row" type="button" (click)="openPasswordDialog()">
+        <span class="settings-dialog__row-label">Passwort ändern</span>
+        <img
+          class="settings-dialog__row-chevron"
+          src="app-icons/arrow-left.svg"
+          alt=""
+          aria-hidden="true"
+        />
+      </button>
     </section>
   }
 </app-dialog-shell>
+
+@if (isPasswordDialogOpen()) {
+  <app-password-change-dialog (closed)="closePasswordDialog()" />
+}

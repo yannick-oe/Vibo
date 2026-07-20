@@ -1,11 +1,12 @@
 /**
- * @file "Passwort ändern" form inside the settings dialog: current
- * password, new password and confirmation with live validation, the
- * re-authentication + update flow and specific German error messages in
- * reserved slots. Hidden entirely for the guest account and for accounts
- * without an e-mail/password credential (see the settings dialog).
+ * @file "Passwort ändern" form inside its own dialog (opened from the
+ * settings dialog's account row): current password, new password and
+ * confirmation with live validation, the re-authentication + update flow
+ * and specific German error messages in reserved slots. Hidden entirely
+ * for the guest account and for accounts without an e-mail/password
+ * credential (see the settings dialog).
  */
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FirebaseError } from 'firebase/app';
 
@@ -64,6 +65,8 @@ export class PasswordChangeComponent {
 
   protected readonly successMessage = signal('');
 
+  private readonly firstField = viewChild(PasswordInputComponent);
+
   protected readonly form = this.formBuilder.group(
     {
       current: ['', Validators.required],
@@ -76,6 +79,15 @@ export class PasswordChangeComponent {
     },
     { validators: matchingPasswordsValidator('next', 'confirm') },
   );
+
+
+  /**
+   * Moves keyboard focus into the first (current password) field; called
+   * by the wrapping dialog when it opens.
+   */
+  focusFirstField(): void {
+    this.firstField()?.focusInput();
+  }
 
 
   /**

@@ -1,8 +1,8 @@
 // Styles of the settings dialog: the card header, the "Sounds" section —
 // switch rows (master toggle + swipe opt-in), the labelled volume slider
-// and the preview button — and the "Passwort ändern" section. The slider
-// and switch visuals come from the shared control mixins (_controls.scss),
-// which the per-user voice-volume menu reuses.
+// and the preview button — and the "Konto" row opening the password-change
+// dialog. The slider and switch visuals come from the shared control
+// mixins (_controls.scss), which the per-user voice-volume menu reuses.
 @use 'variables' as v;
 @use 'mixins' as m;
 @use 'controls' as c;
@@ -37,6 +37,24 @@
 
 .settings-dialog__sound-switch {
   @include c.switch-row;
+}
+
+.settings-dialog__row {
+  @include c.switch-row;
+
+  &:hover .settings-dialog__row-label {
+    color: v.color('primary');
+  }
+}
+
+.settings-dialog__row-label {
+  min-width: 0;
+  transition: color v.$transition-fast;
+}
+
+.settings-dialog__row-chevron {
+  flex-shrink: 0;
+  transform: scaleX(-1);
 }
 
 .settings-dialog__sound-switch-label {
