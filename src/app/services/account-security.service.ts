@@ -1,9 +1,10 @@
 /**
  * @file Account-security operations on top of Firebase Auth: e-mail
- * verification (send, confirm with a forced token refresh, and the guard's
- * stale-claim safety net for restored sessions) and the in-app password
- * change with re-authentication. Pure Auth concerns — this service never
- * touches Firestore.
+ * verification (send with a verify-screen continue link, confirm with a
+ * forced token refresh plus a bounded claim poll, and the guard's
+ * stale-flag/stale-claim safety nets for restored sessions) and the in-app
+ * password change with re-authentication. Pure Auth concerns — this
+ * service never touches Firestore.
  */
 import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
 import {
@@ -28,6 +29,19 @@ const NOT_SIGNED_IN_ERROR = 'Operation requires a signed-in user.';
 const PASSWORD_PROVIDER_ID = 'password';
 
 const PASSWORD_CHECK_DEBOUNCE_MS = 200;
+
+const VERIFY_EMAIL_CONTINUE_FRAGMENT = '#/auth/verify-email';
+
+const VERIFIED_CLAIM = 'email_verified';
+
+const STALE_CLAIM_ERROR = 'Verified-e-mail claim still missing after a forced token refresh.';
+
+const CLAIM_POLL_ATTEMPTS = 5;
+
+const CLAIM_POLL_DELAY_MS = 400;
+
+/** Outcome of a verification confirmation attempt on the verify screen. */
+export type VerifyOutcome = 'verified' | 'unverified' | 'failed';
 
 
 /**
@@ -89,14 +103,33 @@ export class AccountSecurityService {
 
 
   /**
-   * Reads the cached ID token's claims and forces a refresh when the
-   * verified-e-mail claim has not caught up with the account state yet.
+   * Reads the cached ID token's claims, forces a refresh when the
+   * verified-e-mail claim has not caught up with the account state yet and
+   * re-reads the refreshed token: the caller only ever proceeds on a token
+   * that provably carries the claim, never on the refresh call alone.
    * @param user Signed-in Firebase user with a verified address.
    */
   private async refreshStaleClaim(user: User): Promise<void> {
-    const result = await this.inContext(() => getIdTokenResult(user));
-    if (result.claims['email_verified'] === true) return;
+    const cached = await this.inContext(() => getIdTokenResult(user));
+    if (cached.claims[VERIFIED_CLAIM] === true) return;
     await this.inContext(() => getIdToken(user, true));
+    const refreshed = await this.inContext(() => getIdTokenResult(user));
+    if (refreshed.claims[VERIFIED_CLAIM] !== true) throw new Error(STALE_CLAIM_ERROR);
+  }
+
+
+  /**
+   * Guard net for restored sessions and second devices: the SDK's persisted
+   * `emailVerified` flag can be stale after the address was verified
+   * externally (mail-link tab, another device). Reloads the account once so
+   * the guard decides on current server state; a failed reload (offline) is
+   * tolerated — the stale flag then routes to the verification screen,
+   * whose auto-continue retries. No-op for verified users and the guest.
+   * @param user Signed-in Firebase user about to be routed.
+   */
+  async refreshStaleVerification(user: User): Promise<void> {
+    if (user.emailVerified || user.email === environment.guestEmail) return;
+    await this.inContext(() => reload(user)).catch(() => undefined);
   }
 
 
@@ -120,28 +153,65 @@ export class AccountSecurityService {
 
 
   /**
-   * Sends the verification e-mail. The continue link points at the
-   * deployment-aware app base (`document.baseURI`, hash-routed), matching
-   * the password-reset flow, so it is correct on both deployments.
+   * Sends the verification e-mail. The continue link targets the verify
+   * screen (deployment-aware base from `document.baseURI` plus the
+   * hash-routed verify route) instead of the app: the mail-link tab lands
+   * on a screen with zero Firestore access, whose auto-continue proves the
+   * refreshed token claim before any app stream can start.
    */
   sendVerificationEmail(): Promise<void> {
     const currentUser = this.requireUser();
-    const settings = { url: document.baseURI };
+    const settings = { url: `${document.baseURI}${VERIFY_EMAIL_CONTINUE_FRAGMENT}` };
     return this.inContext(() => sendEmailVerification(currentUser, settings));
   }
 
 
   /**
-   * Reloads the account and, once verified, forces an ID-token refresh so
-   * the Firestore security rules see `email_verified = true` immediately.
-   * @returns Whether the e-mail is verified now.
+   * Reloads the account and, once verified, forces an ID-token refresh and
+   * polls the token claims until the Firestore security rules provably see
+   * `email_verified = true`; only then may the caller navigate into the
+   * app. A confirmed claim also fills the session success cache.
+   * @returns 'verified' on a proven claim, 'unverified' while the address
+   * is still unconfirmed, 'failed' when the claim never became visible.
    */
-  async confirmVerified(): Promise<boolean> {
+  async confirmVerified(): Promise<VerifyOutcome> {
     const currentUser = this.requireUser();
     await this.inContext(() => reload(currentUser));
-    if (!currentUser.emailVerified) return false;
+    if (!currentUser.emailVerified) return 'unverified';
     await this.inContext(() => getIdToken(currentUser, true));
-    return true;
+    if (!(await this.awaitVerifiedClaim(currentUser))) return 'failed';
+    this.freshClaimUid = currentUser.uid;
+    return 'verified';
+  }
+
+
+  /**
+   * Polls the ID-token claims with bounded retries; every retry forces a
+   * fresh token first, so a propagation delay on the Auth backend cannot
+   * park the client on a stale claim forever.
+   * @param user Signed-in Firebase user whose address is verified.
+   */
+  private async awaitVerifiedClaim(user: User): Promise<boolean> {
+    for (let attempt = 0; attempt < CLAIM_POLL_ATTEMPTS; attempt++) {
+      if (attempt > 0) {
+        await delay(CLAIM_POLL_DELAY_MS);
+        await this.inContext(() => getIdToken(user, true));
+      }
+      const result = await this.inContext(() => getIdTokenResult(user));
+      if (result.claims[VERIFIED_CLAIM] === true) return true;
+    }
+    return false;
+  }
+
+
+  /**
+   * Whether the verify screen should auto-run the confirmation on load:
+   * a user is signed in and it is not the guest account (which never
+   * verifies and cannot reach the screen through the guards anyway).
+   */
+  shouldAutoConfirm(): boolean {
+    const currentUser = this.auth.currentUser;
+    return currentUser !== null && currentUser.email !== environment.guestEmail;
   }
 
 
@@ -219,4 +289,13 @@ export class AccountSecurityService {
   private inContext<T>(operation: () => T): T {
     return runInInjectionContext(this.injector, operation);
   }
+}
+
+
+/**
+ * Resolves after the given pause; backs the bounded claim-poll retries.
+ * @param ms Milliseconds to wait.
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

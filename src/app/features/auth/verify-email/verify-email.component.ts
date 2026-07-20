@@ -1,8 +1,10 @@
 /**
- * @file E-mail verification screen shown after registration and after a
- * sign-in with an unverified account: explains the sent e-mail, offers a
- * cooldown-guarded resend and continues into the app once the address is
- * confirmed. Talks only to Firebase Auth — no Firestore access here.
+ * @file E-mail verification screen shown after registration, after a
+ * sign-in with an unverified account and as the landing target of the
+ * mail's continue link: explains the sent e-mail, offers a
+ * cooldown-guarded resend, auto-runs the confirmation on load and
+ * continues into the app once the token claim is proven. Talks only to
+ * Firebase Auth — no Firestore access here.
  */
 import {
   AfterViewInit,
@@ -70,6 +72,8 @@ export class VerifyEmailComponent implements AfterViewInit {
 
   protected readonly isPending = signal(false);
 
+  protected readonly isChecking = signal(false);
+
   protected readonly cooldownLeft = signal(0);
 
   protected readonly errorMessage = signal('');
@@ -80,10 +84,13 @@ export class VerifyEmailComponent implements AfterViewInit {
 
 
   /**
-   * Clears the cooldown interval when the screen is left.
+   * Clears the cooldown interval when the screen is left and auto-runs the
+   * confirmation for a signed-in, non-guest account — the mail's continue
+   * link lands here, so the check must not wait for a click.
    */
   constructor() {
     this.destroyRef.onDestroy(() => this.stopCooldown());
+    if (this.accountSecurity.shouldAutoConfirm()) void this.autoConfirm();
   }
 
 
@@ -96,21 +103,44 @@ export class VerifyEmailComponent implements AfterViewInit {
 
 
   /**
-   * Re-checks the verification state; a confirmed address continues into
-   * the app (or a pending invite), an unconfirmed one shows the hint.
+   * Re-checks the verification state; a proven claim continues into the
+   * app (or a pending invite), an unconfirmed address shows the hint and
+   * a claim that never became visible falls to the general error.
    */
   protected async confirm(): Promise<void> {
     if (this.isPending()) return;
     this.isPending.set(true);
     this.errorMessage.set('');
     try {
-      const verified = await this.accountSecurity.confirmVerified();
-      if (verified) return void this.router.navigate(this.postVerifyTarget());
-      this.errorMessage.set(NOT_VERIFIED_MESSAGE);
+      const outcome = await this.accountSecurity.confirmVerified();
+      if (outcome === 'verified') return void this.router.navigate(this.postVerifyTarget());
+      this.errorMessage.set(outcome === 'unverified' ? NOT_VERIFIED_MESSAGE : GENERAL_ERROR_MESSAGE);
     } catch {
       this.errorMessage.set(GENERAL_ERROR_MESSAGE);
     } finally {
       this.isPending.set(false);
+    }
+  }
+
+
+  /**
+   * Mail-link auto-continue: runs the confirmation once on load. A proven
+   * claim navigates into the app, a still-unverified address keeps the
+   * screen unchanged and a failed refresh (offline) shows the general
+   * error — the app is never entered without a confirmed claim.
+   */
+  private async autoConfirm(): Promise<void> {
+    this.isPending.set(true);
+    this.isChecking.set(true);
+    try {
+      const outcome = await this.accountSecurity.confirmVerified();
+      if (outcome === 'verified') return void this.router.navigate(this.postVerifyTarget());
+      if (outcome === 'failed') this.errorMessage.set(GENERAL_ERROR_MESSAGE);
+    } catch {
+      this.errorMessage.set(GENERAL_ERROR_MESSAGE);
+    } finally {
+      this.isPending.set(false);
+      this.isChecking.set(false);
     }
   }
 

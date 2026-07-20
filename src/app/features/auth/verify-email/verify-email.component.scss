@@ -36,6 +36,38 @@
   text-align: center;
 }
 
+.verify-card__status {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: v.space('xs');
+  min-height: v.$icon-sm;
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-medium;
+  color: v.color('text-gray');
+}
+
+.verify-card__spinner {
+  width: v.$icon-sm;
+  height: v.$icon-sm;
+  border: 2px solid v.color('lines');
+  border-top-color: v.color('primary');
+  border-radius: v.$radius-round;
+  animation: verify-card-spin 0.8s linear infinite;
+}
+
+@keyframes verify-card-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verify-card__spinner {
+    animation: none;
+  }
+}
+
 .verify-card__actions {
   display: flex;
   justify-content: center;

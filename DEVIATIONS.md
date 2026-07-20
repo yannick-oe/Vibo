@@ -2255,3 +2255,39 @@ callable) and is not enlarged by the new UI; recovery is a password reset in the
 Console. Server-side prevention would require a Blaze-plan blocking function
 (`beforeSignedIn`/user-write triggers), which the Spark budget excludes — documented and
 accepted, matching the guest trade-off entry in CLAUDE.md.
+
+## Deterministic verification re-entry: claim-readiness before any stream (2026-07-20)
+The v1.1.1 guard claim-check (refresh a stale `email_verified` token claim before app
+entry) did not fully kill the frozen continueUrl tab: the mail link continued into the
+app base, and the check raced the SDK's async `accounts:lookup` on session restore.
+The underlying SDK fact that shapes the v1.1.2 fix: **`onSnapshot` listeners that
+receive `permission-denied` are TERMINAL** — the error callback fires once, the
+listener detaches and never recovers, even after a later token refresh. A single
+stream started on a stale claim therefore stays dead for the whole session ("Unbekannt"
+users, "Nachrichten konnten nicht geladen werden", healed only by re-login).
+
+Vibo's design consequently **guarantees claim-readiness before any stream starts**
+instead of adding listener-restart machinery:
+
+- **The verification mail's continue link targets the verify screen**
+  (`document.baseURI` + `#/auth/verify-email`), which has zero Firestore access, not
+  the app base. The screen auto-runs the confirmation on load: `reload()`, forced
+  `getIdToken(true)`, then a bounded poll of `getIdTokenResult()` until
+  `claims.email_verified === true` (each retry forces a fresh token first); only a
+  proven claim navigates into the app, with a reserved „Bestätigung wird geprüft…"
+  status line while checking.
+- **The auth guard is the second net** (second devices, session restore): a user still
+  flagged unverified is `reload()`ed once before deciding, and the claim check now
+  re-reads the refreshed token — activation only ever happens on a token that provably
+  carries the claim. Everything is awaited before route activation.
+- **Ordering:** every Firestore-listening service gated on verification is first
+  injected inside the `/app` component tree, which Angular loads only after the guard
+  resolves (`canActivate` on the lazy app shell). The auth area constructs only
+  `ChannelService` (channels read is a signup-time `signedIn()` carve-out in the rules)
+  and `FriendshipService` (silent empty-list recovery, re-keyed per token emission), so
+  no verified-gated stream can start on a stale claim.
+- **The users list stream additionally mirrors the rules client-side** (verified or
+  guest, else empty): the list query has no signup-time carve-out, so starting it for
+  the freshly created, still-unverified account mid-registration (a warm session that
+  already constructed `UserService`) only produced the spurious „Benutzer konnten nicht
+  geladen werden."-toast during a clean signup.

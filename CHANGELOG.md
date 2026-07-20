@@ -4,6 +4,14 @@ Alle nennenswerten Änderungen an Vibo, kuratiert nach Feature-Bereichen im Stil
 
 ## [Unreleased]
 
+## [1.1.2] – 2026-07-20
+
+### Konto & Sicherheit
+
+- **Bestätigungslink repariert — endgültig:** Der Link aus der Verifizierungs-E-Mail führt jetzt auf die Bestätigungsseite statt direkt in die App; dort wird die Bestätigung automatisch geprüft („Bestätigung wird geprüft…") und die App erst betreten, wenn das frische Auth-Token nachweislich vorliegt — der eingefrorene Tab (alle Nutzer „Unbekannt", Nachrichten nicht ladbar) ist damit behoben
+- **Keine Fehlermeldung mehr bei der Registrierung:** Der irreführende Toast „Benutzer konnten nicht geladen werden." während einer sauberen Konto-Erstellung ist beseitigt — die Nutzerliste startet erst nach bestätigter E-Mail-Adresse
+- **Passwort ändern rund gemacht:** Nach erfolgreicher Änderung schließt sich der Dialog von selbst und ein Toast bestätigt „Passwort erfolgreich geändert." — Fehler erscheinen weiterhin direkt im Dialog
+
 ## [1.1.1] – 2026-07-19
 
 ### Konto & Sicherheit

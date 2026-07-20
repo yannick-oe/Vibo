@@ -23,12 +23,17 @@ import {
  * Allows the app area only for signed-in, verified-or-guest users whose ID
  * token provably carries the verified claim; signed-out users go to login,
  * unverified ones (or ones whose stale claim failed to refresh, e.g.
- * offline) to the verification screen.
+ * offline) to the verification screen. A user still flagged unverified is
+ * reloaded once first — the persisted flag can lag behind an external
+ * verification (mail-link tab, second device) — and every check is awaited
+ * before activation, so no Firestore stream can ever start on a stale
+ * claim.
  */
 export const authGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const accountSecurity = inject(AccountSecurityService);
   const currentUser = await firstValueFrom(authState(inject(Auth)));
+  if (currentUser) await accountSecurity.refreshStaleVerification(currentUser);
   const target = appAreaTarget(currentUser, router);
   if (target !== true || !currentUser) return target;
   const hasFreshClaim = await accountSecurity.ensureVerifiedTokenClaim(currentUser);

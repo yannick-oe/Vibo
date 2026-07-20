@@ -16,6 +16,13 @@
 
   <p class="form-error verify-card__error" role="alert">{{ errorMessage() }}</p>
 
+  <p class="verify-card__status" role="status">
+    @if (isChecking()) {
+      <span class="verify-card__spinner" aria-hidden="true"></span>
+      Bestätigung wird geprüft…
+    }
+  </p>
+
   <div class="verify-card__actions">
     <button class="btn btn-primary" type="button" [disabled]="isPending()" (click)="confirm()">
       Ich habe bestätigt
