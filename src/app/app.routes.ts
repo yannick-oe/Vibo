@@ -3,7 +3,7 @@
  */
 import { Routes } from '@angular/router';
 
-import { authGuard, unauthGuard } from './guards/auth.guard';
+import { authGuard, unauthGuard, verifyEmailGuard } from './guards/auth.guard';
 import { registrationFormGuard } from './guards/registration-form.guard';
 
 export const routes: Routes = [
@@ -34,6 +34,14 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/auth/avatar-picker/avatar-picker.component').then(
                 m => m.AvatarPickerComponent,
+              ),
+          },
+          {
+            path: 'verify-email',
+            canActivate: [verifyEmailGuard],
+            loadComponent: () =>
+              import('./features/auth/verify-email/verify-email.component').then(
+                m => m.VerifyEmailComponent,
               ),
           },
           {

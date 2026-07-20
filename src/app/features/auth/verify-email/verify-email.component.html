@@ -1,0 +1,34 @@
+<section class="auth-card auth-card--wide verify-card">
+  <header class="auth-card__head">
+    <h1 #title class="verify-card__title" tabindex="-1">E-Mail-Adresse bestätigen</h1>
+  </header>
+
+  <p class="verify-card__intro">
+    Wir haben dir eine Bestätigungs-E-Mail an
+    <strong class="verify-card__email">{{ email }}</strong>
+    gesendet. Öffne den Link in dieser E-Mail, um dein Konto zu aktivieren.
+  </p>
+
+  <p class="verify-card__hint">
+    Keine E-Mail erhalten? Sieh bitte auch in deinem Spam-Ordner nach oder sende die E-Mail
+    erneut.
+  </p>
+
+  <p class="form-error verify-card__error" role="alert">{{ errorMessage() }}</p>
+
+  <div class="verify-card__actions">
+    <button class="btn btn-primary" type="button" [disabled]="isPending()" (click)="confirm()">
+      Ich habe bestätigt
+    </button>
+    <button
+      class="btn btn-secondary"
+      type="button"
+      [disabled]="isPending() || cooldownLeft() > 0"
+      (click)="resend()"
+    >
+      {{ resendLabel() }}
+    </button>
+  </div>
+
+  <button class="verify-card__signout" type="button" (click)="signOut()">Abmelden</button>
+</section>

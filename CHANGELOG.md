@@ -4,6 +4,24 @@ Alle nennenswerten Änderungen an Vibo, kuratiert nach Feature-Bereichen im Stil
 
 ## [Unreleased]
 
+## [1.1.0] – 2026-07-19
+
+### Konto & Sicherheit
+
+- **E-Mail-Verifizierung** für neue Konten: Bestätigungslink per E-Mail, eigene Bestätigungsseite mit Spam-Ordner-Hinweis und erneutem Senden (60-Sekunden-Cooldown) — serverseitig in den Security Rules erzwungen (`email_verified` im Auth-Token, Token-Refresh direkt nach der Bestätigung), der Gastzugang bleibt bewusst ausgenommen; Bestandskonten werden beim nächsten Login sanft auf die Bestätigungsseite geleitet
+- **Passwort-Mindestlänge 8 Zeichen**, live gegen die Firebase-Passwort-Policy geprüft (SDK `validatePassword`) — einheitlich bei Registrierung, Passwort-Zurücksetzen und Passwort-Änderung, inklusive Abfangen der serverseitigen Policy-Ablehnung
+- Neuer Bereich **„Passwort ändern"** in den Einstellungen: Re-Authentifizierung mit dem aktuellen Passwort, spezifische deutsche Fehlermeldungen (falsches aktuelles Passwort, zu kurzes neues Passwort, abweichende Wiederholung, erneute Anmeldung nötig), Erfolgsbestätigung mit geleerten Feldern — für das Gastkonto und reine Google-Konten ausgeblendet
+
+### Sprachkanäle
+
+- **Pro-Nutzer-Lautstärke (0–200 %)** über ein ⋮-Menü an jeder fremden Teilnehmerzeile: Wiedergabe läuft jetzt durch einen WebAudio-GainNode pro Peer (kurze Rampe gegen Knacksen), dazu **lokales Stummschalten** (Lautstärke bleibt darunter erhalten) und „Zurücksetzen" auf 100 %
+- Die Einstellung wird **lokal gespeichert** (localStorage pro Nutzer) und greift automatisch wieder, sobald der Stream des Peers erneut ankommt — null Firestore-Writes
+
+### Chat
+
+- **Emoticon-Auto-Umwandlung** beim Tippen: `:)` `;)` `:D` `:P` `:(` `<3` `xD` `8)` u. a. werden an Wortgrenzen (Leertaste oder Senden) zum Emoji — innerhalb von Wörtern und URLs (`https://…`) passiert nichts, und Backspace direkt nach der Umwandlung stellt das getippte Emoticon wieder her
+- **„:kurzname"-Emoji-Vorschläge** im Composer: ab zwei getippten Zeichen öffnet ein Dropdown mit deutschen Emoji-Namen und Twemoji-Grafiken (max. 8 Treffer, Tastatursteuerung wie bei @-Erwähnungen), die Auswahl fügt das Emoji direkt ein — vollständig clientseitig aus dem selbst gehosteten Katalog
+
 ## [1.0.0] – 2026-07-19
 
 ### Chat & Ergonomie

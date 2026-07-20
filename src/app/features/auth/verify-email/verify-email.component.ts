@@ -1,0 +1,193 @@
+/**
+ * @file E-mail verification screen shown after registration and after a
+ * sign-in with an unverified account: explains the sent e-mail, offers a
+ * cooldown-guarded resend and continues into the app once the address is
+ * confirmed. Talks only to Firebase Auth — no Firestore access here.
+ */
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { Router } from '@angular/router';
+import { FirebaseError } from 'firebase/app';
+
+import { AccountSecurityService } from '../../../services/account-security.service';
+import { AuthService } from '../../../services/auth.service';
+import { PendingInviteService } from '../../../services/pending-invite.service';
+import { ToastService } from '../../../services/toast.service';
+
+const RESEND_COOLDOWN_S = 60;
+
+const COOLDOWN_TICK_MS = 1000;
+
+const SEND_ICON = 'app-icons/send-white.svg';
+
+const SENT_TOAST_MESSAGE = 'E-Mail gesendet';
+
+const NOT_VERIFIED_MESSAGE =
+  'Deine E-Mail-Adresse ist noch nicht bestätigt. Öffne den Link in der E-Mail und versuche es dann erneut.';
+
+const TOO_MANY_REQUESTS_MESSAGE = 'Zu viele Versuche. Bitte warte einen Moment.';
+
+const GENERAL_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es später erneut.';
+
+/**
+ * Verification gate of the auth area. The primary action re-checks the
+ * account (reload plus forced token refresh, so the security rules see the
+ * verified state) and proceeds; resending is limited by a visible cooldown.
+ */
+@Component({
+  selector: 'app-verify-email',
+  templateUrl: './verify-email.component.html',
+  styleUrl: './verify-email.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class VerifyEmailComponent implements AfterViewInit {
+  private readonly accountSecurity = inject(AccountSecurityService);
+
+  private readonly authService = inject(AuthService);
+
+  private readonly pendingInvite = inject(PendingInviteService);
+
+  private readonly router = inject(Router);
+
+  private readonly toast = inject(ToastService);
+
+  private readonly destroyRef = inject(DestroyRef);
+
+  private readonly title = viewChild<ElementRef<HTMLHeadingElement>>('title');
+
+  private cooldownTimer: ReturnType<typeof setInterval> | null = null;
+
+  protected readonly email = this.accountSecurity.currentEmail();
+
+  protected readonly isPending = signal(false);
+
+  protected readonly cooldownLeft = signal(0);
+
+  protected readonly errorMessage = signal('');
+
+  protected readonly resendLabel = computed(() =>
+    this.cooldownLeft() > 0 ? `Erneut senden (${this.cooldownLeft()} s)` : 'E-Mail erneut senden',
+  );
+
+
+  /**
+   * Clears the cooldown interval when the screen is left.
+   */
+  constructor() {
+    this.destroyRef.onDestroy(() => this.stopCooldown());
+  }
+
+
+  /**
+   * Moves focus to the page heading after navigation.
+   */
+  ngAfterViewInit(): void {
+    this.title()?.nativeElement.focus({ preventScroll: true });
+  }
+
+
+  /**
+   * Re-checks the verification state; a confirmed address continues into
+   * the app (or a pending invite), an unconfirmed one shows the hint.
+   */
+  protected async confirm(): Promise<void> {
+    if (this.isPending()) return;
+    this.isPending.set(true);
+    this.errorMessage.set('');
+    try {
+      const verified = await this.accountSecurity.confirmVerified();
+      if (verified) return void this.router.navigate(this.postVerifyTarget());
+      this.errorMessage.set(NOT_VERIFIED_MESSAGE);
+    } catch {
+      this.errorMessage.set(GENERAL_ERROR_MESSAGE);
+    } finally {
+      this.isPending.set(false);
+    }
+  }
+
+
+  /**
+   * Resends the verification e-mail and starts the visible cooldown.
+   */
+  protected async resend(): Promise<void> {
+    if (this.isPending() || this.cooldownLeft() > 0) return;
+    this.isPending.set(true);
+    this.errorMessage.set('');
+    try {
+      await this.accountSecurity.sendVerificationEmail();
+      this.toast.show(SENT_TOAST_MESSAGE, SEND_ICON);
+      this.startCooldown();
+    } catch (error: unknown) {
+      this.handleResendError(error);
+    } finally {
+      this.isPending.set(false);
+    }
+  }
+
+
+  /**
+   * Signs the unverified account out and returns to the login page.
+   */
+  protected async signOut(): Promise<void> {
+    await this.authService.logout();
+    this.router.navigate(['/auth/login']);
+  }
+
+
+  /**
+   * Where to continue after verification: back to a pending channel invite
+   * opened while signed out, otherwise into the app.
+   */
+  private postVerifyTarget(): string[] {
+    const token = this.pendingInvite.consume();
+    return token ? ['/invite', token] : ['/app'];
+  }
+
+
+  /**
+   * Maps resend errors to the reserved message slot.
+   * @param error Unknown error thrown by the send call.
+   */
+  private handleResendError(error: unknown): void {
+    const code = error instanceof FirebaseError ? error.code : '';
+    const tooMany = code === 'auth/too-many-requests';
+    this.errorMessage.set(tooMany ? TOO_MANY_REQUESTS_MESSAGE : GENERAL_ERROR_MESSAGE);
+  }
+
+
+  /**
+   * Starts the resend cooldown countdown at its full duration.
+   */
+  private startCooldown(): void {
+    this.cooldownLeft.set(RESEND_COOLDOWN_S);
+    this.cooldownTimer = setInterval(() => this.tickCooldown(), COOLDOWN_TICK_MS);
+  }
+
+
+  /**
+   * Counts the cooldown down by one second and stops the timer at zero.
+   */
+  private tickCooldown(): void {
+    const next = this.cooldownLeft() - 1;
+    this.cooldownLeft.set(Math.max(0, next));
+    if (next <= 0) this.stopCooldown();
+  }
+
+
+  /**
+   * Clears a running cooldown interval.
+   */
+  private stopCooldown(): void {
+    if (this.cooldownTimer !== null) clearInterval(this.cooldownTimer);
+    this.cooldownTimer = null;
+  }
+}

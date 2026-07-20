@@ -11,6 +11,31 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // The shared guest account's uid (the non-founder half of the demo
+    // friendship id below), referenced wherever the guest is excluded
+    // from per-user writes — and exempted from e-mail verification.
+    function demoGuestUid() {
+      return 'EtMKQ4MK5Be5xZhXhngptGXr1Ee2';
+    }
+
+    // E-mail verification (added 2026-07-19): app data requires a verified
+    // address. The token claim flips only after the client refreshes its ID
+    // token, which the app forces right after confirmation.
+    function isVerified() {
+      return signedIn() && request.auth.token.email_verified == true;
+    }
+
+    // The verification gate of all app data. The shared guest account is
+    // deliberately exempt (fixed demo credentials, no real mailbox). The
+    // ONLY paths kept at signedIn() are the signup-time writes that happen
+    // before the address can be verified: the users/{uid} create, the
+    // usernames claim, the default-channel seed/join/join-message on
+    // channels/general, the own user-doc read and the channels read (the
+    // member-channel stream already runs during the avatar step).
+    function verifiedOrGuest() {
+      return isVerified() || (signedIn() && request.auth.uid == demoGuestUid());
+    }
+
     function channelMembers(channelId) {
       return get(/databases/$(database)/documents/channels/$(channelId)).data.memberIds;
     }
@@ -23,13 +48,13 @@ service cloud.firestore {
     }
 
     function isChannelMember(channelId) {
-      return signedIn() && request.auth.uid in channelMembers(channelId);
+      return verifiedOrGuest() && request.auth.uid in channelMembers(channelId);
     }
 
     // Message/reply documents are only hard-deleted during the
     // client-side teardown of a channel whose last member leaves.
     function isSoleChannelMember(channelId) {
-      return signedIn() && channelMembers(channelId) == [request.auth.uid];
+      return verifiedOrGuest() && channelMembers(channelId) == [request.auth.uid];
     }
 
     function affectedKeys() {
@@ -191,10 +216,15 @@ service cloud.firestore {
         return request.resource.data.get('username', null) == resource.data.get('username', null);
       }
 
-      allow read: if signedIn();
+      // Reads for verified users; the own document additionally at plain
+      // signedIn() — the Google first-sign-in repair path reads it before
+      // a verification round-trip can have happened.
+      allow read: if verifiedOrGuest() || (signedIn() && request.auth.uid == uid);
+      // Create stays at signedIn(): this IS the signup-time write, the
+      // account cannot be verified yet when its profile is created.
       allow create: if signedIn() && request.auth.uid == uid && validNewUsername();
-      allow update: if signedIn() && request.auth.uid == uid && usernameUnchanged();
-      allow delete: if signedIn() && request.auth.uid == uid;
+      allow update: if verifiedOrGuest() && request.auth.uid == uid && usernameUnchanged();
+      allow delete: if verifiedOrGuest() && request.auth.uid == uid;
 
       // Activity notifications (thread replies, reactions on own messages):
       // the ACTING client fans one document out into each recipient's
@@ -251,8 +281,8 @@ service cloud.firestore {
       }
 
       match /notifications/{notificationId} {
-        allow read, delete: if signedIn() && request.auth.uid == uid;
-        allow create: if signedIn()
+        allow read, delete: if verifiedOrGuest() && request.auth.uid == uid;
+        allow create: if verifiedOrGuest()
           && request.auth.uid != uid
           && notificationKeysValid()
           && notificationFieldsValid()
@@ -269,6 +299,8 @@ service cloud.firestore {
     // carry exactly this handle.
     match /usernames/{name} {
       allow read: if true;
+      // Create stays at signedIn(): the claim rides in the same signup
+      // batch as the users/{uid} create, before verification is possible.
       allow create: if signedIn()
         && name.matches('[a-z0-9]+([._][a-z0-9]+)*')
         && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
@@ -349,33 +381,50 @@ service cloud.firestore {
       }
 
       // Channel names are workspace-public: search, the "#" address
-      // list and the duplicate-name check read all channels.
+      // list and the duplicate-name check read all channels. Reads stay at
+      // signedIn() as a signup-time carve-out: the member-channel stream
+      // and the default-channel existence check already run during the
+      // avatar step, before verification. Messages below are gated.
       allow read: if signedIn();
 
-      allow create: if signedIn()
-        && ((request.resource.data.createdBy == request.auth.uid
-              && request.auth.uid in request.resource.data.memberIds
-              && request.resource.data.createdAt <= request.time)
-          || isDefaultChannelSeed());
+      // The default-channel seed stays at signedIn() (written during
+      // signup); creating a real channel requires verification.
+      allow create: if (verifiedOrGuest()
+            && request.resource.data.createdBy == request.auth.uid
+            && request.auth.uid in request.resource.data.memberIds
+            && request.resource.data.createdAt <= request.time)
+        || (signedIn() && isDefaultChannelSeed());
 
       // Members edit name/description, add members and may remove
       // themselves (leave); the creator maintains the topic and the vanity
       // invite slug; non-members may only add their own uid (join-on-send).
-      allow update: if signedIn()
-        && ((request.auth.uid in resource.data.memberIds && memberEditsChannel())
-          || joinsSelf()
-          || creatorEditsTopic()
-          || creatorEditsInviteSlug()
-          || memberSetsLastMessage()
-          || joinsAndSetsLastMessage());
+      // Signup-time carve-out on channels/general only: the fresh account
+      // joins the default channel and stamps the join-message
+      // denormalization before it can be verified.
+      allow update: if (verifiedOrGuest()
+          && ((request.auth.uid in resource.data.memberIds && memberEditsChannel())
+            || joinsSelf()
+            || creatorEditsTopic()
+            || creatorEditsInviteSlug()
+            || memberSetsLastMessage()
+            || joinsAndSetsLastMessage()))
+        || (signedIn() && channelId == 'general'
+          && (joinsSelf() || memberSetsLastMessage()));
 
-      allow delete: if signedIn() && resource.data.memberIds == [request.auth.uid];
+      allow delete: if verifiedOrGuest() && resource.data.memberIds == [request.auth.uid];
 
       match /messages/{messageId} {
         allow read: if isChannelMember(channelId);
-        allow create: if signedIn()
-          && request.auth.uid in channelMembersAfter(channelId)
-          && validMessageCreate();
+        // Signup-time carve-out: the join system message on the default
+        // channel (exact system shape, nothing else) may be written by an
+        // unverified fresh account.
+        allow create: if (verifiedOrGuest()
+            && request.auth.uid in channelMembersAfter(channelId)
+            && validMessageCreate())
+          || (signedIn() && channelId == 'general'
+            && request.auth.uid in channelMembersAfter(channelId)
+            && validMessageCreate()
+            && validSystemShape());
         allow update: if isChannelMember(channelId)
           && (allowedMessageUpdate() || bumpsReplyCounters() || togglesPinnedOnly());
         allow delete: if isSoleChannelMember(channelId);
@@ -392,7 +441,7 @@ service cloud.firestore {
       // receipts pass can read all participants' state in one query.
       match /reads/{uid} {
         allow read: if isChannelMember(channelId);
-        allow create, update: if signedIn() && request.auth.uid == uid
+        allow create, update: if verifiedOrGuest() && request.auth.uid == uid
           && isChannelMember(channelId) && readDocValid();
       }
 
@@ -403,7 +452,7 @@ service cloud.firestore {
       match /typing/{sessionId} {
         allow read: if isChannelMember(channelId);
         allow create, update: if isChannelMember(channelId) && typingDocValid();
-        allow delete: if signedIn() && (resource == null || resource.data.uid == request.auth.uid);
+        allow delete: if verifiedOrGuest() && (resource == null || resource.data.uid == request.auth.uid);
       }
     }
 
@@ -414,10 +463,10 @@ service cloud.firestore {
     // joinsSelf() rule — the token is UX/discovery, not a security
     // boundary, since channels are already open-join via join-on-send.
     match /invites/{token} {
-      allow get: if signedIn();
-      allow list: if signedIn()
+      allow get: if verifiedOrGuest();
+      allow list: if verifiedOrGuest()
         && request.auth.uid in channelMembers(resource.data.channelId);
-      allow create: if signedIn()
+      allow create: if verifiedOrGuest()
         && request.resource.data.keys().hasOnly(['channelId', 'createdBy', 'createdAt', 'expiresAt'])
         && request.resource.data.keys().hasAll(['channelId', 'createdBy', 'createdAt', 'expiresAt'])
         && request.resource.data.channelId is string
@@ -429,7 +478,7 @@ service cloud.firestore {
         && request.resource.data.expiresAt > request.time
         && request.auth.uid in channelMembers(request.resource.data.channelId);
       allow update: if false;
-      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+      allow delete: if verifiedOrGuest() && resource.data.createdBy == request.auth.uid;
     }
 
     // Vanity invite slugs at inviteSlugs/{slug}: a human-readable alias of
@@ -446,8 +495,8 @@ service cloud.firestore {
     // redeem page resolves tokens FIRST and slugs only on a token miss,
     // so a slug can never shadow a token.
     match /inviteSlugs/{slug} {
-      allow read: if signedIn();
-      allow create: if signedIn()
+      allow read: if verifiedOrGuest();
+      allow create: if verifiedOrGuest()
         && slug.matches('[a-z0-9][a-z0-9-]{1,30}[a-z0-9]')
         && request.resource.data.keys().hasOnly(['channelId', 'createdBy', 'createdAt'])
         && request.resource.data.keys().hasAll(['channelId', 'createdBy', 'createdAt'])
@@ -459,7 +508,7 @@ service cloud.firestore {
         && request.auth.uid
           == get(/databases/$(database)/documents/channels/$(request.resource.data.channelId)).data.createdBy;
       allow update: if false;
-      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+      allow delete: if verifiedOrGuest() && resource.data.createdBy == request.auth.uid;
     }
 
     // Conversation ids are deterministic — both participant uids sorted
@@ -468,7 +517,7 @@ service cloud.firestore {
     // the lazy existence check before the first message without
     // granting reads on foreign conversations.
     function isParticipant(conversationId) {
-      return signedIn() && request.auth.uid in conversationId.split('_');
+      return verifiedOrGuest() && request.auth.uid in conversationId.split('_');
     }
 
     // Whether the conversation pair is currently blocked (the friendship
@@ -523,7 +572,7 @@ service cloud.firestore {
       // gets, incl. the seeding existence check on a missing doc) or the
       // stored participants (the `array-contains` list query).
       allow read: if isParticipant(friendshipId)
-        || (signedIn() && request.auth.uid in resource.data.participants);
+        || (verifiedOrGuest() && request.auth.uid in resource.data.participants);
 
       allow create: if isParticipant(friendshipId)
         && isSortedPairId()
@@ -561,7 +610,7 @@ service cloud.firestore {
           && request.resource.data.respondedAt == request.time;
       }
 
-      allow update: if signedIn()
+      allow update: if verifiedOrGuest()
         && request.auth.uid in resource.data.participants
         && (acceptsRequest() || blocksRelationship() || unblocksRelationship());
 
@@ -569,7 +618,7 @@ service cloud.firestore {
       // unfriend (either side, accepted) are all participant deletes; a
       // blocked doc may only be deleted by the blocker, so the blocked
       // user cannot escape the block by deleting the relationship.
-      allow delete: if signedIn()
+      allow delete: if verifiedOrGuest()
         && request.auth.uid in resource.data.participants
         && (resource.data.status != 'blocked' || resource.data.blockedBy == request.auth.uid);
     }
@@ -592,7 +641,7 @@ service cloud.firestore {
       }
 
       allow read: if isParticipant(conversationId)
-        || (signedIn() && request.auth.uid in resource.data.participantIds);
+        || (verifiedOrGuest() && request.auth.uid in resource.data.participantIds);
       allow delete: if isParticipant(conversationId);
       allow create: if isParticipant(conversationId)
         && request.resource.data.participantIds == conversationId.split('_')
@@ -652,9 +701,9 @@ service cloud.firestore {
     // client-side on a participant-free roster and residual participant
     // docs from a race age out via the stale filter.
     match /voiceChannels/{channelId} {
-      allow read: if signedIn();
+      allow read: if verifiedOrGuest();
 
-      allow create: if signedIn()
+      allow create: if verifiedOrGuest()
         && request.resource.data.keys().hasOnly(['name', 'createdBy', 'createdAt'])
         && request.resource.data.keys().hasAll(['name', 'createdBy', 'createdAt'])
         && request.resource.data.name is string
@@ -663,14 +712,14 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.createdAt == request.time;
 
-      allow update: if signedIn()
+      allow update: if verifiedOrGuest()
         && request.auth.uid == resource.data.createdBy
         && affectedKeys().hasOnly(['name'])
         && request.resource.data.name is string
         && request.resource.data.name.size() >= 1
         && request.resource.data.name.size() <= 40;
 
-      allow delete: if signedIn() && request.auth.uid == resource.data.createdBy;
+      allow delete: if verifiedOrGuest() && request.auth.uid == resource.data.createdBy;
 
       // Live participant sessions (doc id = client session, mirroring the
       // typing markers, so several windows of the shared guest account are
@@ -693,13 +742,13 @@ service cloud.firestore {
             && request.resource.data.lastSeen == request.time;
         }
 
-        allow create: if signedIn()
+        allow create: if verifiedOrGuest()
           && voiceParticipantValid()
           && request.resource.data.joinedAt == request.time;
-        allow update: if signedIn()
+        allow update: if verifiedOrGuest()
           && voiceParticipantValid()
           && request.resource.data.joinedAt == resource.data.joinedAt;
-        allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+        allow delete: if verifiedOrGuest() && resource.data.uid == request.auth.uid;
       }
 
       // Directed signaling envelopes (self-cleaning mailbox): the addressee
@@ -711,10 +760,10 @@ service cloud.firestore {
       // shared guest uid can read fellow guest sessions' envelopes (same
       // account; documented).
       match /signals/{signalId} {
-        allow read, delete: if signedIn()
+        allow read, delete: if verifiedOrGuest()
           && (resource.data.toUid == request.auth.uid
             || resource.data.fromUid == request.auth.uid);
-        allow create: if signedIn()
+        allow create: if verifiedOrGuest()
           && request.resource.data.keys()
             .hasOnly(['fromSession', 'fromUid', 'toSession', 'toUid', 'kind', 'payload', 'createdAt'])
           && request.resource.data.keys()
@@ -741,13 +790,6 @@ service cloud.firestore {
       }
     }
 
-    // The shared guest account's uid (the non-founder half of the demo
-    // friendship id above), referenced wherever the guest is excluded
-    // server-side from per-user writes.
-    function demoGuestUid() {
-      return 'EtMKQ4MK5Be5xZhXhngptGXr1Ee2';
-    }
-
     // Per-user GIF favorites: exactly ONE document per user whose full
     // list is rewritten on every star toggle (client-capped at 50 entries,
     // newest first — MAX_GIF_FAVORITES in gif-favorites.service.ts).
@@ -758,8 +800,8 @@ service cloud.firestore {
     // expressible in rules, so the guards cover the document shape, the
     // list type, the size cap and the server-time updatedAt.
     match /userGifFavorites/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
-      allow create, update: if signedIn()
+      allow read: if verifiedOrGuest() && request.auth.uid == uid;
+      allow create, update: if verifiedOrGuest()
         && request.auth.uid == uid
         && request.auth.uid != demoGuestUid()
         && request.resource.data.keys().hasOnly(['gifs', 'updatedAt'])
@@ -774,7 +816,7 @@ service cloud.firestore {
     // stream (sidebar occupancy + in-channel roster from one listener).
     // Writes are governed solely by the concrete voiceChannels match above.
     match /{path=**}/voiceParticipants/{sessionId} {
-      allow read: if signedIn();
+      allow read: if verifiedOrGuest();
     }
   }
 }

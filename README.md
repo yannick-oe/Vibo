@@ -30,6 +30,7 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 - **Aktivitäts-Benachrichtigungen** (Glocke + Toast) für Thread-Antworten, Reaktionen, Erwähnungen und Antworten — Fan-out sender­seitig, ein einziger schmaler Listener pro Nutzer
 - **⌘K/Strg+K-Befehlspalette** (lazy geladen), **globale Suche** über zugängliche Channels und eigene Unterhaltungen, **Giphy-GIF-Picker** (PG-13-gefiltert auf jedem Request) mit persistenten Kategorie-Chips über einem großen Masonry-Grid („Favoriten", „Angesagt", zehn kuratierte Begriffe; Sentinel-Nachladen in 24er-Seiten bis 96 Ergebnisse), **GIF-Favoriten** per Stern (ein Firestore-Dokument pro Nutzer, One-Shot gelesen) und dauerhaft sichtbarer „Powered by GIPHY"-Attribution
 - **Lesebestätigungen** im WhatsApp-Stil (grau → grau → blau) mit „Gelesen von"-Liste, Tipp-Indikator, Ungelesen-Badges
+- **Eingabehilfen im Composer**: Emoticons wie `:)` `:D` `<3` werden beim Tippen an Wortgrenzen automatisch zum Emoji (URLs bleiben unangetastet, Backspace stellt das Emoticon wieder her), und **„:kurzname"-Vorschläge** öffnen ab zwei Zeichen ein Emoji-Dropdown mit deutschen Namen und Twemoji-Grafiken — vollständig clientseitig
 
 **Social & Sharing**
 
@@ -37,7 +38,7 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 - **Freunde-Ansicht** mit Tabs „Alle"/„Anfragen" und integrierter Nutzersuche
 - **Einladungslinks** für Channels (ablaufend, Token = Zugriffsnachweis) — optional mit **Vanity-Slug** (…/#/invite/cozy-vibes): Der Channel-Ersteller vergibt einen sprechenden Link-Namen, dessen Eindeutigkeit über das Reservierungsmuster der Usernames gesichert ist — das atomare Anlegen des Slug-Dokuments IST die Verfügbarkeitsprüfung, beim Tippen fällt kein einziger Read an. Beim Einlösen wird immer zuerst das Token aufgelöst und erst bei einem Miss der Slug, ein Slug kann also nie ein Token überdecken. Einladungslinks (Token wie Slug) lösen auch für Gäste auf, der Beitritt selbst erfordert aber ein registriertes Konto — auf der Einlöse-Karte greift unverändert die bestehende Gast-Sperre.
 - **Profile** mit animierten kosmischen Avataren (Hover-to-Play-WebP, Standbild bei `prefers-reduced-motion`), Bannern, Badges, Custom-Status und Live-Präsenz (online/abwesend/offline)
-- **Auth:** E-Mail/Passwort, Google-Sign-in und der Ein-Klick-**Gastzugang**
+- **Auth:** E-Mail/Passwort, Google-Sign-in und der Ein-Klick-**Gastzugang**. Neue Konten bestätigen ihre E-Mail-Adresse über einen Verifizierungslink, bevor sie die App betreten — serverseitig in den Security Rules erzwungen, nicht nur im Client; der Gastzugang ist bewusst ausgenommen. Bestandskonten werden beim nächsten Login sanft auf die Bestätigungsseite geleitet. Das eigene Passwort lässt sich in den Einstellungen ändern (Re-Authentifizierung mit dem aktuellen Passwort, mindestens 8 Zeichen).
 
 **Sprachkanäle**
 
@@ -45,6 +46,7 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 - **Screen-Sharing** über Renegotiation auf derselben Mesh (ein Sharer pro Kanal, 2 Mbit/s pro Leg, `maintain-resolution` für scharfen Text), Viewer-Dialog mit Fullscreen
 - **Soundboard**: zehn kuratierte Presets (u. a. Woah, Drumroll, Evil Laugh) als loudness-normalisierte MP3-Dateien, lazy geladen und pro Session gecacht — ausgelöst wird per kurzlebigem Signal mit Sound-Kennung, Audiodaten fließen nie durch Firestore; keine Uploads
 - Mute/Deafen mit Discord-Paritäts-Verhalten, lokale Speaking-Erkennung (AnalyserNode, null Firestore-Writes), Creator-only Umbenennen/Löschen
+- **Pro-Nutzer-Lautstärke (0–200 %)** mit lokalem Stummschalten über das ⋮-Menü jeder Teilnehmerzeile — ein WebAudio-GainNode pro Peer mit sanfter Rampe, lokal gespeichert und beim nächsten Verbinden automatisch wieder angewendet
 
 **Sound-Design**
 

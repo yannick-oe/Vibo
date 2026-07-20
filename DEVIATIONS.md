@@ -2207,3 +2207,51 @@ Owner-measured final pass in Chrome incognito against
 The single `console.error` in the `bootstrapApplication` catch (main.ts) is a deliberate
 accepted deviation from the no-console rule: a failed bootstrap is the only failure point
 with no UI surface to report into, so the framework-default handler is retained.
+
+## E-mail verification, server-enforced with a guest exemption (2026-07-19)
+New accounts must verify their e-mail address before entering the app area, and the
+Firestore security rules enforce it (`request.auth.token.email_verified`) rather than the
+client alone. Decisions, all deliberate:
+
+- **The shared guest account is exempt** (`verifiedOrGuest()` accepts `demoGuestUid()`):
+  it signs in with fixed demo credentials against a mailbox nobody owns, so a verification
+  round-trip is impossible by construction. The exemption is by uid, mirroring the existing
+  guest exclusions.
+- **Existing accounts are soft-migrated via the login redirect.** There is no backfill and
+  no hard cutoff: an unverified legacy account signs in normally and is routed to the new
+  verification screen instead of the app (`/auth/verify-email`), where it can resend the
+  mail and continue once confirmed. Google accounts arrive with `email_verified = true` and
+  never see the screen.
+- **Signup-time carve-outs stay at `signedIn()`** because they happen before verification
+  can exist: the `users/{uid}` create + `usernames/{name}` claim (one batch), the
+  default-channel seed/join/join-system-message on `channels/general`, the own user-doc
+  read (Google first-sign-in repair) and the channels-collection read (the member-channel
+  stream already runs during the avatar step). Everything else — messages, replies, DMs,
+  friendships, invites, voice, notifications, GIF favorites — now requires
+  `verifiedOrGuest()`.
+- **Token-refresh detail:** the `email_verified` claim only flips in a NEW ID token, so the
+  client forces `getIdToken(true)` immediately after a successful verification check —
+  without it, the rules would keep denying until the hourly token rotation.
+- **Deploy order for this tightening: app first, rules second.** The new client routes
+  unverified users away from the app before the rules start denying them; deploying the
+  rules first would strand already-signed-in unverified sessions with permission errors in
+  a client that still lets them in.
+
+## Password policy min 8 and the in-app password change (2026-07-19)
+The Firebase password policy is configured to minimum 8 characters, no complexity
+requirements, enforcement ON. The client mirrors it three-fold: a local `minLength(8)`
+for the instant message, the SDK's `validatePassword` as an async validator against the
+live policy (available in the installed firebase 12.14.0 and re-exported by
+@angular/fire), and a mapping of the server-side rejection codes
+(`auth/weak-password`, `auth/password-does-not-meet-requirements`). The settings dialog
+gained a "Passwort ändern" section (reauthenticate → updatePassword); it is hidden for
+Google-only accounts too, which own no password credential to re-authenticate with.
+
+**Accepted demo risk — the guest account's password change is hidden client-side only.**
+A determined user who extracts the bundled guest credentials could call the SDK directly
+and change the shared guest password, locking the demo login out. This risk is
+pre-existing (the credentials have always shipped in the bundle; the SDK was always
+callable) and is not enlarged by the new UI; recovery is a password reset in the Firebase
+Console. Server-side prevention would require a Blaze-plan blocking function
+(`beforeSignedIn`/user-write triggers), which the Spark budget excludes — documented and
+accepted, matching the guest trade-off entry in CLAUDE.md.

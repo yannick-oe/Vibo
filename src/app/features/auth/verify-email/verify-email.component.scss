@@ -1,0 +1,65 @@
+// Styles of the e-mail verification card: centered auth card with the
+// explanation copy, the reserved error slot, the confirm/resend action row
+// and the quiet sign-out link below.
+@use 'variables' as v;
+@use 'mixins' as m;
+
+:host {
+  display: contents;
+}
+
+.verify-card {
+  display: flex;
+  flex-direction: column;
+  gap: v.space-fluid('md', 'lg');
+  text-align: center;
+}
+
+.verify-card__title {
+  color: v.color('primary');
+}
+
+.verify-card__intro {
+  overflow-wrap: break-word;
+}
+
+.verify-card__email {
+  font-weight: v.$font-weight-bold;
+  overflow-wrap: anywhere;
+}
+
+.verify-card__hint {
+  color: v.color('text-gray');
+}
+
+.verify-card__error {
+  text-align: center;
+}
+
+.verify-card__actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: v.space('md');
+}
+
+.verify-card__signout {
+  align-self: center;
+  min-height: v.$btn-height-sm;
+  padding: v.space('xs') v.space('sm');
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: v.$font-base;
+  font-size: v.font-size('body');
+  color: v.color('primary');
+  text-decoration: underline;
+
+  &:hover {
+    color: v.color('primary-hover');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
