@@ -18,8 +18,10 @@ import { PasswordChangeComponent } from '../password-change/password-change.comp
 
 /**
  * Modal wrapper around the password-change form. All validation, error
- * mapping, success behavior and the guest/Google hiding stay in the
- * embedded form component and the settings dialog respectively.
+ * mapping and the guest/Google hiding stay in the embedded form component
+ * and the settings dialog respectively; a successful change bubbles up via
+ * the form's changed output and closes this dialog, the shell restoring
+ * focus to the opening settings row.
  */
 @Component({
   selector: 'app-password-change-dialog',

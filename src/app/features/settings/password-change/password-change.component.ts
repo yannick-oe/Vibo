@@ -2,15 +2,24 @@
  * @file "Passwort ändern" form inside its own dialog (opened from the
  * settings dialog's account row): current password, new password and
  * confirmation with live validation, the re-authentication + update flow
- * and specific German error messages in reserved slots. Hidden entirely
- * for the guest account and for accounts without an e-mail/password
- * credential (see the settings dialog).
+ * and specific German error messages in reserved slots. Success surfaces
+ * as a toast and closes the hosting dialog via the changed output. Hidden
+ * entirely for the guest account and for accounts without an
+ * e-mail/password credential (see the settings dialog).
  */
-import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FirebaseError } from 'firebase/app';
 
 import { AccountSecurityService } from '../../../services/account-security.service';
+import { ToastService } from '../../../services/toast.service';
 import { PasswordInputComponent } from '../../../shared/password-input/password-input.component';
 import {
   MIN_PASSWORD_LENGTH,
@@ -21,7 +30,7 @@ import {
   matchingPasswordsValidator,
 } from '../../../shared/validators/password.validators';
 
-const SUCCESS_MESSAGE = 'Dein Passwort wurde geändert.';
+const SUCCESS_TOAST_MESSAGE = 'Passwort erfolgreich geändert.';
 const WRONG_CURRENT_MESSAGE = 'Das aktuelle Passwort ist falsch.';
 const RECENT_LOGIN_MESSAGE =
   'Aus Sicherheitsgründen ist eine erneute Anmeldung nötig. Bitte melde dich ab und wieder an.';
@@ -45,7 +54,8 @@ const ERROR_MESSAGES: Record<string, Record<string, string>> = {
 /**
  * Password-change form: re-authenticates with the current password, then
  * updates to the validated new one. Submit stays disabled while the form
- * is invalid or a request is in flight; success clears the fields.
+ * is invalid or a request is in flight; success clears the fields, shows
+ * the confirmation toast and notifies the hosting dialog to close.
  */
 @Component({
   selector: 'app-password-change',
@@ -59,11 +69,13 @@ export class PasswordChangeComponent {
 
   private readonly formBuilder = inject(NonNullableFormBuilder);
 
+  private readonly toastService = inject(ToastService);
+
+  readonly changed = output<void>();
+
   protected readonly isPending = signal(false);
 
   protected readonly generalError = signal('');
-
-  protected readonly successMessage = signal('');
 
   private readonly firstField = viewChild(PasswordInputComponent);
 
@@ -135,7 +147,6 @@ export class PasswordChangeComponent {
     const { current, next } = this.form.getRawValue();
     this.isPending.set(true);
     this.generalError.set('');
-    this.successMessage.set('');
     try {
       await this.accountSecurity.changePassword(current, next);
       this.finishSuccessfully();
@@ -148,11 +159,13 @@ export class PasswordChangeComponent {
 
 
   /**
-   * Shows the success confirmation and clears all three fields.
+   * Clears all three fields, shows the confirmation toast and notifies the
+   * hosting dialog, which closes and restores focus to the settings row.
    */
   private finishSuccessfully(): void {
-    this.successMessage.set(SUCCESS_MESSAGE);
     this.form.reset();
+    this.toastService.show(SUCCESS_TOAST_MESSAGE);
+    this.changed.emit();
   }
 
 
