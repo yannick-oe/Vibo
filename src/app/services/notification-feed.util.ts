@@ -12,11 +12,12 @@ import {
   NotificationEntry,
   NotificationKind,
 } from '../models/notification.model';
+import { Channel } from '../models/channel.model';
 import { UserDoc } from '../models/user.model';
 import { emojiAsset, emojiName } from '../features/chat/emoji-catalog';
 import { parseMentions } from '../features/chat/mention-parser';
 import { NotificationToastEmoji } from './notification-toast.service';
-import { channelMessagesPath, directMessagesPath } from './message.service';
+import { channelMessagesPath, directMessagesPath } from './message-paths';
 
 const CHANNEL_MESSAGE_PATTERN = /^channels\/([^/]+)\/messages\/([^/]+?)(\/replies\/[^/]+)?$/;
 const DM_MESSAGE_PATTERN = /^directMessages\/([^/]+)\/messages\/([^/]+?)(\/replies\/[^/]+)?$/;
@@ -290,4 +291,43 @@ function actorTitle(group: NotificationGroup, actorName: string): string {
  */
 export function toastEmojiOf(char: string): NotificationToastEmoji {
   return { char, asset: emojiAsset(char), name: emojiName(char) };
+}
+
+/** Fallback name shown when the acting user's profile is not loaded yet. */
+export const UNKNOWN_ACTOR = 'Unbekannt';
+
+
+/**
+ * The toast context line: "#channel" for channels, empty for direct
+ * messages (the actor already names the conversation).
+ * @param doc Notification document.
+ * @param channels Loaded channels of the signed-in user.
+ */
+export function contextLabelOf(doc: NotificationDoc, channels: readonly Channel[]): string {
+  if (!doc.channelId) return '';
+  const channel = channels.find(item => item.id === doc.channelId);
+  return channel ? `#${channel.name}` : '';
+}
+
+
+/**
+ * The thread panel's header label for a notification target, mirroring the
+ * chat views ("# channel" or the partner's name).
+ * @param doc Notification document.
+ * @param channels Loaded channels of the signed-in user.
+ * @param users Loaded user documents.
+ * @param me Signed-in user's uid.
+ */
+export function threadLabelOf(
+  doc: NotificationDoc,
+  channels: readonly Channel[],
+  users: readonly UserDoc[],
+  me: string,
+): string {
+  if (doc.channelId) {
+    const channel = channels.find(item => item.id === doc.channelId);
+    return `# ${channel?.name ?? ''}`;
+  }
+  const partnerUid = routeOf(doc, me)[1];
+  return users.find(user => user.uid === partnerUid)?.name ?? UNKNOWN_ACTOR;
 }

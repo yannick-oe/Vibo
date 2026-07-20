@@ -9,7 +9,7 @@ import { Timestamp } from '@angular/fire/firestore';
 import { Channel } from '../models/channel.model';
 import { UserDoc } from '../models/user.model';
 import { buildConversationId } from '../models/direct-message.model';
-import { channelMessagesPath, conversationDocPath, directMessagesPath } from './message.service';
+import { channelMessagesPath, conversationDocPath, directMessagesPath } from './message-paths';
 
 const GIF_PREVIEW = 'GIF';
 const NEW_MESSAGE_FALLBACK = 'Neue Nachricht';

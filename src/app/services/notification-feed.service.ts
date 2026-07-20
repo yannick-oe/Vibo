@@ -18,7 +18,7 @@ import {
   runInInjectionContext,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
   Firestore,
@@ -30,10 +30,12 @@ import {
   query,
   writeBatch,
 } from '@angular/fire/firestore';
-import { Observable, catchError, of, switchMap } from 'rxjs';
+import { Observable } from 'rxjs';
 
 import { NOTIFICATION_FEED_LIMIT, NotificationEntry } from '../models/notification.model';
+import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
+import { tokenGatedStream } from './token-gated-stream';
 import { ChannelService } from './channel.service';
 import { MessageFocusService } from './message-focus.service';
 import { ThreadService } from './thread.service';
@@ -43,18 +45,20 @@ import { resolveAvatarStillSrc } from './registration.service';
 import { parseOpenKey } from './notification.util';
 import {
   NotificationGroup,
+  UNKNOWN_ACTOR,
   actionLabel,
+  contextLabelOf,
   conversationKeyOf,
   entriesOfGroup,
   groupNotifications,
   notificationMillis,
   rootMessagePath,
   routeOf,
+  threadLabelOf,
   toastEmojiOf,
 } from './notification-feed.util';
 
 const NOTIFICATIONS_SEGMENT = 'notifications';
-const UNKNOWN_ACTOR = 'Unbekannt';
 
 /**
  * Streams, groups and clears the signed-in user's activity notifications and
@@ -79,6 +83,8 @@ export class NotificationFeedService {
   private readonly router = inject(Router);
 
   private readonly injector = inject(EnvironmentInjector);
+
+  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private currentUid: string | null = null;
 
@@ -134,14 +140,28 @@ export class NotificationFeedService {
    */
   constructor() {
     effect(() => this.anchorForUser(this.authService.currentUser()?.uid ?? null));
-    toObservable(computed(() => this.authService.currentUser()?.uid ?? null))
-      .pipe(
-        switchMap(uid => (uid ? this.stream(uid) : of([] as NotificationEntry[]))),
-        takeUntilDestroyed(),
-      )
+    this.buildFeedStream()
+      .pipe(takeUntilDestroyed())
       .subscribe(entries => this.handle(entries));
     this.router.events.pipe(takeUntilDestroyed()).subscribe(() => this.urlState.set(this.router.url));
     effect(() => this.clearViewed(this.entriesState(), this.urlState(), this.openThreadPath()));
+  }
+
+
+  /**
+   * Builds the self-healing feed stream (see token-gated-stream.ts): empty
+   * while signed out, and an inner error degrades to the empty feed
+   * silently and re-subscribes on the next ID-token emission.
+   */
+  private buildFeedStream(): Observable<NotificationEntry[]> {
+    return tokenGatedStream({
+      label: 'notifications',
+      source: this.authService.tokenChanges,
+      gate: current => current.uid,
+      empty: [] as NotificationEntry[],
+      build: current => this.stream(current.uid),
+      diagnostics: this.diagnostics,
+    });
   }
 
 
@@ -204,22 +224,20 @@ export class NotificationFeedService {
 
   /**
    * Streams the newest slice of the user's own notifications collection;
-   * on Firestore errors an empty feed keeps the app functional.
+   * error recovery is attached by the surrounding token-gated stream.
    * @param uid Signed-in user's uid.
    */
   private stream(uid: string): Observable<NotificationEntry[]> {
-    return (
-      runInInjectionContext(this.injector, () =>
-        collectionData(
-          query(
-            collection(this.firestore, `users/${uid}/${NOTIFICATIONS_SEGMENT}`),
-            orderBy('createdAt', 'desc'),
-            limit(NOTIFICATION_FEED_LIMIT),
-          ),
-          { idField: 'id' },
+    return runInInjectionContext(this.injector, () =>
+      collectionData(
+        query(
+          collection(this.firestore, `users/${uid}/${NOTIFICATIONS_SEGMENT}`),
+          orderBy('createdAt', 'desc'),
+          limit(NOTIFICATION_FEED_LIMIT),
         ),
-      ) as Observable<NotificationEntry[]>
-    ).pipe(catchError(() => of([] as NotificationEntry[])));
+        { idField: 'id' },
+      ),
+    ) as Observable<NotificationEntry[]>;
   }
 
 
@@ -320,7 +338,7 @@ export class NotificationFeedService {
     this.toastService.show({
       senderName: actor?.name ?? UNKNOWN_ACTOR,
       senderAvatar: resolveAvatarStillSrc(actor?.avatarPath),
-      context: this.contextLabelOf(entry),
+      context: contextLabelOf(entry, this.channelService.channels()),
       action: actionLabel(entry.kind),
       emoji: entry.emoji ? toastEmojiOf(entry.emoji) : null,
       preview: entry.preview,
@@ -338,34 +356,13 @@ export class NotificationFeedService {
   private async openTarget(entry: NotificationEntry): Promise<void> {
     await this.router.navigate(routeOf(entry, this.currentUid ?? ''));
     if (!entry.inThread) return this.messageFocusService.focus(entry.messageId);
-    const context = { messagePath: rootMessagePath(entry), contextLabel: this.threadLabelOf(entry) };
+    const contextLabel = threadLabelOf(
+      entry,
+      this.channelService.channels(),
+      this.userService.users(),
+      this.currentUid ?? '',
+    );
+    const context = { messagePath: rootMessagePath(entry), contextLabel };
     requestAnimationFrame(() => this.threadService.open(context));
-  }
-
-
-  /**
-   * The toast context line: "#channel" for channels, empty for direct
-   * messages (the actor already names the conversation).
-   * @param entry Feed entry.
-   */
-  private contextLabelOf(entry: NotificationEntry): string {
-    if (!entry.channelId) return '';
-    const channel = this.channelService.channels().find(item => item.id === entry.channelId);
-    return channel ? `#${channel.name}` : '';
-  }
-
-
-  /**
-   * The thread panel's header label for a notification target, mirroring the
-   * chat views ("# channel" or the partner's name).
-   * @param entry Feed entry.
-   */
-  private threadLabelOf(entry: NotificationEntry): string {
-    if (entry.channelId) {
-      const channel = this.channelService.channels().find(item => item.id === entry.channelId);
-      return `# ${channel?.name ?? ''}`;
-    }
-    const partnerUid = routeOf(entry, this.currentUid ?? '')[1];
-    return this.userService.users().find(user => user.uid === partnerUid)?.name ?? UNKNOWN_ACTOR;
   }
 }

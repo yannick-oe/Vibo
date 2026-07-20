@@ -17,6 +17,7 @@ import { GifResult } from '../../../models/gif.model';
 import { Message, Reply } from '../../../models/message.model';
 import { AuthService } from '../../../services/auth.service';
 import { MessageService } from '../../../services/message.service';
+import { ThreadStreamsService } from '../../../services/thread-streams.service';
 import { NotificationFanoutService } from '../../../services/notification-fanout.service';
 import { ReducedMotionService } from '../../../services/reduced-motion.service';
 import { ThreadService } from '../../../services/thread.service';
@@ -49,6 +50,8 @@ export class ThreadPanelComponent {
   private readonly threadService = inject(ThreadService);
 
   private readonly messageService = inject(MessageService);
+
+  private readonly threadStreams = inject(ThreadStreamsService);
 
   private readonly notificationFanout = inject(NotificationFanoutService);
 
@@ -85,7 +88,7 @@ export class ThreadPanelComponent {
   protected readonly origin = toSignal(
     toObservable(this.threadService.thread).pipe(
       switchMap(context =>
-        context ? this.messageService.streamMessage(context.messagePath) : of(undefined),
+        context ? this.threadStreams.streamMessage(context.messagePath) : of(undefined),
       ),
     ),
     { initialValue: undefined as Message | undefined },
@@ -94,7 +97,7 @@ export class ThreadPanelComponent {
   protected readonly replies = toSignal(
     toObservable(this.threadService.thread).pipe(
       switchMap(context =>
-        context ? this.messageService.streamReplies(context.messagePath) : of([]),
+        context ? this.threadStreams.streamReplies(context.messagePath) : of([]),
       ),
     ),
     { initialValue: [] as Reply[] },

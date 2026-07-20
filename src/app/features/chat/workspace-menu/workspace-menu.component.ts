@@ -16,7 +16,7 @@ import {
   channelMessagesPath,
   conversationDocPath,
   directMessagesPath,
-} from '../../../services/message.service';
+} from '../../../services/message-paths';
 import { DEFAULT_AVATAR_PATH, resolveAvatarStillSrc } from '../../../services/registration.service';
 import { UserService } from '../../../services/user.service';
 import { VoiceConnectionService } from '../../../services/voice-connection.service';

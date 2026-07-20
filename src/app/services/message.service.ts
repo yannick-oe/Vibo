@@ -1,5 +1,7 @@
 /**
- * @file Live message streams and message creation for channel chats.
+ * @file Message creation, mutations and the windowed live view for channel
+ * and direct-message chats; thread read streams live in
+ * ThreadStreamsService, path helpers in message-paths.ts.
  */
 import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
 import {
@@ -7,56 +9,27 @@ import {
   Firestore,
   arrayUnion,
   collection,
-  collectionData,
   doc,
-  docData,
   increment,
-  orderBy,
-  query,
   serverTimestamp,
   updateDoc,
   writeBatch,
 } from '@angular/fire/firestore';
-import { Observable, catchError, of } from 'rxjs';
 
 import { GifResult } from '../models/gif.model';
-import { Message, MessageDoc, ReactionMap, Reply, ReplyDoc, ReplyRef } from '../models/message.model';
+import { MessageDoc, ReactionMap, ReplyDoc, ReplyRef } from '../models/message.model';
 import { ConversationWindow } from './conversation-window';
+import { channelMessagesPath, conversationDocPath } from './message-paths';
 import { applyReaction } from './message-reactions';
 import { buildGifMessage, buildGifReply, buildJoinMessage, buildMessage, buildReply } from './message-build';
 import { AuthService } from './auth.service';
 import { SoundService } from './sound.service';
 import { ToastService } from './toast.service';
 
-const MESSAGES_LOAD_ERROR = 'Nachrichten konnten nicht geladen werden.';
-const MESSAGES_SEGMENT = '/messages';
+export { channelMessagesPath, conversationDocPath, directMessagesPath } from './message-paths';
 
-
-/**
- * Strips the trailing "/messages" segment off a messages-collection path to
- * get the owning conversation document (channel or direct conversation).
- * @param messagesPath Path of a messages subcollection.
- */
-export function conversationDocPath(messagesPath: string): string {
-  return messagesPath.slice(0, -MESSAGES_SEGMENT.length);
-}
-
-/**
- * Builds the messages subcollection path of a channel.
- * @param channelId Firestore id of the channel.
- */
-export function channelMessagesPath(channelId: string): string {
-  return `channels/${channelId}/messages`;
-}
-
-
-/**
- * Builds the messages subcollection path of a direct conversation.
- * @param conversationId Deterministic id of the conversation.
- */
-export function directMessagesPath(conversationId: string): string {
-  return `directMessages/${conversationId}/messages`;
-}
+/** Shared load-error toast for message and thread streams. */
+export const MESSAGES_LOAD_ERROR = 'Nachrichten konnten nicht geladen werden.';
 
 
 /**
@@ -211,27 +184,6 @@ export class MessageService {
 
 
   /**
-   * Streams a single message document live, e.g. the origin message of an
-   * open thread; emits undefined when the document is missing.
-   * @param messagePath Firestore path of the message document.
-   */
-  streamMessage(messagePath: string): Observable<Message | undefined> {
-    return runInInjectionContext(this.injector, () =>
-      docData(doc(this.firestore, messagePath), { idField: 'id' }),
-    ) as Observable<Message | undefined>;
-  }
-
-
-  /**
-   * Streams a message's thread replies live, oldest first.
-   * @param messagePath Firestore path of the parent message document.
-   */
-  streamReplies(messagePath: string): Observable<Reply[]> {
-    return runInInjectionContext(this.injector, () => this.queryReplies(messagePath));
-  }
-
-
-  /**
    * Persists a thread reply authored by the signed-in user.
    * @param messagePath Firestore path of the parent message document.
    * @param text Trimmed reply text.
@@ -359,22 +311,6 @@ export class MessageService {
 
 
   /**
-   * Builds the live replies query; on Firestore errors a toast is shown
-   * and an empty list keeps the UI functional.
-   * @param messagePath Firestore path of the parent message document.
-   */
-  private queryReplies(messagePath: string): Observable<Reply[]> {
-    const repliesQuery = query(
-      collection(this.firestore, `${messagePath}/replies`),
-      orderBy('createdAt'),
-    );
-    return (collectionData(repliesQuery, { idField: 'id' }) as Observable<Reply[]>).pipe(
-      catchError(() => this.reportLoadError()),
-    );
-  }
-
-
-  /**
    * Runs a message mutation and plays the error sound when it rejects; the
    * rejection is rethrown so the callers' existing error handlers (toasts,
    * optimistic-UI rollbacks) stay the single source of user feedback.
@@ -387,14 +323,5 @@ export class MessageService {
       this.soundService.play('error');
       throw error;
     }
-  }
-
-
-  /**
-   * Shows the load-error toast and recovers with an empty list.
-   */
-  private reportLoadError(): Observable<Message[]> {
-    this.toastService.show(MESSAGES_LOAD_ERROR);
-    return of([]);
   }
 }
