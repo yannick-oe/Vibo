@@ -2,9 +2,10 @@
  * @file E-mail verification screen shown after registration, after a
  * sign-in with an unverified account and as the landing target of the
  * mail's continue link: explains the sent e-mail, offers a
- * cooldown-guarded resend, auto-runs the confirmation on load and
- * continues into the app once the token claim is proven. Talks only to
- * Firebase Auth — no Firestore access here.
+ * cooldown-guarded resend, auto-runs the confirmation on load and — once
+ * the token claim is proven — enters the app via a FULL-PAGE load, never a
+ * router navigation (see {@link VerifyEmailComponent.enterApp}). Talks
+ * only to Firebase Auth — no Firestore access here.
  */
 import {
   AfterViewInit,
@@ -21,11 +22,17 @@ import { Router } from '@angular/router';
 import { FirebaseError } from 'firebase/app';
 
 import { AccountSecurityService } from '../../../services/account-security.service';
+import { AuthDiagnosticsService } from '../../../services/auth-diagnostics.service';
 import { AuthService } from '../../../services/auth.service';
 import { PendingInviteService } from '../../../services/pending-invite.service';
 import { ToastService } from '../../../services/toast.service';
+import { AuthDebugPanelComponent } from '../../../shared/auth-debug-panel/auth-debug-panel.component';
 
 const RESEND_COOLDOWN_S = 60;
+
+const APP_ENTRY_FRAGMENT = '#/app';
+
+const INVITE_ENTRY_FRAGMENT_PREFIX = '#/invite/';
 
 const COOLDOWN_TICK_MS = 1000;
 
@@ -47,12 +54,15 @@ const GENERAL_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es 
  */
 @Component({
   selector: 'app-verify-email',
+  imports: [AuthDebugPanelComponent],
   templateUrl: './verify-email.component.html',
   styleUrl: './verify-email.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VerifyEmailComponent implements AfterViewInit {
   private readonly accountSecurity = inject(AccountSecurityService);
+
+  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly authService = inject(AuthService);
 
@@ -103,45 +113,80 @@ export class VerifyEmailComponent implements AfterViewInit {
 
 
   /**
-   * Re-checks the verification state; a proven claim continues into the
-   * app (or a pending invite), an unconfirmed address shows the hint and
-   * a claim that never became visible falls to the general error.
+   * Manual "Ich habe bestätigt" re-check; a proven claim enters the app via
+   * the full-page load, an unconfirmed address shows the hint and a claim
+   * that never became visible falls to the general error. On success the
+   * pending/checking flags deliberately stay set, so the reserved
+   * "Bestätigung wird geprüft…" status remains visible until the replace
+   * fires (CLS 0).
    */
   protected async confirm(): Promise<void> {
     if (this.isPending()) return;
+    this.diagnostics.log('verify', 'manual confirm start');
     this.isPending.set(true);
+    this.isChecking.set(true);
     this.errorMessage.set('');
     try {
       const outcome = await this.accountSecurity.confirmVerified();
-      if (outcome === 'verified') return void this.router.navigate(this.postVerifyTarget());
+      this.diagnostics.log('verify', `manual confirm outcome=${outcome}`);
+      if (outcome === 'verified') return this.enterApp();
       this.errorMessage.set(outcome === 'unverified' ? NOT_VERIFIED_MESSAGE : GENERAL_ERROR_MESSAGE);
     } catch {
       this.errorMessage.set(GENERAL_ERROR_MESSAGE);
-    } finally {
-      this.isPending.set(false);
     }
+    this.settle();
   }
 
 
   /**
-   * Mail-link auto-continue: runs the confirmation once on load. A proven
-   * claim navigates into the app, a still-unverified address keeps the
-   * screen unchanged and a failed refresh (offline) shows the general
-   * error — the app is never entered without a confirmed claim.
+   * Auto-continue on load — runs for BOTH remaining confirm paths: the
+   * mail's continueUrl tab landing here and the login-redirect of a
+   * meanwhile-verified account. A proven claim enters the app via the
+   * full-page load, a still-unverified address keeps the screen unchanged
+   * and a failed refresh (offline) shows the general error — the app is
+   * never entered without a proven claim. On success the flags stay set so
+   * the reserved checking status remains visible until the replace fires.
    */
   private async autoConfirm(): Promise<void> {
+    this.diagnostics.log('verify', 'auto-confirm start');
     this.isPending.set(true);
     this.isChecking.set(true);
     try {
       const outcome = await this.accountSecurity.confirmVerified();
-      if (outcome === 'verified') return void this.router.navigate(this.postVerifyTarget());
+      this.diagnostics.log('verify', `auto-confirm outcome=${outcome}`);
+      if (outcome === 'verified') return this.enterApp();
       if (outcome === 'failed') this.errorMessage.set(GENERAL_ERROR_MESSAGE);
     } catch {
       this.errorMessage.set(GENERAL_ERROR_MESSAGE);
-    } finally {
-      this.isPending.set(false);
-      this.isChecking.set(false);
     }
+    this.settle();
+  }
+
+
+  /**
+   * Clears the pending/checking flags after a NON-verified outcome; a
+   * verified outcome deliberately never settles, keeping the reserved
+   * checking status visible until the full-page replace fires.
+   */
+  private settle(): void {
+    this.isPending.set(false);
+    this.isChecking.set(false);
+  }
+
+
+  /**
+   * Enters the app AFTER a proven claim via a full-page load —
+   * `location.replace` on the deployment-aware base — never a router
+   * navigation. Rationale: the forced refresh persists the fresh token, so
+   * a full reload boots guards, services and every Firestore stream on a
+   * verified token from the first instruction — no bootstrap ordering (or
+   * Auth→Firestore token propagation inside the running SDKs) can regress
+   * into streams attaching under the stale claim. `replace` keeps the
+   * verify screen out of the history so Back cannot return to it.
+   */
+  private enterApp(): void {
+    this.diagnostics.log('verify', 'entering app via full-page load');
+    location.replace(`${document.baseURI}${this.entryFragment()}`);
   }
 
 
@@ -174,12 +219,12 @@ export class VerifyEmailComponent implements AfterViewInit {
 
 
   /**
-   * Where to continue after verification: back to a pending channel invite
-   * opened while signed out, otherwise into the app.
+   * Hash fragment to continue on after verification: back to a pending
+   * channel invite opened while signed out, otherwise into the app.
    */
-  private postVerifyTarget(): string[] {
+  private entryFragment(): string {
     const token = this.pendingInvite.consume();
-    return token ? ['/invite', token] : ['/app'];
+    return token ? `${INVITE_ENTRY_FRAGMENT_PREFIX}${token}` : APP_ENTRY_FRAGMENT;
   }
 
 

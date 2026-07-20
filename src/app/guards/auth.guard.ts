@@ -18,6 +18,7 @@ import {
   AccountSecurityService,
   isVerifiedOrGuest,
 } from '../services/account-security.service';
+import { AuthDiagnosticsService } from '../services/auth-diagnostics.service';
 
 /**
  * Allows the app area only for signed-in, verified-or-guest users whose ID
@@ -27,17 +28,19 @@ import {
  * reloaded once first — the persisted flag can lag behind an external
  * verification (mail-link tab, second device) — and every check is awaited
  * before activation, so no Firestore stream can ever start on a stale
- * claim.
+ * claim. Second net behind the verify screen's full-page entry.
  */
 export const authGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const accountSecurity = inject(AccountSecurityService);
+  const diagnostics = inject(AuthDiagnosticsService);
   const currentUser = await firstValueFrom(authState(inject(Auth)));
   if (currentUser) await accountSecurity.refreshStaleVerification(currentUser);
   const target = appAreaTarget(currentUser, router);
-  if (target !== true || !currentUser) return target;
+  if (target !== true || !currentUser) return logDecision(diagnostics, 'app', target);
   const hasFreshClaim = await accountSecurity.ensureVerifiedTokenClaim(currentUser);
-  return hasFreshClaim ? true : router.createUrlTree(['/auth/verify-email']);
+  const result = hasFreshClaim ? true : router.createUrlTree(['/auth/verify-email']);
+  return logDecision(diagnostics, 'app', result);
 };
 
 /**
@@ -63,11 +66,13 @@ export const unauthGuard: CanActivateFn = () => {
 export const verifyEmailGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const accountSecurity = inject(AccountSecurityService);
+  const diagnostics = inject(AuthDiagnosticsService);
   const currentUser = await firstValueFrom(authState(inject(Auth)));
-  if (!currentUser) return router.createUrlTree(['/auth/login']);
-  if (!isVerifiedOrGuest(currentUser)) return true;
+  if (!currentUser) return logDecision(diagnostics, 'verify', router.createUrlTree(['/auth/login']));
+  if (!isVerifiedOrGuest(currentUser)) return logDecision(diagnostics, 'verify', true);
   const hasFreshClaim = await accountSecurity.ensureVerifiedTokenClaim(currentUser);
-  return hasFreshClaim ? router.createUrlTree(['/app']) : true;
+  const result = hasFreshClaim ? router.createUrlTree(['/app']) : true;
+  return logDecision(diagnostics, 'verify', result);
 };
 
 
@@ -80,4 +85,21 @@ function appAreaTarget(currentUser: User | null, router: Router): true | UrlTree
   if (!currentUser) return router.createUrlTree(['/auth/login']);
   if (!isVerifiedOrGuest(currentUser)) return router.createUrlTree(['/auth/verify-email']);
   return true;
+}
+
+
+/**
+ * Records a guard decision on the TEMPORARY diagnostic panel (no-op while
+ * the debug flag is absent) and passes the result through unchanged.
+ * @param diagnostics Diagnostics sink.
+ * @param name Guard name shown in the panel.
+ * @param result Guard result to record and return.
+ */
+function logDecision(
+  diagnostics: AuthDiagnosticsService,
+  name: string,
+  result: true | UrlTree,
+): true | UrlTree {
+  diagnostics.log('guard', `${name} → ${result === true ? 'allow' : `redirect ${result.toString()}`}`);
+  return result;
 }
