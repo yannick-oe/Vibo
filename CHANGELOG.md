@@ -4,6 +4,15 @@ Alle nennenswerten Änderungen an Vibo, kuratiert nach Feature-Bereichen im Stil
 
 ## [Unreleased]
 
+## [1.1.1] – 2026-07-19
+
+### Konto & Sicherheit
+
+- **Verifizierungs-Fix nach Mail-Link:** Der Tab aus dem Bestätigungslink lud die App mit einem veralteten Auth-Token (alle Firestore-Reads abgelehnt, Nutzer als „Unbekannt“) — der Auth-Guard prüft jetzt einmal pro Sitzung das Token-Claim `email_verified` und erzwingt bei Bedarf einen Token-Refresh, bevor die App lädt
+- **Benutzername behält Schreibweise:** Neue Konten übernehmen den Benutzernamen in der eingegebenen Groß-/Kleinschreibung als Anzeigenamen; das @-Handle und die Eindeutigkeitsprüfung bleiben kleingeschrieben
+- **Passwort-Dialog entkoppelt:** „Passwort ändern“ öffnet sich jetzt als eigener Dialog aus einer Konto-Zeile in den Einstellungen — der Einstellungs-Dialog bleibt schlank, Validierung und Fehlermeldungen unverändert
+- Die Abmeldung wartet nicht mehr auf den Offline-Status-Schreibvorgang — ausloggen funktioniert damit auch offline sofort
+
 ## [1.1.0] – 2026-07-19
 
 ### Konto & Sicherheit
