@@ -3,6 +3,11 @@
  * structural and profanity rules with German messages, plus the derivation
  * helpers used to auto-claim a handle for Google sign-ins. Reuses the shared
  * profanity check so username and display-name moderation stay in sync.
+ * Accepted rule: letters (validated case-insensitively — the pattern runs on
+ * the normalized, lowercased value, while the display name keeps the entered
+ * casing since v1.1.1), digits, dot and underscore, no spaces; separators
+ * never lead, trail or repeat. Reservation and uniqueness always use the
+ * lowercased handle (see normalizeUsername).
  */
 import { AbstractControl, ValidationErrors } from '@angular/forms';
 
@@ -32,7 +37,7 @@ export const USERNAME_ERRORS: Record<string, string> = {
   required: 'Bitte gib einen Benutzernamen ein.',
   minlength: `Dein Benutzername muss mindestens ${USERNAME_MIN_LENGTH} Zeichen lang sein.`,
   maxlength: `Dein Benutzername darf höchstens ${USERNAME_MAX_LENGTH} Zeichen lang sein.`,
-  pattern: 'Nur Kleinbuchstaben, Zahlen, Punkt und Unterstrich.',
+  pattern: 'Nur Buchstaben, Zahlen, Punkt und Unterstrich — ohne Leerzeichen.',
   profanity: 'Dieser Benutzername ist nicht erlaubt.',
   taken: 'Dieser Benutzername ist bereits vergeben.',
 };
