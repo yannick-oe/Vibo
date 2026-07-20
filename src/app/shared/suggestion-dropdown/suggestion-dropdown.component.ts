@@ -8,14 +8,16 @@ import { PresenceDotComponent } from '../presence-dot/presence-dot.component';
 
 /** One selectable suggestion row. */
 export interface Suggestion {
-  /** Stable id (uid or channel id). */
+  /** Stable id (uid, channel id or the emoji character itself). */
   readonly id: string;
-  /** Display label (user name or channel name). */
+  /** Display label (user name, channel name or German emoji name). */
   readonly label: string;
   /** Avatar asset URL for user rows. */
   readonly avatar?: string;
   /** Renders the channel hash icon instead of an avatar. */
   readonly isHash?: boolean;
+  /** Twemoji SVG URL for emoji rows. */
+  readonly emojiSrc?: string;
   /** Uid whose live presence the row shows; omitted for channel rows. */
   readonly presenceUid?: string;
 }

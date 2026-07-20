@@ -21,6 +21,9 @@
         @if (suggestion.isHash) {
           <img class="suggestions__hash" src="app-icons/tag.svg" alt="" aria-hidden="true" />
         }
+        @if (suggestion.emojiSrc) {
+          <img class="suggestions__emoji" [src]="suggestion.emojiSrc" alt="" aria-hidden="true" />
+        }
         {{ suggestion.label }}
       </button>
     </li>

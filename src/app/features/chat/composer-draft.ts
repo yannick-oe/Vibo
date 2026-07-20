@@ -41,4 +41,20 @@ export class ComposerDraft {
   clear(path: string | null): void {
     if (path) this.drafts.clear(path);
   }
+
+
+  /**
+   * Writes a restored draft straight into the textarea (value and grown
+   * height), so switching conversations never flashes the previous draft —
+   * the DOM value binding is unreliable under the app's coalesced change
+   * detection, hence the imperative write.
+   * @param element Composer textarea element.
+   * @param value Draft text placed into the composer.
+   * @param maxHeightPx Height cap of the grown textarea in pixels.
+   */
+  restoreIntoDom(element: HTMLTextAreaElement, value: string, maxHeightPx: number): void {
+    element.value = value;
+    element.style.height = 'auto';
+    if (value) element.style.height = `${Math.min(element.scrollHeight, maxHeightPx)}px`;
+  }
 }

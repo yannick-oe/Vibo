@@ -1,6 +1,7 @@
 /**
  * @file Message composer card with growing textarea, emoji insertion,
- * mention suggestions and send handling.
+ * mention and ":shortcode" emoji suggestions, emoticon auto-conversion
+ * and send handling.
  */
 import {
   ChangeDetectionStrategy,
@@ -18,15 +19,19 @@ import {
 import { GifResult } from '../../../models/gif.model';
 import { ChannelService } from '../../../services/channel.service';
 import { DraftService } from '../../../services/draft.service';
+import { EmojiDataService } from '../../../services/emoji-data.service';
 import { TypingService } from '../../../services/typing.service';
 import { UserService } from '../../../services/user.service';
 import { ComposerDraft } from '../composer-draft';
+import { EmoticonTracker, convertTrailingEmoticon } from '../composer-emoticons';
 import {
   MentionState,
+  SuggestionKeyContext,
   buildChannelSuggestions,
+  buildEmojiSuggestions,
   buildUserSuggestions,
   detectMention,
-  nextActiveIndex,
+  handleSuggestionKey,
 } from '../composer-mentions';
 import { parseMentions } from '../mention-parser';
 import {
@@ -85,6 +90,10 @@ export class MessageInputComponent {
   private readonly channelService = inject(ChannelService);
 
   private readonly draft = new ComposerDraft(inject(DraftService));
+
+  private readonly emojiData = inject(EmojiDataService);
+
+  private readonly emoticons = new EmoticonTracker();
 
   private readonly typingService = inject(TypingService);
 
@@ -150,6 +159,7 @@ export class MessageInputComponent {
    */
   protected onInput(event: Event): void {
     const element = event.target as HTMLTextAreaElement;
+    this.emoticons.trackInput();
     this.text.set(element.value);
     element.style.height = 'auto';
     element.style.height = `${Math.min(element.scrollHeight, MAX_TEXTAREA_HEIGHT_PX)}px`;
@@ -173,19 +183,41 @@ export class MessageInputComponent {
 
 
   /**
-   * Handles composer keys: suggestion navigation while a mention dropdown is
-   * open, Escape cancels an open reply context, otherwise Enter sends
-   * (Shift+Enter falls through).
+   * Handles composer keys: emoticon conversion/revert first, suggestion
+   * navigation while a dropdown is open, Escape cancels an open reply
+   * context, otherwise Enter sends (Shift+Enter falls through).
    * @param event Keydown event of the textarea.
    */
   protected onKeydown(event: Event): void {
     if (!(event instanceof KeyboardEvent)) return;
-    if (this.mention() !== null && this.handleMentionKey(event)) return;
+    if (this.handleEmoticonKey(event)) return;
+    if (this.mention() !== null && handleSuggestionKey(event, this.suggestionKeys)) return;
     if (event.key === 'Escape' && this.replyContext()) return this.cancelReply.emit();
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       this.submit();
     }
+  }
+
+
+  /**
+   * Space converts an emoticon ending at the caret (the keystroke itself
+   * proceeds and inserts the space); Backspace right after a conversion
+   * restores the literal emoticon and is consumed, with the signal, the
+   * open-mention state and the draft re-synced by hand because the
+   * programmatic edit fires no input event.
+   * @param event Keydown event of the textarea.
+   * @returns True when the key was consumed (only the Backspace revert).
+   */
+  private handleEmoticonKey(event: KeyboardEvent): boolean {
+    const element = this.textarea().nativeElement;
+    if (event.key === ' ') this.emoticons.convertBeforeSpace(element);
+    if (event.key !== 'Backspace' || !this.emoticons.revertOnBackspace(element)) return false;
+    event.preventDefault();
+    this.text.set(element.value);
+    this.syncMention(element);
+    this.draft.save(this.conversationPath(), element.value);
+    return true;
   }
 
 
@@ -240,8 +272,9 @@ export class MessageInputComponent {
 
 
   /**
-   * Replaces the open mention token with the picked suggestion as plain
-   * text ("@Name " / "#channelname ") and closes the dropdown.
+   * Replaces the open token with the picked suggestion — mentions as plain
+   * text ("@Name " / "#channelname "), emoji shortcodes as the Unicode
+   * character itself — and closes the dropdown.
    * @param suggestion Picked suggestion row.
    */
   protected pickSuggestion(suggestion: Suggestion): void {
@@ -249,7 +282,8 @@ export class MessageInputComponent {
     if (!mention) return;
     const element = this.textarea().nativeElement;
     const caret = element.selectionStart ?? element.value.length;
-    element.setRangeText(`${mention.type}${suggestion.label} `, mention.start, caret, 'end');
+    const insertion = mention.type === ':' ? suggestion.id : `${mention.type}${suggestion.label} `;
+    element.setRangeText(insertion, mention.start, caret, 'end');
     this.text.set(element.value);
     this.mention.set(null);
     element.focus();
@@ -264,7 +298,7 @@ export class MessageInputComponent {
    */
   protected submit(): void {
     if (!this.canSend()) return;
-    this.send.emit(this.text().trim());
+    this.send.emit(convertTrailingEmoticon(this.text().trim()));
     this.stopTyping();
     this.draft.clear(this.conversationPath());
     this.text.set('');
@@ -312,80 +346,46 @@ export class MessageInputComponent {
     const value = this.draft.read(path);
     this.text.set(value);
     this.mention.set(null);
-    requestAnimationFrame(() => this.applyDraftToDom(value));
+    requestAnimationFrame(() =>
+      this.draft.restoreIntoDom(this.textarea().nativeElement, value, MAX_TEXTAREA_HEIGHT_PX),
+    );
   }
 
 
-  /**
-   * Writes a restored draft straight into the textarea (value and grown height)
-   * before the next paint, so switching conversations never flashes the previous
-   * draft. Deferred to rAF because the DOM value binding is unreliable under this
-   * app's coalesced change detection and the view child must already exist.
-   * @param value Draft text placed into the composer.
-   */
-  private applyDraftToDom(value: string): void {
-    const element = this.textarea().nativeElement;
-    element.value = value;
-    element.style.height = 'auto';
-    if (value) element.style.height = `${Math.min(element.scrollHeight, MAX_TEXTAREA_HEIGHT_PX)}px`;
-  }
+  /** Composer accessors handed to the shared dropdown keyboard handling. */
+  private readonly suggestionKeys: SuggestionKeyContext = {
+    count: () => this.suggestions().length,
+    activeIndex: () => this.activeIndex(),
+    setActiveIndex: index => this.activeIndex.set(index),
+    pickActive: () => this.pickSuggestion(this.suggestions()[this.activeIndex()]),
+    close: () => this.mention.set(null),
+  };
 
 
   /**
-   * Navigates and resolves the mention dropdown from the keyboard.
-   * @param event Keydown event while the dropdown is open.
-   * @returns True when the key was consumed by the dropdown.
-   */
-  private handleMentionKey(event: KeyboardEvent): boolean {
-    if (this.moveActiveSuggestion(event)) return true;
-    if (event.key === 'Enter' && this.suggestions().length > 0) {
-      event.preventDefault();
-      this.pickSuggestion(this.suggestions()[this.activeIndex()]);
-      return true;
-    }
-    if (event.key === 'Escape') {
-      event.stopPropagation();
-      this.mention.set(null);
-      return true;
-    }
-    return false;
-  }
-
-
-  /**
-   * Moves the active suggestion with the arrow keys, wrapping around.
-   * @param event Keydown event while the dropdown is open.
-   * @returns True when an arrow key was handled.
-   */
-  private moveActiveSuggestion(event: KeyboardEvent): boolean {
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return false;
-    event.preventDefault();
-    this.activeIndex.set(nextActiveIndex(event.key, this.activeIndex(), this.suggestions().length));
-    return true;
-  }
-
-
-  /**
-   * Detects an open mention token at the caret and resets the selection.
+   * Detects an open mention/shortcode token at the caret and resets the
+   * selection; a ":" token lazily loads the emoji catalogue.
    * @param element Composer textarea.
    */
   private syncMention(element: HTMLTextAreaElement): void {
     const caret = element.selectionStart ?? element.value.length;
-    this.mention.set(detectMention(element.value, caret));
+    const mention = detectMention(element.value, caret);
+    if (mention?.type === ':') this.emojiData.load();
+    this.mention.set(mention);
     this.activeIndex.set(0);
   }
 
 
   /**
-   * Builds the suggestion rows for the open mention type via the pure helpers,
-   * filtered live by the typed query.
+   * Builds the suggestion rows for the open token type via the pure
+   * helpers, filtered live by the typed query.
    */
   private buildSuggestions(): Suggestion[] {
     const mention = this.mention();
     if (!mention) return [];
     const query = mention.query.toLowerCase();
-    return mention.type === '#'
-      ? buildChannelSuggestions(this.channelService.channels(), query)
-      : buildUserSuggestions(this.userService.users(), query);
+    if (mention.type === '#') return buildChannelSuggestions(this.channelService.channels(), query);
+    if (mention.type === ':') return buildEmojiSuggestions(this.emojiData.search(query));
+    return buildUserSuggestions(this.userService.users(), query);
   }
 }
