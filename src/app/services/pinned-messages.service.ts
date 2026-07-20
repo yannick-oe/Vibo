@@ -24,11 +24,16 @@ import {
 
 import { readSeenPinCount, storeSeenPinCount } from '../features/chat/pinned-messages/pins-seen.storage';
 import { Message, MessageDoc } from '../models/message.model';
+import { AuthDiagnosticsService } from './auth-diagnostics.service';
 
 /** Maximum pinned messages fetched for the header dialog. */
 export const PINNED_QUERY_LIMIT = 50;
 
 const PINNED_FIELD = 'pinned';
+
+const PIN_COUNT_LABEL = 'pinned-count';
+
+const PIN_LIST_LABEL = 'pinned-list';
 
 
 /**
@@ -50,6 +55,8 @@ export class PinnedMessagesService {
 
   private readonly injector = inject(Injector);
 
+  private readonly diagnostics = inject(AuthDiagnosticsService);
+
   private readonly contextPath = signal<string | null>(null);
 
   private readonly count = signal(0);
@@ -66,21 +73,27 @@ export class PinnedMessagesService {
   /**
    * Switches the pinned context to a messages collection, fetches its
    * pinned count once via aggregate query and reconciles the persisted
-   * seen state against the fresh count.
+   * seen state against the fresh count. A failed fetch keeps the count at
+   * zero (stale-tolerant by design, retried on the next context switch)
+   * instead of leaking an unhandled rejection.
    * @param messagesPath Messages collection of the open channel/conversation.
    */
   async openContext(messagesPath: string): Promise<void> {
     this.contextPath.set(messagesPath);
     this.count.set(0);
     this.seenCount.set(readSeenPinCount(messagesPath));
-    const pinnedQuery = query(
-      collection(this.firestore, messagesPath),
-      where(PINNED_FIELD, '==', true),
-    );
-    const snapshot = await this.inContext(() => getCountFromServer(pinnedQuery));
-    if (this.contextPath() !== messagesPath) return;
-    this.count.set(snapshot.data().count);
-    this.clampSeen(messagesPath);
+    try {
+      const pinnedQuery = query(
+        collection(this.firestore, messagesPath),
+        where(PINNED_FIELD, '==', true),
+      );
+      const snapshot = await this.inContext(() => getCountFromServer(pinnedQuery));
+      if (this.contextPath() !== messagesPath) return;
+      this.count.set(snapshot.data().count);
+      this.clampSeen(messagesPath);
+    } catch (error) {
+      this.diagnostics.streamError(PIN_COUNT_LABEL, error);
+    }
   }
 
 
@@ -126,18 +139,24 @@ export class PinnedMessagesService {
 
   /**
    * Fetches the pinned messages of a collection once, newest first (sorted
-   * client-side so the equality query needs no composite index).
+   * client-side so the equality query needs no composite index). A failed
+   * fetch degrades to an empty list (the dialog reopens retry it).
    * @param messagesPath Messages collection of the open channel/conversation.
    */
   async fetchPinned(messagesPath: string): Promise<Message[]> {
-    const pinnedQuery = query(
-      collection(this.firestore, messagesPath),
-      where(PINNED_FIELD, '==', true),
-      limit(PINNED_QUERY_LIMIT),
-    );
-    const snapshot = await this.inContext(() => getDocs(pinnedQuery));
-    const messages = snapshot.docs.map(entry => ({ id: entry.id, ...(entry.data() as MessageDoc) }));
-    return messages.sort((a, b) => createdMillis(b.createdAt) - createdMillis(a.createdAt));
+    try {
+      const pinnedQuery = query(
+        collection(this.firestore, messagesPath),
+        where(PINNED_FIELD, '==', true),
+        limit(PINNED_QUERY_LIMIT),
+      );
+      const snapshot = await this.inContext(() => getDocs(pinnedQuery));
+      const messages = snapshot.docs.map(entry => ({ id: entry.id, ...(entry.data() as MessageDoc) }));
+      return messages.sort((a, b) => createdMillis(b.createdAt) - createdMillis(a.createdAt));
+    } catch (error) {
+      this.diagnostics.streamError(PIN_LIST_LABEL, error);
+      return [];
+    }
   }
 
 

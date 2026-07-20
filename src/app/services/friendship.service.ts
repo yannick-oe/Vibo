@@ -12,7 +12,7 @@ import {
   runInInjectionContext,
   signal,
 } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   DocumentReference,
   Firestore,
@@ -28,14 +28,16 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { Observable, catchError, of, switchMap, tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 
 import {
   FriendshipDoc,
   RelationshipState,
   buildFriendshipId,
 } from '../models/friendship.model';
+import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
+import { tokenGatedStream } from './token-gated-stream';
 import { environment } from '../../environments/environment';
 
 const FRIENDSHIPS_COLLECTION = 'friendships';
@@ -59,6 +61,8 @@ export class FriendshipService {
   private readonly authService = inject(AuthService);
 
   private readonly injector = inject(EnvironmentInjector);
+
+  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly loadedState = signal(false);
 
@@ -314,21 +318,26 @@ export class FriendshipService {
   /**
    * Streams the signed-in user's friendships; emits an empty list while
    * signed out so the subscription never reads without permission.
+   * Self-healing (see token-gated-stream.ts): an inner error degrades to
+   * the empty list silently (marking the stream loaded, as before) and
+   * re-subscribes on the next ID-token emission.
    */
   private streamFriendships(): Observable<FriendshipDoc[]> {
-    return toObservable(this.authService.currentUser).pipe(
-      switchMap(current =>
-        current
-          ? runInInjectionContext(this.injector, () => this.queryFriendships(current.uid))
-          : of([]),
-      ),
-    );
+    return tokenGatedStream({
+      label: 'friendships',
+      source: this.authService.tokenChanges,
+      gate: current => current.uid,
+      empty: [] as FriendshipDoc[],
+      build: current => runInInjectionContext(this.injector, () => this.queryFriendships(current.uid)),
+      diagnostics: this.diagnostics,
+      onError: () => this.loadedState.set(true),
+    });
   }
 
 
   /**
-   * Reads all friendships containing the given uid live; errors recover
-   * with an empty list so the UI stays functional.
+   * Reads all friendships containing the given uid live; error recovery is
+   * attached by the surrounding token-gated stream.
    * @param uid Uid whose friendships to stream.
    */
   private queryFriendships(uid: string): Observable<FriendshipDoc[]> {
@@ -337,7 +346,6 @@ export class FriendshipService {
       where(PARTICIPANTS_FIELD, 'array-contains', uid),
     );
     return (collectionData(friendshipsQuery) as Observable<FriendshipDoc[]>).pipe(
-      catchError(() => of([])),
       tap(() => this.loadedState.set(true)),
     );
   }

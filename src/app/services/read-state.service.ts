@@ -21,8 +21,9 @@ import {
   setDoc,
   where,
 } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
+import { Observable, catchError, of } from 'rxjs';
 
+import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 
 const READS_SEGMENT = 'reads';
@@ -59,6 +60,8 @@ export class ReadStateService {
 
   private readonly injector = inject(EnvironmentInjector);
 
+  private readonly diagnostics = inject(AuthDiagnosticsService);
+
 
   /**
    * Marks a conversation read for the signed-in user (lastReadAt = now), so
@@ -75,24 +78,29 @@ export class ReadStateService {
 
   /**
    * Streams a conversation's denormalized last-message metadata live.
+   * Degrades to undefined on stream errors so no consumer chain (unread
+   * watcher, sidebar badges) can be terminated by one dead doc listener.
    * @param conversationPath Path of the conversation document.
    */
   conversationMeta(conversationPath: string): Observable<ConversationMeta | undefined> {
-    return runInInjectionContext(this.injector, () =>
+    const meta = runInInjectionContext(this.injector, () =>
       docData(doc(this.firestore, conversationPath)),
     ) as Observable<ConversationMeta | undefined>;
+    return meta.pipe(catchError(error => this.recover(error, 'conversation-meta', undefined)));
   }
 
 
   /**
-   * Streams a user's read marker for a conversation live.
+   * Streams a user's read marker for a conversation live; degrades to
+   * undefined on stream errors (unread state is best-effort).
    * @param conversationPath Path of the conversation document.
    * @param uid Uid whose read marker is read.
    */
   readMarker(conversationPath: string, uid: string): Observable<ReadMarker | undefined> {
-    return runInInjectionContext(this.injector, () =>
+    const marker = runInInjectionContext(this.injector, () =>
       docData(doc(this.firestore, this.readPath(conversationPath, uid))),
     ) as Observable<ReadMarker | undefined>;
+    return marker.pipe(catchError(error => this.recover(error, 'read-marker', undefined)));
   }
 
 
@@ -114,16 +122,33 @@ export class ReadStateService {
   /**
    * Streams every participant's read marker for a conversation from a single
    * reads-collection listener, so read receipts derive each message's state
-   * client-side without any per-message Firestore reads.
+   * client-side without any per-message Firestore reads; degrades to an
+   * empty list on stream errors.
    * @param conversationPath Path of the conversation document.
    */
   conversationReads(conversationPath: string): Observable<ReadEntry[]> {
-    return runInInjectionContext(this.injector, () =>
+    const reads = runInInjectionContext(this.injector, () =>
       collectionData(
         collection(this.firestore, `${conversationPath}/${READS_SEGMENT}`),
         { idField: 'uid' },
       ),
     ) as Observable<ReadEntry[]>;
+    return reads.pipe(catchError(error => this.recover(error, 'conversation-reads', [] as ReadEntry[])));
+  }
+
+
+  /**
+   * Degrades an errored (terminal) read-state stream to its safe empty
+   * value: the diagnostic panel records the first error, consumers keep
+   * their last derived state and the next context switch rebuilds the
+   * stream. Read state is best-effort and never surfaces errors to users.
+   * @param error Error the stream died with.
+   * @param label Diagnostic stream label.
+   * @param empty Safe value to emit instead.
+   */
+  private recover<T>(error: unknown, label: string, empty: T): Observable<T> {
+    this.diagnostics.streamError(label, error);
+    return of(empty);
   }
 
 

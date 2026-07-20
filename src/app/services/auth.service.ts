@@ -36,6 +36,7 @@ import {
   updateDoc,
   writeBatch,
 } from '@angular/fire/firestore';
+import { Observable } from 'rxjs';
 
 import { UserDoc } from '../models/user.model';
 import { NEW_USER_BADGE_ID } from '../shared/badge-options';
@@ -72,6 +73,17 @@ export class AuthService {
   private readonly injector = inject(EnvironmentInjector);
 
   readonly currentUser = toSignal(user(this.auth), { initialValue: null });
+
+  /**
+   * Raw ID-token lifecycle: emits the current user on subscribe and again on
+   * every sign-in, sign-out and token refresh (including forced refreshes).
+   * Unlike the deduplicating {@link currentUser} signal — whose emissions
+   * carry the same User object reference across token refreshes and are
+   * therefore swallowed by signal equality — every emission is delivered.
+   * The self-healing Firestore streams use these pulses as their retry
+   * ticks (see token-gated-stream.ts).
+   */
+  readonly tokenChanges: Observable<User | null> = user(this.auth);
 
   /** True while the signed-in user is the fixed shared guest account. */
   readonly isGuest = computed(() => this.currentUser()?.email === GUEST_EMAIL);

@@ -11,6 +11,7 @@ import { EnvironmentInjector, Injectable, computed, inject, runInInjectionContex
 import { Firestore, doc, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
 
 import { GifFavorite, GifFavoritesDoc, GifResult } from '../models/gif.model';
+import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 
 /** Firestore collection holding the per-user favorites documents. */
@@ -30,6 +31,8 @@ export class GifFavoritesService {
   private readonly authService = inject(AuthService);
 
   private readonly injector = inject(EnvironmentInjector);
+
+  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly favoritesState = signal<readonly GifFavorite[]>([]);
 
@@ -55,8 +58,8 @@ export class GifFavoritesService {
       );
       this.favoritesState.set((snapshot.data() as GifFavoritesDoc | undefined)?.gifs ?? []);
       this.loadedUid = uid;
-    } catch {
-      return;
+    } catch (error) {
+      this.diagnostics.streamError('gif-favorites', error);
     }
   }
 

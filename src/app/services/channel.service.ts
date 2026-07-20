@@ -8,7 +8,7 @@ import {
   runInInjectionContext,
   signal,
 } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   Firestore,
   Timestamp,
@@ -27,7 +27,7 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 
 import { Channel, ChannelDoc } from '../models/channel.model';
 import {
@@ -36,9 +36,11 @@ import {
   DEFAULT_CHANNEL_ID,
   DEFAULT_CHANNEL_NAME,
 } from '../shared/channels.constants';
+import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { deleteChannelDeep } from './channel-teardown';
 import { ToastService } from './toast.service';
+import { tokenGatedStream } from './token-gated-stream';
 
 const CHANNELS_LOAD_ERROR = 'Channels konnten nicht geladen werden.';
 
@@ -56,6 +58,8 @@ export class ChannelService {
   private readonly toastService = inject(ToastService);
 
   private readonly injector = inject(EnvironmentInjector);
+
+  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly hasLoadedChannelsState = signal(false);
 
@@ -297,25 +301,29 @@ export class ChannelService {
 
   /**
    * Streams the user's channels; emits an empty list while signed out so the
-   * subscription never reads without permission. The query is created in the
-   * injection context as required by AngularFire.
+   * subscription never reads without permission. Self-healing (see
+   * token-gated-stream.ts): an inner error shows the load toast once,
+   * degrades to the empty list and re-subscribes on the next ID-token
+   * emission. The query is created in the injection context as required by
+   * AngularFire.
    */
   private streamChannels(): Observable<Channel[]> {
-    return toObservable(this.authService.currentUser).pipe(
-      switchMap(current => {
-        this.hasLoadedChannelsState.set(false);
-        return current
-          ? runInInjectionContext(this.injector, () => this.queryChannels(current.uid))
-          : of([]);
-      }),
-    );
+    return tokenGatedStream({
+      label: 'channels',
+      source: this.authService.tokenChanges,
+      gate: current => current.uid,
+      empty: [] as Channel[],
+      build: current => runInInjectionContext(this.injector, () => this.queryChannels(current.uid)),
+      diagnostics: this.diagnostics,
+      onError: () => this.toastService.show(CHANNELS_LOAD_ERROR),
+      reset: () => this.hasLoadedChannelsState.set(false),
+    });
   }
 
 
   /**
    * Reads all channels containing the given member live, sorted by creation
-   * time; on Firestore errors a toast is shown and an empty list keeps the
-   * UI functional.
+   * time; error recovery is attached by the surrounding token-gated stream.
    * @param uid Uid the channel membership is filtered by.
    */
   private queryChannels(uid: string): Observable<Channel[]> {
@@ -326,7 +334,6 @@ export class ChannelService {
     return (collectionData(channelsQuery, { idField: 'id' }) as Observable<Channel[]>).pipe(
       map(channels => [...channels].sort((a, b) => createdAtMillis(a) - createdAtMillis(b))),
       tap(() => this.hasLoadedChannelsState.set(true)),
-      catchError(() => this.reportLoadError()),
     );
   }
 

@@ -10,7 +10,7 @@ import {
   inject,
   runInInjectionContext,
 } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   DocumentReference,
   Firestore,
@@ -24,15 +24,18 @@ import {
   setDoc,
   where,
 } from '@angular/fire/firestore';
-import { Observable, catchError, of, switchMap } from 'rxjs';
+import { Observable } from 'rxjs';
 
 import { DirectMessageDoc, buildConversationId } from '../models/direct-message.model';
 import { GifResult } from '../models/gif.model';
 import { ReplyRef } from '../models/message.model';
+import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { FriendshipService } from './friendship.service';
-import { MessageService, directMessagesPath } from './message.service';
+import { MessageService } from './message.service';
+import { directMessagesPath } from './message-paths';
 import { ToastService } from './toast.service';
+import { tokenGatedStream } from './token-gated-stream';
 
 const DM_COLLECTION = 'directMessages';
 const PARTICIPANT_IDS_FIELD = 'participantIds';
@@ -58,6 +61,8 @@ export class DirectMessageService {
   private readonly toastService = inject(ToastService);
 
   private readonly injector = inject(EnvironmentInjector);
+
+  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   readonly conversations = toSignal(this.streamConversations(), {
     initialValue: [] as DirectMessageDoc[],
@@ -188,25 +193,30 @@ export class DirectMessageService {
   /**
    * Streams the signed-in user's existing conversations; emits an empty
    * list while signed out so the subscription never reads without
-   * permission.
+   * permission. Self-healing (see token-gated-stream.ts): an inner error
+   * degrades to the empty list silently and re-subscribes on the next
+   * ID-token emission.
    */
   private streamConversations(): Observable<DirectMessageDoc[]> {
-    return toObservable(this.authService.currentUser).pipe(
-      switchMap(current =>
-        current
-          ? runInInjectionContext(this.injector, () => this.queryConversations(current.uid))
-          : of([]),
-      ),
-    );
+    return tokenGatedStream({
+      label: 'dm-conversations',
+      source: this.authService.tokenChanges,
+      gate: current => current.uid,
+      empty: [] as DirectMessageDoc[],
+      build: current =>
+        runInInjectionContext(this.injector, () => this.queryConversations(current.uid)),
+      diagnostics: this.diagnostics,
+    });
   }
 
 
   /**
-   * Reads all conversations containing the given uid live; errors recover
-   * with an empty list so the UI stays functional. Pending server timestamps
-   * read as local estimates, so a just-sent message's latency-compensated
-   * snapshot sorts the conversation to its final recency position at once
-   * instead of momentarily treating lastMessageAt as unresolved.
+   * Reads all conversations containing the given uid live; error recovery
+   * is attached by the surrounding token-gated stream. Pending server
+   * timestamps read as local estimates, so a just-sent message's
+   * latency-compensated snapshot sorts the conversation to its final
+   * recency position at once instead of momentarily treating lastMessageAt
+   * as unresolved.
    * @param uid Uid whose conversations to stream.
    */
   private queryConversations(uid: string): Observable<DirectMessageDoc[]> {
@@ -214,11 +224,9 @@ export class DirectMessageService {
       collection(this.firestore, DM_COLLECTION),
       where(PARTICIPANT_IDS_FIELD, 'array-contains', uid),
     );
-    return (
-      collectionData(conversationsQuery, { serverTimestamps: 'estimate' }) as Observable<
-        DirectMessageDoc[]
-      >
-    ).pipe(catchError(() => of([])));
+    return collectionData(conversationsQuery, { serverTimestamps: 'estimate' }) as Observable<
+      DirectMessageDoc[]
+    >;
   }
 
 

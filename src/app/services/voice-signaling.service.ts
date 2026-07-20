@@ -20,7 +20,7 @@ import {
   serverTimestamp,
   where,
 } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
+import { Observable, catchError, of } from 'rxjs';
 
 import {
   VoiceSignal,
@@ -32,6 +32,7 @@ import {
   VOICE_CHANNELS_COLLECTION,
   VOICE_SIGNALS_SEGMENT,
 } from '../shared/voice.constants';
+import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { ClientSessionService } from './client-session.service';
 
@@ -49,6 +50,8 @@ export class VoiceSignalingService {
   private readonly clientSession = inject(ClientSessionService);
 
   private readonly injector = inject(EnvironmentInjector);
+
+  private readonly diagnostics = inject(AuthDiagnosticsService);
 
 
   /**
@@ -107,11 +110,14 @@ export class VoiceSignalingService {
   /**
    * Streams the envelopes addressed to this client session in a channel.
    * Subscribed only while connected (connection-scoped listener, §14); the
-   * consumer deletes every applied envelope via {@link consume}.
+   * consumer deletes every applied envelope via {@link consume}. Degrades
+   * to an empty inbox on stream errors — lost envelopes surface as failed
+   * peer connections, which the watchdog handles; the consuming
+   * subscription itself must never be terminated by the error.
    * @param channelId Voice channel to listen in.
    */
   streamInbox(channelId: string): Observable<VoiceSignal[]> {
-    return runInInjectionContext(this.injector, () =>
+    const inbox = runInInjectionContext(this.injector, () =>
       collectionData(
         query(
           collection(this.firestore, this.signalsPath(channelId)),
@@ -121,6 +127,18 @@ export class VoiceSignalingService {
         { idField: 'id' },
       ),
     ) as Observable<VoiceSignal[]>;
+    return inbox.pipe(catchError(error => this.recoverInbox(error)));
+  }
+
+
+  /**
+   * Degrades an errored inbox stream to the empty list; the diagnostic
+   * panel records the first error.
+   * @param error Error the stream died with.
+   */
+  private recoverInbox(error: unknown): Observable<VoiceSignal[]> {
+    this.diagnostics.streamError('voice-inbox', error);
+    return of([] as VoiceSignal[]);
   }
 
 

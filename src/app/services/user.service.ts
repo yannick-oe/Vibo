@@ -2,7 +2,7 @@
  * @file Live stream of all user documents from the Firestore users collection.
  */
 import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   Firestore,
   collection,
@@ -12,12 +12,14 @@ import {
   query,
   updateDoc,
 } from '@angular/fire/firestore';
-import { Observable, catchError, of, switchMap } from 'rxjs';
+import { Observable } from 'rxjs';
 
 import { UserDoc } from '../models/user.model';
 import { isVerifiedOrGuest } from './account-security.service';
+import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
+import { tokenGatedStream } from './token-gated-stream';
 
 const USERS_LOAD_ERROR = 'Benutzer konnten nicht geladen werden.';
 
@@ -43,6 +45,8 @@ export class UserService {
   private readonly toastService = inject(ToastService);
 
   private readonly injector = inject(EnvironmentInjector);
+
+  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   readonly users = toSignal(this.streamUsers(), { initialValue: [] as UserDoc[] });
 
@@ -72,38 +76,30 @@ export class UserService {
    * signed out or unverified, mirroring the security rules — the list query
    * has no signup-time carve-out, so starting it for the freshly created,
    * still-unverified account mid-registration would only raise the load
-   * error. The source re-emits on token refresh (idToken-based), so the
-   * query starts right after the verified claim is proven. The query is
-   * created in the injection context as required by AngularFire.
+   * error. Self-healing (see token-gated-stream.ts): an inner error shows
+   * the load toast once, degrades to the empty list and re-subscribes on
+   * the next ID-token emission instead of staying dark for the session.
+   * The query is created in the injection context as AngularFire requires.
    */
   private streamUsers(): Observable<UserDoc[]> {
-    return toObservable(this.authService.currentUser).pipe(
-      switchMap(current =>
-        current && isVerifiedOrGuest(current)
-          ? runInInjectionContext(this.injector, () => this.queryUsers())
-          : of([]),
-      ),
-    );
+    return tokenGatedStream({
+      label: 'users',
+      source: this.authService.tokenChanges,
+      gate: current => (isVerifiedOrGuest(current) ? current.uid : null),
+      empty: [] as UserDoc[],
+      build: () => runInInjectionContext(this.injector, () => this.queryUsers()),
+      diagnostics: this.diagnostics,
+      onError: () => this.toastService.show(USERS_LOAD_ERROR),
+    });
   }
 
 
   /**
-   * Reads the users collection live; on Firestore errors a toast is shown
-   * and an empty list keeps the UI functional.
+   * Reads the users collection live; error recovery is attached by the
+   * surrounding token-gated stream.
    */
   private queryUsers(): Observable<UserDoc[]> {
     const usersQuery = query(collection(this.firestore, 'users'), orderBy('name'));
-    return (collectionData(usersQuery) as Observable<UserDoc[]>).pipe(
-      catchError(() => this.reportLoadError()),
-    );
-  }
-
-
-  /**
-   * Shows the load-error toast and recovers with an empty list.
-   */
-  private reportLoadError(): Observable<UserDoc[]> {
-    this.toastService.show(USERS_LOAD_ERROR);
-    return of([]);
+    return collectionData(usersQuery) as Observable<UserDoc[]>;
   }
 }

@@ -24,6 +24,7 @@ import {
   collectionGroup,
   onSnapshot,
 } from '@angular/fire/firestore';
+import { Subscription, skip, take } from 'rxjs';
 
 import { VoiceParticipant, VoiceParticipantDoc } from '../models/voice.model';
 import {
@@ -31,8 +32,11 @@ import {
   VOICE_STALE_MS,
   VOICE_STALE_SWEEP_MS,
 } from '../shared/voice.constants';
+import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { VoiceChannelService } from './voice-channel.service';
+
+const ROSTER_STREAM_LABEL = 'voice-roster';
 
 /**
  * Streams the participant sessions of every voice channel and exposes them
@@ -50,9 +54,15 @@ export class VoiceRosterService {
 
   private readonly injector = inject(EnvironmentInjector);
 
+  private readonly diagnostics = inject(AuthDiagnosticsService);
+
   private readonly participantsState = signal<VoiceParticipant[]>([]);
 
   private readonly nowMs = signal(Date.now());
+
+  private readonly retryTick = signal(0);
+
+  private retryArm: Subscription | null = null;
 
   /** All non-stale participant sessions across every voice channel. */
   readonly activeParticipants: Signal<VoiceParticipant[]> = computed(() =>
@@ -67,11 +77,13 @@ export class VoiceRosterService {
 
   /**
    * Starts the staleness sweep, binds the collection-group listener to the
-   * auth state and wires the unknown-channel list refresh.
+   * auth state (plus the retry tick that revives a dead listener) and
+   * wires the unknown-channel list refresh.
    */
   constructor() {
     setInterval(() => this.nowMs.set(Date.now()), VOICE_STALE_SWEEP_MS);
     effect(onCleanup => {
+      this.retryTick();
       if (!this.authService.currentUser()) return this.participantsState.set([]);
       onCleanup(this.listen());
     });
@@ -93,13 +105,42 @@ export class VoiceRosterService {
    * an empty roster (best effort — occupancy is never load-bearing).
    */
   private listen(): Unsubscribe {
+    this.diagnostics.streamStarted(ROSTER_STREAM_LABEL);
     return runInInjectionContext(this.injector, () =>
       onSnapshot(
         collectionGroup(this.firestore, VOICE_PARTICIPANTS_SEGMENT),
         snapshot => this.participantsState.set(mapParticipants(snapshot)),
-        () => this.participantsState.set([]),
+        error => this.recoverFromError(error),
       ),
     );
+  }
+
+
+  /**
+   * Handles a terminal listener death: the roster empties (existing
+   * behavior) and the single persistent listener is re-armed on the NEXT
+   * ID-token emission — never immediately, so a persistent rejection
+   * cannot loop — restoring the intended one-listener inventory instead of
+   * staying dark for the rest of the session.
+   * @param error Error the listener died with.
+   */
+  private recoverFromError(error: unknown): void {
+    this.participantsState.set([]);
+    this.diagnostics.streamError(ROSTER_STREAM_LABEL, error);
+    if (this.retryArm) return;
+    this.retryArm = this.authService.tokenChanges
+      .pipe(skip(1), take(1))
+      .subscribe(() => this.rearmListener());
+  }
+
+
+  /**
+   * Revives the dead listener by bumping the retry tick the binding effect
+   * tracks; at most one listener exists at any time (effect cleanup).
+   */
+  private rearmListener(): void {
+    this.retryArm = null;
+    this.retryTick.update(tick => tick + 1);
   }
 
 

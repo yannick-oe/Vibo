@@ -2291,3 +2291,48 @@ instead of adding listener-restart machinery:
   the freshly created, still-unverified account mid-registration (a warm session that
   already constructed `UserService`) only produced the spurious „Benutzer konnten nicht
   geladen werden."-toast during a clean signup.
+
+## v1.1.3: full-page verified entry, self-healing streams, temporary diagnostic panel (2026-07-20)
+
+The v1.1.2 live pass still reproduced the frozen continueUrl tab: the own name resolved
+(own-doc `signedIn()` carve-out) while every other user was „Unbekannt" — proof that app
+streams attached under the STALE token claim and died terminally even though the verify
+screen's claim poll had succeeded. Root cause class: router-navigating into the app after
+the claim check leaves a window in which the running Firestore SDK may still hold the
+previous token (Auth→Firestore token propagation is asynchronous inside the SDKs), so
+"claim proven in the Auth SDK" does not imply "next listener attaches with the fresh
+token". Two structural consequences, superseding the 2026-07-19 stance of relying on
+ordering alone:
+
+- **Hard app entry after a proven claim.** All confirm paths of the verify screen (the
+  continueUrl auto-run, the login-redirect arrival — both funnel through `autoConfirm()` —
+  and the manual „Ich habe bestätigt" button) now enter the app via
+  `location.replace(document.baseURI + '#/app')` (or the pending-invite fragment), never
+  `router.navigate`. The forced refresh persists the fresh token, so the full reload boots
+  guards, services and every stream on a verified token from the first instruction — no
+  bootstrap ordering or cross-SDK token propagation can regress. On poll failure the
+  screen keeps its existing error handling; the auth guard stays as the second net.
+- **Self-healing token-gated streams** (`token-gated-stream.ts`): the persistent
+  auth-driven streams (users, channels, friendships, DM conversations, notifications)
+  now follow the RAW `onIdTokenChanged` observable (`AuthService.tokenChanges`) instead
+  of `toObservable(currentUser)` — the signal carries the same `User` object reference
+  across token refreshes, so signal equality silently swallowed every token-refresh
+  emission and the documented "re-keyed per token emission" recovery never actually
+  fired. Inner errors are caught INSIDE the projection (safe empty value, one report),
+  and the dead query re-subscribes on the next token emission; healthy streams
+  deduplicate by gate key, so token refreshes cause zero listener churn. The voice
+  roster keeps its `onSnapshot` shape (it needs doc refs for channel ids) and re-arms
+  its single listener on the next token emission after a terminal error; the
+  connection-scoped signals inbox and the context-scoped doc streams (conversation
+  meta/read markers/reads, typing, thread origin) degrade to safe empty values instead
+  of terminating their consumer chains. Listener COUNTS are unchanged everywhere — at
+  most one inner subscription exists per stream at any time.
+- **TEMPORARY DIAGNOSTIC — remove after verification-flow signoff.** A deliberate,
+  bounded exception to the no-debug-surface rule: `AuthDiagnosticsService` plus
+  `AuthDebugPanelComponent` render an on-screen (never console) evidence panel on the
+  verify screen and in the app shell, gated by `localStorage['vibo:auth-debug'] === '1'`
+  and fully dormant without the flag (no listeners, no entries, zero DOM). It records
+  token emissions with the locally atob-decoded `email_verified` claim, verify-screen
+  steps, guard decisions and gated-stream starts/first errors; no Firestore access.
+  **Removal condition:** delete both files, their two mounts and the guard/stream/verify
+  log calls once the owner's live pass confirms the verification flow end-to-end.
