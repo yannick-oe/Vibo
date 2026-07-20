@@ -46,6 +46,7 @@ import {
   RegistrationFormData,
 } from './registration.service';
 import { UsernameService } from './username.service';
+import { normalizeUsername } from '../shared/validators/username.validators';
 import { environment } from '../../environments/environment';
 
 const GUEST_NAME = 'Gast';
@@ -88,8 +89,8 @@ export class AuthService {
 
   /**
    * Creates the Firebase account, sets the initial display name (the chosen
-   * username) on the auth profile and atomically stores the user document
-   * together with the username claim.
+   * username in its entered casing) on the auth profile and atomically
+   * stores the user document together with the lowercased username claim.
    * @param data Validated registration form values.
    * @param avatarPath Public asset path of the selected avatar.
    * @returns Uid of the newly created user.
@@ -102,7 +103,8 @@ export class AuthService {
       updateProfile(credential.user, { displayName: data.username, photoURL: avatarPath }),
     );
     const document = this.buildRegisteredUserDoc(credential.user.uid, data, avatarPath);
-    await this.commitUserWithUsername(credential.user.uid, data.username, document);
+    const handle = normalizeUsername(data.username);
+    await this.commitUserWithUsername(credential.user.uid, handle, document);
     return credential.user.uid;
   }
 
@@ -218,7 +220,9 @@ export class AuthService {
 
   /**
    * Builds the Firestore document for a newly registered user. The display
-   * name initializes to the chosen username and stays editable.
+   * name initializes to the chosen username in its entered casing and stays
+   * editable; the immutable @handle is its normalized (lowercased) form,
+   * matching the usernames/{handle} registry claim.
    * @param uid Firebase Auth user id.
    * @param data Validated registration form values.
    * @param avatarPath Public asset path of the selected avatar.
@@ -230,7 +234,7 @@ export class AuthService {
   ): UserDoc {
     return {
       uid,
-      username: data.username,
+      username: normalizeUsername(data.username),
       name: data.username,
       email: data.email,
       avatarPath,

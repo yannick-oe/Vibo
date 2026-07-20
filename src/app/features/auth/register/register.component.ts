@@ -30,7 +30,6 @@ import {
 } from '../../../shared/validators/password.validators';
 import {
   USERNAME_ERRORS,
-  normalizeUsername,
   usernameValidator,
 } from '../../../shared/validators/username.validators';
 
@@ -173,11 +172,14 @@ export class RegisterComponent implements OnInit, AfterViewInit {
   /**
    * Stores the form values and continues to the avatar step. Requires a
    * fully valid form, which also blocks the pending availability check.
+   * The username keeps its entered casing (only trimmed) — it becomes the
+   * display name as typed; lowercasing for the @handle and the registry
+   * claim happens at signup time in the AuthService.
    */
   protected continueToAvatar(): void {
     if (!this.form.valid) return;
     const { username, email, password } = this.form.getRawValue();
-    this.registration.setFormData({ username: normalizeUsername(username), email, password });
+    this.registration.setFormData({ username: username.trim(), email, password });
     this.router.navigate(['/auth/register/avatar']);
   }
 }
