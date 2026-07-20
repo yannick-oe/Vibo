@@ -21,15 +21,18 @@ import { Router, RouterLink } from '@angular/router';
 
 import { APP_NAME } from '../../../shared/app.constants';
 import { PasswordInputComponent } from '../../../shared/password-input/password-input.component';
+import { AccountSecurityService } from '../../../services/account-security.service';
 import { RegistrationService } from '../../../services/registration.service';
 import { UsernameService } from '../../../services/username.service';
+import {
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_TOO_SHORT_MESSAGE,
+} from '../../../shared/validators/password.validators';
 import {
   USERNAME_ERRORS,
   normalizeUsername,
   usernameValidator,
 } from '../../../shared/validators/username.validators';
-
-const PASSWORD_MIN_LENGTH = 6;
 
 const ERROR_MESSAGES: Record<string, Record<string, string>> = {
   username: USERNAME_ERRORS,
@@ -39,7 +42,8 @@ const ERROR_MESSAGES: Record<string, Record<string, string>> = {
   },
   password: {
     required: 'Bitte gib ein Passwort ein',
-    minlength: `Dein Passwort muss mindestens ${PASSWORD_MIN_LENGTH} Zeichen lang sein`,
+    minlength: PASSWORD_TOO_SHORT_MESSAGE,
+    passwordPolicy: PASSWORD_TOO_SHORT_MESSAGE,
   },
   privacy: {
     required: 'Bitte stimme der Datenschutzerklärung zu',
@@ -75,6 +79,8 @@ export class RegisterComponent implements OnInit, AfterViewInit {
 
   private readonly usernameService = inject(UsernameService);
 
+  private readonly accountSecurity = inject(AccountSecurityService);
+
   private readonly router = inject(Router);
 
   private readonly title = viewChild<ElementRef<HTMLHeadingElement>>('title');
@@ -84,7 +90,11 @@ export class RegisterComponent implements OnInit, AfterViewInit {
   protected readonly form = this.formBuilder.group({
     username: ['', [usernameValidator], [this.usernameService.availabilityValidator()]],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)]],
+    password: [
+      '',
+      [Validators.required, Validators.minLength(MIN_PASSWORD_LENGTH)],
+      [this.accountSecurity.passwordPolicyValidator()],
+    ],
     privacy: [false, Validators.requiredTrue],
   });
 

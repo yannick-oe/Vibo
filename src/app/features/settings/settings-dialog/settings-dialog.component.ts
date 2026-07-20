@@ -1,24 +1,30 @@
 /**
  * @file Settings dialog opened from the topbar profile menu: a centered
  * card (bottom sheet on mobile) grouping app-wide preferences into semantic
- * sections. Currently holds the "Sounds" section moved out of the profile
- * menu; future settings groups slot in as further sections.
+ * sections — "Sounds" and, for accounts with an e-mail/password credential,
+ * "Passwort ändern"; future settings groups slot in as further sections.
  */
 import { ChangeDetectionStrategy, Component, computed, inject, output } from '@angular/core';
 
+import { AccountSecurityService } from '../../../services/account-security.service';
+import { AuthService } from '../../../services/auth.service';
 import { SoundService } from '../../../services/sound.service';
 import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
+import { PasswordChangeComponent } from '../password-change/password-change.component';
 
 const VOLUME_PERCENT_MAX = 100;
 
 /**
  * App settings dialog. The sound preferences delegate straight to the
  * {@link SoundService} signals, so all persistence (localStorage keys)
- * and playback behavior stay unchanged by the move out of the menu.
+ * and playback behavior stay unchanged by the move out of the menu. The
+ * password section is hidden for the shared guest account (client-side
+ * only, see DEVIATIONS.md) and for Google-only accounts, which own no
+ * password credential to re-authenticate with.
  */
 @Component({
   selector: 'app-settings-dialog',
-  imports: [DialogShellComponent],
+  imports: [DialogShellComponent, PasswordChangeComponent],
   templateUrl: './settings-dialog.component.html',
   styleUrl: './settings-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -27,6 +33,15 @@ export class SettingsDialogComponent {
   readonly closed = output<void>();
 
   private readonly soundService = inject(SoundService);
+
+  private readonly authService = inject(AuthService);
+
+  private readonly accountSecurity = inject(AccountSecurityService);
+
+  protected readonly canChangePassword = computed(() => {
+    if (this.authService.currentUser() === null) return false;
+    return !this.authService.isGuest() && this.accountSecurity.hasPasswordProvider();
+  });
 
   protected readonly soundEnabled = this.soundService.soundEnabled;
 

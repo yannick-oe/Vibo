@@ -12,21 +12,22 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import {
-  AbstractControl,
-  NonNullableFormBuilder,
-  ReactiveFormsModule,
-  ValidationErrors,
-  Validators,
-} from '@angular/forms';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { FirebaseError } from 'firebase/app';
 
+import { AccountSecurityService } from '../../../services/account-security.service';
 import { AuthService } from '../../../services/auth.service';
 import { ToastService } from '../../../services/toast.service';
 import { PasswordInputComponent } from '../../../shared/password-input/password-input.component';
+import {
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_MISMATCH_MESSAGE,
+  PASSWORD_TOO_SHORT_MESSAGE,
+  WEAK_PASSWORD_CODES,
+  matchingPasswordsValidator,
+} from '../../../shared/validators/password.validators';
 
-const PASSWORD_MIN_LENGTH = 6;
 const RESET_MODE = 'resetPassword';
 const TOAST_MESSAGE = 'Anmelden';
 const GENERAL_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es später erneut.';
@@ -39,21 +40,12 @@ const CODE_ERROR_MESSAGES: Record<string, string> = {
 
 const PASSWORD_ERROR_MESSAGES: Record<string, string> = {
   required: 'Bitte gib ein Passwort ein',
-  minlength: `Dein Passwort muss mindestens ${PASSWORD_MIN_LENGTH} Zeichen lang sein`,
+  minlength: PASSWORD_TOO_SHORT_MESSAGE,
+  passwordPolicy: PASSWORD_TOO_SHORT_MESSAGE,
 };
 
 /** Validity state of the reset code from the e-mail link. */
 type CodeState = 'checking' | 'valid' | 'invalid';
-
-/**
- * Group validator reporting a mismatch between password and confirmation.
- * @param group Form group holding password and confirm controls.
- */
-function passwordsMatchValidator(group: AbstractControl): ValidationErrors | null {
-  const password = group.get('password')?.value;
-  const confirm = group.get('confirm')?.value;
-  return password === confirm ? null : { passwordMismatch: true };
-}
 
 /**
  * Verifies the Firebase reset code and lets the user set a new password.
@@ -68,6 +60,8 @@ function passwordsMatchValidator(group: AbstractControl): ValidationErrors | nul
 })
 export class ResetPasswordComponent implements OnInit, AfterViewInit {
   private readonly authService = inject(AuthService);
+
+  private readonly accountSecurity = inject(AccountSecurityService);
 
   private readonly formBuilder = inject(NonNullableFormBuilder);
 
@@ -93,10 +87,14 @@ export class ResetPasswordComponent implements OnInit, AfterViewInit {
 
   protected readonly form = this.formBuilder.group(
     {
-      password: ['', [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)]],
+      password: [
+        '',
+        [Validators.required, Validators.minLength(MIN_PASSWORD_LENGTH)],
+        [this.accountSecurity.passwordPolicyValidator()],
+      ],
       confirm: ['', Validators.required],
     },
-    { validators: passwordsMatchValidator },
+    { validators: matchingPasswordsValidator('password', 'confirm') },
   );
 
 
@@ -167,7 +165,7 @@ export class ResetPasswordComponent implements OnInit, AfterViewInit {
     const control = this.form.controls.confirm;
     if (!control.touched) return '';
     if (control.errors?.['required']) return 'Bitte bestätige dein Passwort';
-    if (this.form.errors?.['passwordMismatch']) return 'Deine Passwörter stimmen nicht überein';
+    if (this.form.errors?.['passwordMismatch']) return PASSWORD_MISMATCH_MESSAGE;
     return '';
   }
 
@@ -239,12 +237,16 @@ export class ResetPasswordComponent implements OnInit, AfterViewInit {
 
 
   /**
-   * Shows a specific inline error for invalid/expired/used codes, or a
-   * general message for any other failure.
+   * Shows a specific inline error for invalid/expired/used codes and for
+   * a server-side policy rejection, or a general message otherwise.
    * @param error Unknown error thrown by the reset request.
    */
   private handleResetError(error: unknown): void {
     const code = error instanceof FirebaseError ? error.code : '';
+    if (WEAK_PASSWORD_CODES.includes(code)) {
+      this.generalError.set(PASSWORD_TOO_SHORT_MESSAGE);
+      return;
+    }
     this.generalError.set(CODE_ERROR_MESSAGES[code] ?? GENERAL_ERROR_MESSAGE);
   }
 
