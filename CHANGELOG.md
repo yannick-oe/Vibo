@@ -4,6 +4,14 @@ Alle nennenswerten Änderungen an Vibo, kuratiert nach Feature-Bereichen im Stil
 
 ## [Unreleased]
 
+## [1.1.3] – 2026-07-20
+
+### Konto & Sicherheit
+
+- **Verifizierung jetzt zuverlässig nach dem Mail-Klick:** Nach bestätigter E-Mail wird die App über einen vollständigen Seiten-Neustart betreten — Wächter, Dienste und alle Datenströme starten garantiert auf dem frischen Auth-Token; der eingefrorene Tab (Nutzer „Unbekannt", Nachrichten nicht ladbar) kann strukturell nicht mehr entstehen
+- **Robustere Datenströme:** Reißt ein Firestore-Live-Stream ab (z. B. durch ein veraltetes Token), fängt er sich jetzt selbst wieder — beim nächsten Token-Ereignis wird er automatisch neu verbunden, statt bis zum Neuladen dunkel zu bleiben
+- **Korrigierter Benutzernamen-Hinweis:** Die Registrierung sagt jetzt „Nur Buchstaben, Zahlen, Punkt und Unterstrich — ohne Leerzeichen." — Großbuchstaben sind für den Anzeigenamen erlaubt, das @-Handle bleibt kleingeschrieben
+
 ## [1.1.2] – 2026-07-20
 
 ### Konto & Sicherheit
