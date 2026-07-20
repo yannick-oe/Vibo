@@ -44,6 +44,21 @@ export const SCREEN_IDEAL_FPS = 30;
 /** Upper video bitrate per screen-share leg in bit/s (crisp text focus). */
 export const SCREEN_MAX_BITRATE = 2_000_000;
 
+/** localStorage key prefix of the per-user remote volume ("vibo:user-volume:{uid}"). */
+export const USER_VOLUME_KEY_PREFIX = 'vibo:user-volume:';
+
+/** Default per-user remote volume in percent (unity gain). */
+export const USER_VOLUME_DEFAULT_PERCENT = 100;
+
+/** Maximum per-user remote volume in percent (2.0 gain boost). */
+export const USER_VOLUME_MAX_PERCENT = 200;
+
+/** Slider step of the per-user remote volume in percent. */
+export const USER_VOLUME_STEP_PERCENT = 5;
+
+/** Ramp time of every remote gain change in seconds (avoids zipper noise). */
+export const GAIN_RAMP_S = 0.05;
+
 /** Public STUN servers used for NAT traversal (primary plus one fallback). */
 export const STUN_SERVERS: readonly RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },

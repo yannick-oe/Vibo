@@ -51,6 +51,16 @@ export class SpeakingMonitor {
 
 
   /**
+   * The shared AudioContext of this connection, created on demand; the
+   * playback mixer uses it too, so analysis and playback live in one
+   * audio graph that is closed together on dispose.
+   */
+  acquireContext(): AudioContext {
+    return this.ensureContext();
+  }
+
+
+  /**
    * Starts analysing a session's stream; the shared context and poll loop
    * are created lazily with the first stream.
    * @param sessionId Session the stream belongs to.

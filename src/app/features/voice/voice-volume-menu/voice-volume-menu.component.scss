@@ -1,0 +1,92 @@
+// Styles of the per-user voice-volume menu: name header, slider row with
+// the reserved-width % readout, the local-mute switch row and the reset
+// action. Slider and switch visuals come from the shared control mixins.
+@use 'variables' as v;
+@use 'mixins' as m;
+@use 'controls' as c;
+
+$readout-reserved-width: 3.2rem;
+
+.volume-menu {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+  min-width: 0;
+}
+
+.volume-menu__name {
+  margin: 0;
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-bold;
+  color: v.color('black');
+  @include m.text-ellipsis;
+}
+
+.volume-menu__slider-row {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  min-height: c.$control-min-height;
+}
+
+.volume-menu__slider {
+  @include c.volume-slider;
+}
+
+.volume-menu__readout {
+  flex-shrink: 0;
+  min-width: $readout-reserved-width;
+  text-align: right;
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('text-gray');
+  font-variant-numeric: tabular-nums;
+}
+
+.volume-menu__switch {
+  @include c.switch-row;
+}
+
+.volume-menu__switch-label {
+  min-width: 0;
+}
+
+.volume-menu__switch-track {
+  @include c.switch-track;
+}
+
+.volume-menu__switch-thumb {
+  @include c.switch-thumb;
+}
+
+.volume-menu__switch[aria-checked='true'] .volume-menu__switch-track {
+  @include c.switch-track-on;
+}
+
+.volume-menu__switch[aria-checked='true'] .volume-menu__switch-thumb {
+  @include c.switch-thumb-on;
+}
+
+.volume-menu__reset {
+  align-self: flex-start;
+  min-height: v.$btn-height-sm;
+  padding: v.space('xs') v.space('sm-md');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-pill;
+  background: none;
+  cursor: pointer;
+  font-family: v.$font-base;
+  font-size: v.font-size('min');
+  font-weight: v.$font-weight-semibold;
+  color: v.color('black');
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}

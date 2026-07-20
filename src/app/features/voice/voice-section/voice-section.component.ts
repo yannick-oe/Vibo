@@ -23,6 +23,7 @@ import { DialogAnchor, anchorToTrigger } from '../../../shared/dialog-shell/dial
 import { MAX_VOICE_PARTICIPANTS } from '../../../shared/voice.constants';
 import { VoiceDeleteDialogComponent } from '../voice-delete-dialog/voice-delete-dialog.component';
 import { VoiceRenameDialogComponent } from '../voice-rename-dialog/voice-rename-dialog.component';
+import { VoiceVolumeMenuComponent } from '../voice-volume-menu/voice-volume-menu.component';
 import { isParticipantSpeaking, memberAvatar, memberName } from '../voice-view.util';
 
 /**
@@ -39,9 +40,10 @@ import { isParticipantSpeaking, memberAvatar, memberName } from '../voice-view.u
     DialogShellComponent,
     VoiceDeleteDialogComponent,
     VoiceRenameDialogComponent,
+    VoiceVolumeMenuComponent,
   ],
   templateUrl: './voice-section.component.html',
-  styleUrl: './voice-section.component.scss',
+  styleUrls: ['./voice-section.component.scss', './voice-section.members.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VoiceSectionComponent {
@@ -72,6 +74,12 @@ export class VoiceSectionComponent {
   protected readonly renameTarget = signal<VoiceChannel | null>(null);
 
   protected readonly deleteTarget = signal<VoiceChannel | null>(null);
+
+  protected readonly volumeTarget = signal<VoiceParticipant | null>(null);
+
+  protected readonly volumeAnchor = signal<DialogAnchor | null>(null);
+
+  protected readonly ownSessionId = this.connectionService.ownSessionId;
 
   protected readonly connectedChannelId = computed(
     () => this.connectionService.connectedChannel()?.id ?? null,
@@ -156,6 +164,19 @@ export class VoiceSectionComponent {
    */
   protected participantsOf(channelId: string): VoiceParticipant[] {
     return this.rosterService.participantsOf(channelId);
+  }
+
+
+  /**
+   * Opens the per-user volume menu for a remote participant, anchored to
+   * its ⋮ trigger.
+   * @param participant Remote participant of the row.
+   * @param event Click event of the trigger button.
+   */
+  protected openVolumeMenu(participant: VoiceParticipant, event: Event): void {
+    const trigger = event.currentTarget;
+    this.volumeAnchor.set(trigger instanceof HTMLElement ? anchorToTrigger(trigger) : null);
+    this.volumeTarget.set(participant);
   }
 
 

@@ -2,11 +2,11 @@
  * @file One leg of the full voice mesh: wraps a single RTCPeerConnection to
  * a remote client session — offer/answer negotiation with Opus-upgraded
  * local descriptions, ICE candidate exchange with buffering until the
- * remote description is set, a hidden autoplaying audio element for the
- * remote stream, an optional screen-share video track in either direction
- * and a grace-timed connection watchdog. Media flows only peer-to-peer
- * (DTLS-SRTP); this class never touches Firestore itself, it hands
- * envelopes to the send hook.
+ * remote description is set, an optional screen-share video track in
+ * either direction and a grace-timed connection watchdog. The remote audio
+ * stream is only REPORTED here — playback and per-user gain live in the
+ * mesh's RemoteAudioMixer. Media flows only peer-to-peer (DTLS-SRTP); this
+ * class never touches Firestore itself, it hands envelopes to the send hook.
  */
 import { VoiceSignalKind, VoiceSignalPayload } from '../../../models/voice.model';
 import { DISCONNECT_GRACE_MS, SCREEN_MAX_BITRATE, STUN_SERVERS } from '../../../shared/voice.constants';
@@ -20,14 +20,12 @@ const SCREEN_DEGRADATION: RTCDegradationPreference = 'maintain-resolution';
 export interface VoicePeerHooks {
   /** Sends one signaling envelope to this peer's remote session. */
   readonly sendSignal: (kind: VoiceSignalKind, payload: VoiceSignalPayload) => void;
-  /** Delivers the remote audio stream (for the speaking analyser). */
+  /** Delivers the remote audio stream (playback mixer plus analyser). */
   readonly onRemoteStream: (sessionId: string, stream: MediaStream) => void;
   /** Delivers or clears the remote screen-share video stream. */
   readonly onRemoteVideo: (sessionId: string, stream: MediaStream | null) => void;
   /** Asks the service to drop this peer after the watchdog grace expired. */
   readonly onDropped: (sessionId: string) => void;
-  /** Current deafen state, applied to newly attached audio elements. */
-  readonly isDeafened: () => boolean;
 }
 
 /**
@@ -44,7 +42,7 @@ export class VoicePeer {
 
   private readonly pendingCandidates: RTCIceCandidateInit[] = [];
 
-  private audio: HTMLAudioElement | null = null;
+  private audioDelivered = false;
 
   private videoSender: RTCRtpSender | null = null;
 
@@ -162,24 +160,14 @@ export class VoicePeer {
 
 
   /**
-   * Mutes or unmutes this peer's remote audio element (deafen toggle).
-   * @param muted Whether remote audio is silenced.
-   */
-  setRemoteMuted(muted: boolean): void {
-    if (this.audio) this.audio.muted = muted;
-  }
-
-
-  /**
-   * Tears the peer down idempotently: watchdog, connection and the hidden
-   * audio element are all released; repeated calls are no-ops.
+   * Tears the peer down idempotently: watchdog and connection are
+   * released; repeated calls are no-ops.
    */
   close(): void {
     if (this.isClosed) return;
     this.isClosed = true;
     this.clearGrace();
     this.pc.close();
-    this.detachAudio();
   }
 
 
@@ -204,16 +192,16 @@ export class VoicePeer {
 
 
   /**
-   * Routes remote tracks by kind: the first audio stream feeds the hidden
-   * autoplaying element and the speaking analyser; video tracks are the
-   * peer's screen share and are reported separately.
+   * Routes remote tracks by kind: the first audio stream is reported once
+   * (the mesh feeds it into the playback mixer and the speaking analyser);
+   * video tracks are the peer's screen share and are reported separately.
    * @param event Track event carrying the remote stream.
    */
   private onTrack(event: RTCTrackEvent): void {
     const stream = event.streams[0] ?? new MediaStream([event.track]);
     if (event.track.kind === 'video') return this.watchVideoTrack(event.track, stream);
-    if (this.audio) return;
-    this.attachAudio(stream);
+    if (this.audioDelivered) return;
+    this.audioDelivered = true;
     this.hooks.onRemoteStream(this.sessionId, stream);
   }
 
@@ -246,47 +234,6 @@ export class VoicePeer {
     parameters.degradationPreference = SCREEN_DEGRADATION;
     for (const encoding of parameters.encodings) encoding.maxBitrate = SCREEN_MAX_BITRATE;
     void sender.setParameters(parameters).catch(() => undefined);
-  }
-
-
-  /**
-   * Creates the hidden audio element for a remote stream. The join click is
-   * the autoplay gesture; should a strict browser still block playback, one
-   * retry is armed on the next pointer gesture.
-   * @param stream Remote audio stream.
-   */
-  private attachAudio(stream: MediaStream): void {
-    const audio = new Audio();
-    audio.srcObject = stream;
-    audio.autoplay = true;
-    audio.hidden = true;
-    audio.muted = this.hooks.isDeafened();
-    document.body.appendChild(audio);
-    this.audio = audio;
-    void audio.play().catch(() => this.retryPlayOnGesture(audio));
-  }
-
-
-  /**
-   * Retries blocked playback once on the next user gesture (autoplay
-   * fallback for strict mobile browsers).
-   * @param audio Audio element whose play() was rejected.
-   */
-  private retryPlayOnGesture(audio: HTMLAudioElement): void {
-    const resume = (): void => void audio.play().catch(() => undefined);
-    document.addEventListener('pointerdown', resume, { once: true });
-  }
-
-
-  /**
-   * Stops playback and removes the hidden audio element from the document.
-   */
-  private detachAudio(): void {
-    if (!this.audio) return;
-    this.audio.pause();
-    this.audio.srcObject = null;
-    this.audio.remove();
-    this.audio = null;
   }
 
 

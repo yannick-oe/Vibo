@@ -1,0 +1,15 @@
+// Shared size variables of the voice-section styles, extracted so the
+// channel-list part (voice-section.component.scss) and the roster part
+// (voice-section.members.scss) stay under the file-size budget without
+// duplicating a single value.
+
+$caret-size: 12px;
+$state-glyph-size: 14px;
+$screen-button-size: 24px;
+$screen-glyph-size: 15px;
+$manage-button-size: 24px;
+$manage-glyph-size: 16px;
+$touch-target-size: 44px;
+$speaking-ring-width: 2px;
+$speaking-pulse-width: 3px;
+$speaking-pulse-duration: 1200ms;

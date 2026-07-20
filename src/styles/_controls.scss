@@ -1,0 +1,162 @@
+// Shared form-control mixins: the custom volume slider (used by the sound
+// settings and the per-user voice-volume menu) and the switch row with its
+// track/thumb pair. Both engines otherwise render engine-default tracks
+// that are invisible on the frosted card surface. The slider's filled
+// portion is driven by the --volume-fill custom property the template
+// binds from the input value (WebKit paints it as a no-repeat gradient
+// sized to the fill; Firefox uses its native ::-moz-range-progress). The
+// fill transition only eases keyboard steps — while the pointer is held
+// (:active) it is disabled so dragging tracks the finger 1:1.
+@use 'sass:math';
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$control-min-height: 44px;
+$slider-min-width: 96px;
+$slider-track-height: 6px;
+$slider-thumb-size: 20px;
+$slider-thumb-border-width: 2px;
+$slider-thumb-top-offset: math.div($slider-track-height - $slider-thumb-size, 2);
+$switch-track-width: 40px;
+$switch-track-height: 22px;
+$switch-thumb-size: 16px;
+$switch-thumb-inset: 3px;
+$switch-thumb-travel: $switch-track-width - $switch-thumb-size - 2 * $switch-thumb-inset;
+$control-disabled-opacity: 0.5;
+
+@mixin volume-slider {
+  flex: 1;
+  min-width: $slider-min-width;
+  min-height: $control-min-height;
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
+  cursor: pointer;
+  touch-action: none;
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &:disabled {
+    opacity: $control-disabled-opacity;
+    cursor: default;
+  }
+
+  &::-webkit-slider-runnable-track {
+    height: $slider-track-height;
+    border-radius: v.$radius-pill;
+    background-color: v.color('text-gray');
+    background-image: linear-gradient(v.color('primary'), v.color('primary'));
+    background-repeat: no-repeat;
+    background-size: var(--volume-fill, 0%) 100%;
+    transition: background-size v.$transition-fast;
+  }
+
+  &:active::-webkit-slider-runnable-track {
+    transition: none;
+  }
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    width: $slider-thumb-size;
+    height: $slider-thumb-size;
+    margin-top: $slider-thumb-top-offset;
+    border: $slider-thumb-border-width solid v.color('primary');
+    border-radius: v.$radius-round;
+    background-color: v.color('white');
+  }
+
+  &::-moz-range-track {
+    height: $slider-track-height;
+    border-radius: v.$radius-pill;
+    background-color: v.color('text-gray');
+  }
+
+  &::-moz-range-progress {
+    height: $slider-track-height;
+    border-radius: v.$radius-pill;
+    background-color: v.color('primary');
+  }
+
+  &::-moz-range-thumb {
+    box-sizing: border-box;
+    width: $slider-thumb-size;
+    height: $slider-thumb-size;
+    border: $slider-thumb-border-width solid v.color('primary');
+    border-radius: v.$radius-round;
+    background-color: v.color('white');
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::-webkit-slider-runnable-track {
+      transition: none;
+    }
+  }
+}
+
+@mixin switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: v.space('sm');
+  width: 100%;
+  min-height: $control-min-height;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: v.$font-base;
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-medium;
+  color: v.color('black');
+  text-align: left;
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &:disabled {
+    opacity: $control-disabled-opacity;
+    cursor: default;
+  }
+}
+
+@mixin switch-track {
+  position: relative;
+  flex-shrink: 0;
+  width: $switch-track-width;
+  height: $switch-track-height;
+  border-radius: v.$radius-pill;
+  background-color: v.color('text-gray');
+  transition: background-color v.$transition-fast;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+@mixin switch-thumb {
+  position: absolute;
+  top: $switch-thumb-inset;
+  left: $switch-thumb-inset;
+  width: $switch-thumb-size;
+  height: $switch-thumb-size;
+  border-radius: v.$radius-round;
+  background-color: v.color('white');
+  transition: transform v.$transition-fast;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+@mixin switch-track-on {
+  background-color: v.color('primary');
+}
+
+@mixin switch-thumb-on {
+  transform: translateX($switch-thumb-travel);
+}

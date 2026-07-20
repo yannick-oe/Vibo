@@ -14,6 +14,7 @@
 import { Injectable, Signal, computed, effect, inject, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 
+import { MuteDeafenControls } from '../features/voice/webrtc/mute-deafen-controls';
 import { RosterChimes } from '../features/voice/webrtc/roster-chimes';
 import { VoiceMesh } from '../features/voice/webrtc/voice-mesh';
 import {
@@ -29,6 +30,7 @@ import { ToastService } from './toast.service';
 import { VoiceParticipantService } from './voice-participant.service';
 import { VoiceRosterService } from './voice-roster.service';
 import { VoiceSignalingService } from './voice-signaling.service';
+import { VoiceVolumeService } from './voice-volume.service';
 
 const CHANNEL_FULL_TOAST = `Sprachkanal ist voll (${MAX_VOICE_PARTICIPANTS}/${MAX_VOICE_PARTICIPANTS})`;
 const MIC_DENIED_TOAST = 'Der Mikrofonzugriff wurde verweigert.';
@@ -61,11 +63,15 @@ export class VoiceConnectionService {
 
   private readonly toastService = inject(ToastService);
 
+  private readonly volumeService = inject(VoiceVolumeService);
+
   private readonly connectedChannelState = signal<ConnectedVoiceChannel | null>(null);
 
-  private readonly isMutedState = signal(false);
-
-  private readonly isDeafenedState = signal(false);
+  private readonly controls = new MuteDeafenControls({
+    mesh: () => this.mesh,
+    localStream: () => this.localStream,
+    writeFlags: () => this.writeFlags(),
+  });
 
   private readonly speakingSessionsState = signal<ReadonlySet<string>>(new Set());
 
@@ -80,10 +86,10 @@ export class VoiceConnectionService {
   readonly isConnected: Signal<boolean> = computed(() => this.connectedChannelState() !== null);
 
   /** Whether the own microphone is muted. */
-  readonly isMuted = this.isMutedState.asReadonly();
+  readonly isMuted = this.controls.isMuted.asReadonly();
 
   /** Whether all incoming audio is deafened (implies muted). */
-  readonly isDeafened = this.isDeafenedState.asReadonly();
+  readonly isDeafened = this.controls.isDeafened.asReadonly();
 
   /** Session ids currently speaking (local analysis only). */
   readonly speakingSessions = this.speakingSessionsState.asReadonly();
@@ -106,15 +112,14 @@ export class VoiceConnectionService {
 
   private readonly rosterChimes = new RosterChimes();
 
-  private muteBeforeDeafen = false;
-
 
   /**
-   * Wires the roster reconciliation, the sign-out teardown and the
-   * best-effort cleanup on tab close.
+   * Wires the roster reconciliation, the live per-user volume application,
+   * the sign-out teardown and the best-effort cleanup on tab close.
    */
   constructor() {
     effect(() => this.syncWithRoster());
+    effect(() => this.applyUserVolumes());
     effect(() => {
       if (!this.authService.currentUser() && this.connectedChannelState()) void this.leave();
     });
@@ -160,12 +165,11 @@ export class VoiceConnectionService {
 
 
   /**
-   * Toggles the own microphone. While deafened, the mic press lifts the
-   * deafen first and unmutes (Discord parity).
+   * Toggles the own microphone (Discord-parity semantics live in the
+   * extracted {@link MuteDeafenControls}).
    */
   toggleMute(): void {
-    if (this.isDeafenedState()) return this.undeafen(false);
-    this.setMuted(!this.isMutedState());
+    this.controls.toggleMute();
   }
 
 
@@ -174,11 +178,7 @@ export class VoiceConnectionService {
    * self-mute; un-deafening restores the mute state from before.
    */
   toggleDeafen(): void {
-    if (this.isDeafenedState()) return this.undeafen(this.muteBeforeDeafen);
-    this.muteBeforeDeafen = this.isMutedState();
-    this.isDeafenedState.set(true);
-    this.mesh?.setRemoteMuted(true);
-    this.setMuted(true);
+    this.controls.toggleDeafen();
   }
 
 
@@ -195,9 +195,9 @@ export class VoiceConnectionService {
     if (this.connectedChannelState()) await this.leave();
     const existing = this.rosterService.participantsOf(channel.id);
     this.localStream = stream;
-    this.applyTrackMute();
+    this.controls.applyTrackMute();
     this.connectedChannelState.set({ ...channel });
-    const flags = { muted: this.isMutedState(), deafened: this.isDeafenedState() };
+    const flags = { muted: this.controls.isMuted(), deafened: this.controls.isDeafened() };
     if (!(await this.participantService.create(channel.id, flags))) {
       return this.abortJoin();
     }
@@ -236,7 +236,8 @@ export class VoiceConnectionService {
       sendSignal: (toSession, toUid, kind, payload) =>
         this.signalingService.send(channelId, toSession, toUid, kind, payload),
       consumeSignal: signalId => this.signalingService.consume(channelId, signalId),
-      isDeafened: () => this.isDeafenedState(),
+      isDeafened: () => this.controls.isDeafened(),
+      gainForUid: uid => this.volumeService.effectiveGain(uid),
       onSpeakingChange: speaking => this.speakingSessionsState.set(speaking),
       onRemoteScreensChange: screens => this.remoteScreensState.set(screens),
       onSoundSignal: (fromSession, soundId) => this.soundboardDispatch.dispatch(fromSession, soundId),
@@ -339,35 +340,12 @@ export class VoiceConnectionService {
 
 
   /**
-   * Applies a mute state to the flags, the local tracks and the own
-   * participant document (transition write).
-   * @param muted New microphone mute state.
+   * Pushes changed per-user volume settings into the live mesh (ramped);
+   * initial gains are applied when a peer's stream attaches.
    */
-  private setMuted(muted: boolean): void {
-    this.isMutedState.set(muted);
-    this.applyTrackMute();
-    this.writeFlags();
-  }
-
-
-  /**
-   * Lifts the deafen state, restores remote audio and applies the target
-   * mute state.
-   * @param muted Mute state to restore after un-deafening.
-   */
-  private undeafen(muted: boolean): void {
-    this.isDeafenedState.set(false);
-    this.mesh?.setRemoteMuted(false);
-    this.setMuted(muted);
-  }
-
-
-  /**
-   * Mirrors the mute flag onto every local audio track.
-   */
-  private applyTrackMute(): void {
-    const enabled = !this.isMutedState();
-    this.localStream?.getAudioTracks().forEach(track => (track.enabled = enabled));
+  private applyUserVolumes(): void {
+    this.volumeService.settings();
+    this.mesh?.applyUserGains();
   }
 
 
@@ -378,7 +356,7 @@ export class VoiceConnectionService {
   private writeFlags(): void {
     const channel = this.connectedChannelState();
     if (!channel) return;
-    const flags = { muted: this.isMutedState(), deafened: this.isDeafenedState() };
+    const flags = { muted: this.controls.isMuted(), deafened: this.controls.isDeafened() };
     this.participantService.writeFlags(channel.id, flags);
   }
 }

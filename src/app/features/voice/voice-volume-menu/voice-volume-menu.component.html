@@ -1,0 +1,44 @@
+<app-dialog-shell
+  size="menu"
+  scrim="transparent"
+  [anchor]="anchor()"
+  labelledBy="voice-volume-title"
+  (closed)="closed.emit()"
+>
+  <div class="volume-menu">
+    <h3 class="volume-menu__name" id="voice-volume-title">{{ name() }}</h3>
+
+    <div class="volume-menu__slider-row">
+      <label class="sr-only" for="voice-volume-slider">Lautstärke von {{ name() }}</label>
+      <input
+        class="volume-menu__slider"
+        id="voice-volume-slider"
+        type="range"
+        min="0"
+        [max]="maxPercent"
+        [step]="stepPercent"
+        [value]="volumePercent()"
+        [style.--volume-fill]="volumeFillStyle()"
+        [attr.aria-valuetext]="volumePercent() + ' %'"
+        (input)="onVolumeInput($event)"
+        (pointerdown)="$event.stopPropagation()"
+      />
+      <span class="volume-menu__readout" aria-hidden="true">{{ volumePercent() }} %</span>
+    </div>
+
+    <button
+      class="volume-menu__switch"
+      type="button"
+      role="switch"
+      [attr.aria-checked]="isMutedLocally()"
+      (click)="toggleMute()"
+    >
+      <span class="volume-menu__switch-label">Stummschalten (lokal)</span>
+      <span class="volume-menu__switch-track" aria-hidden="true">
+        <span class="volume-menu__switch-thumb"></span>
+      </span>
+    </button>
+
+    <button class="volume-menu__reset" type="button" (click)="reset()">Zurücksetzen</button>
+  </div>
+</app-dialog-shell>

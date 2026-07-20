@@ -6,10 +6,12 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { FirebaseError } from 'firebase/app';
 
+import { AccountSecurityService } from '../../../services/account-security.service';
 import { AuthService } from '../../../services/auth.service';
 import { FriendshipService } from '../../../services/friendship.service';
 import { PendingInviteService } from '../../../services/pending-invite.service';
 import { PasswordInputComponent } from '../../../shared/password-input/password-input.component';
+import { WRONG_PASSWORD_CODES } from '../../../shared/validators/password.validators';
 import { IntroComponent } from '../intro/intro.component';
 
 const CREDENTIALS_ERROR_MESSAGE = 'E-Mail-Adresse oder Passwort ist falsch.';
@@ -40,6 +42,8 @@ const ERROR_MESSAGES: Record<string, Record<string, string>> = {
 })
 export class LoginComponent {
   private readonly authService = inject(AuthService);
+
+  private readonly accountSecurity = inject(AccountSecurityService);
 
   private readonly friendshipService = inject(FriendshipService);
 
@@ -137,10 +141,12 @@ export class LoginComponent {
 
 
   /**
-   * Where to go after sign-in: back to a pending channel invite opened
-   * while signed out, otherwise into the app.
+   * Where to go after sign-in: an unverified account is routed to the
+   * verification screen (the pending invite stays stored for afterwards),
+   * otherwise back to a pending channel invite or into the app.
    */
   private postSignInTarget(): string[] {
+    if (this.accountSecurity.needsVerification()) return ['/auth/verify-email'];
     const token = this.pendingInvite.consume();
     return token ? ['/invite', token] : ['/app'];
   }
@@ -153,7 +159,7 @@ export class LoginComponent {
   private handleSignInError(error: unknown): void {
     const code = error instanceof FirebaseError ? error.code : '';
     if (SILENT_POPUP_ERRORS.includes(code)) return;
-    if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+    if (WRONG_PASSWORD_CODES.includes(code)) {
       this.setFieldError('password', CREDENTIALS_ERROR_MESSAGE);
       return;
     }

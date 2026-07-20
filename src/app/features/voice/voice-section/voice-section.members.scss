@@ -1,0 +1,175 @@
+// Roster part of the voice-section styles: the participant rows beneath a
+// channel (avatar with speaking ring, name, state glyphs, screen-share
+// button) and the per-user volume trigger. Split out of
+// voice-section.component.scss to respect the file-size budget; the shared
+// size variables live in _voice-section.vars.scss.
+@use 'variables' as v;
+@use 'mixins' as m;
+@use './voice-section.vars' as *;
+
+.voice__members {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('sm');
+  padding-left: v.space('lg');
+}
+
+.voice__member {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  min-width: 0;
+
+  &:hover .voice__member-menu,
+  &:focus-within .voice__member-menu {
+    opacity: 1;
+  }
+}
+
+// Per-user volume trigger: visually compact like the manage button, the
+// ::after overlay expands the hit area to the 44 px touch target without
+// inflating the row.
+.voice__member-menu {
+  @include m.flex-center;
+
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+  width: $manage-button-size;
+  height: $manage-button-size;
+  padding: 0;
+  border: none;
+  border-radius: v.$radius-sm;
+  background: none;
+  color: v.color('text-gray');
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity v.$transition-fast, background-color v.$transition-fast,
+    color v.$transition-fast;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: $touch-target-size;
+    height: $touch-target-size;
+    transform: translate(-50%, -50%);
+  }
+
+  &:hover {
+    background-color: v.color('bg');
+    color: v.color('primary');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+
+    opacity: 1;
+  }
+
+  &[aria-expanded='true'] {
+    opacity: 1;
+    color: v.color('primary');
+  }
+}
+
+@media (hover: none) {
+  .voice__member-menu {
+    opacity: 1;
+  }
+}
+
+.voice__member-menu-glyph {
+  width: $manage-glyph-size;
+  height: $manage-glyph-size;
+}
+
+.voice__member-avatar-wrap {
+  flex-shrink: 0;
+  border-radius: v.$radius-round;
+
+  &--speaking {
+    box-shadow: 0 0 0 $speaking-ring-width v.color('online');
+    animation: voice-speaking-pulse $speaking-pulse-duration v.$ease-standard infinite;
+  }
+}
+
+.voice__member-avatar {
+  display: block;
+  width: v.$avatar-xs;
+  height: v.$avatar-xs;
+  border-radius: v.$radius-round;
+  object-fit: cover;
+}
+
+.voice__member-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: v.font-size('min');
+  color: v.color('black');
+}
+
+.voice__state-glyph {
+  flex-shrink: 0;
+  width: $state-glyph-size;
+  height: $state-glyph-size;
+  color: v.color('text-gray');
+
+  &--screen {
+    color: v.color('primary');
+  }
+}
+
+.voice__screen-btn {
+  @include m.flex-center;
+
+  flex-shrink: 0;
+  width: $screen-button-size;
+  height: $screen-button-size;
+  padding: 0;
+  border: none;
+  border-radius: v.$radius-sm;
+  background: none;
+  color: v.color('primary');
+  cursor: pointer;
+  transition: background-color v.$transition-fast, color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+    color: v.color('primary-hover');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+.voice__screen-glyph {
+  width: $screen-glyph-size;
+  height: $screen-glyph-size;
+}
+
+@keyframes voice-speaking-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 $speaking-ring-width v.color('online');
+  }
+
+  50% {
+    box-shadow: 0 0 0 $speaking-pulse-width v.color('online');
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice__member-menu,
+  .voice__screen-btn {
+    transition: none;
+  }
+
+  .voice__member-avatar-wrap--speaking {
+    animation: none;
+  }
+}

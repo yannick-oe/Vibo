@@ -2,7 +2,8 @@
  * @file Full-mesh controller of one voice-channel connection: owns the
  * peer map (one {@link VoicePeer} per remote session), applies incoming
  * signaling envelopes, keeps the mesh in sync with the live roster and
- * feeds every stream into the shared {@link SpeakingMonitor}. Initiation
+ * feeds every remote stream into the {@link RemoteAudioMixer} (playback
+ * with per-user gain) plus the shared {@link SpeakingMonitor}. Initiation
  * is deterministic and glare-free: the JOINER offers to all sessions that
  * were present before it; for the rare simultaneous join neither side saw,
  * the lexicographically smaller session id initiates, and an incoming
@@ -20,6 +21,7 @@ import {
   VoiceSignalKind,
   VoiceSignalPayload,
 } from '../../../models/voice.model';
+import { RemoteAudioMixer } from './remote-audio-mixer';
 import { SpeakingMonitor } from './speaking-monitor';
 import { VoicePeer } from './voice-peer';
 
@@ -38,8 +40,10 @@ export interface VoiceMeshDeps {
   ) => void;
   /** Deletes one applied envelope (self-cleaning mailbox). */
   readonly consumeSignal: (signalId: string) => void;
-  /** Current deafen state for newly attached remote audio. */
+  /** Current deafen state for the playback mixer's master gain. */
   readonly isDeafened: () => boolean;
+  /** Current effective per-user playback gain (0–2) of a remote user. */
+  readonly gainForUid: (uid: string) => number;
   /** Publishes the changed set of speaking session ids. */
   readonly onSpeakingChange: (speaking: ReadonlySet<string>) => void;
   /** Publishes the changed map of remote screen streams by session id. */
@@ -59,6 +63,8 @@ export class VoiceMesh {
 
   private readonly monitor: SpeakingMonitor;
 
+  private readonly mixer: RemoteAudioMixer;
+
   private readonly processedSignalIds = new Set<string>();
 
   private shareTrack: MediaStreamTrack | null = null;
@@ -69,14 +75,20 @@ export class VoiceMesh {
 
 
   /**
-   * Creates the mesh and starts analysing the own microphone so the local
-   * speaking indicator works even while alone in the channel.
+   * Creates the mesh, starts analysing the own microphone so the local
+   * speaking indicator works even while alone in the channel and builds
+   * the playback mixer on the monitor's shared AudioContext.
    * @param deps Signaling and state hooks of the connection.
    */
   constructor(deps: VoiceMeshDeps) {
     this.deps = deps;
     this.monitor = new SpeakingMonitor(deps.onSpeakingChange);
     this.monitor.add(deps.ownSessionId, deps.localStream);
+    this.mixer = new RemoteAudioMixer({
+      context: this.monitor.acquireContext(),
+      gainForUid: deps.gainForUid,
+      isDeafened: deps.isDeafened,
+    });
   }
 
 
@@ -125,11 +137,21 @@ export class VoiceMesh {
 
 
   /**
-   * Mutes or unmutes the audio elements of every peer (deafen toggle).
+   * Silences or restores all remote audio via the mixer's master gain
+   * (deafen toggle).
    * @param muted Whether all remote audio is silenced.
    */
   setRemoteMuted(muted: boolean): void {
-    for (const peer of this.peers.values()) peer.setRemoteMuted(muted);
+    this.mixer.setDeafened(muted);
+  }
+
+
+  /**
+   * Re-applies every remote user's current volume gain (ramped); called
+   * whenever a per-user volume setting changes.
+   */
+  applyUserGains(): void {
+    this.mixer.applyGains();
   }
 
 
@@ -167,12 +189,13 @@ export class VoiceMesh {
 
 
   /**
-   * Tears the whole mesh down: every peer connection, every hidden audio
-   * element and the speaking monitor. Idempotent.
+   * Tears the whole mesh down: every peer connection, the playback mixer
+   * and the speaking monitor (which closes the shared context). Idempotent.
    */
   dispose(): void {
     for (const peer of this.peers.values()) peer.close();
     this.peers.clear();
+    this.mixer.dispose();
     this.monitor.dispose();
   }
 
@@ -257,13 +280,25 @@ export class VoiceMesh {
   private createPeer(sessionId: string, uid: string): VoicePeer {
     const peer = new VoicePeer(sessionId, this.deps.localStream, {
       sendSignal: (kind, payload) => this.deps.sendSignal(sessionId, uid, kind, payload),
-      onRemoteStream: (session, stream) => this.monitor.add(session, stream),
+      onRemoteStream: (session, stream) => this.attachRemoteAudio(session, uid, stream),
       onRemoteVideo: (session, stream) => this.setRemoteScreen(session, stream),
       onDropped: session => this.dropPeer(session),
-      isDeafened: this.deps.isDeafened,
     });
     this.peers.set(sessionId, peer);
     return peer;
+  }
+
+
+  /**
+   * Routes a delivered remote audio stream into both consumers: the
+   * playback mixer (per-user gain) and the speaking analyser.
+   * @param sessionId Remote session the stream belongs to.
+   * @param uid Uid of the remote user (volume lookup key).
+   * @param stream Remote audio stream.
+   */
+  private attachRemoteAudio(sessionId: string, uid: string, stream: MediaStream): void {
+    this.mixer.attach(sessionId, uid, stream);
+    this.monitor.add(sessionId, stream);
   }
 
 
@@ -294,9 +329,9 @@ export class VoiceMesh {
 
 
   /**
-   * Removes one peer: connection, audio element, analyser and a screen
-   * stream it may have delivered — without touching the rest of the mesh
-   * or the channel membership.
+   * Removes one peer: connection, playback pipeline, analyser and a
+   * screen stream it may have delivered — without touching the rest of
+   * the mesh or the channel membership.
    * @param sessionId Session whose peer is dropped.
    */
   private dropPeer(sessionId: string): void {
@@ -304,6 +339,7 @@ export class VoiceMesh {
     if (!peer) return;
     this.peers.delete(sessionId);
     peer.close();
+    this.mixer.detach(sessionId);
     this.monitor.remove(sessionId);
     this.setRemoteScreen(sessionId, null);
   }

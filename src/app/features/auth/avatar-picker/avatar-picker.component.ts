@@ -14,23 +14,25 @@ import {
 import { Router } from '@angular/router';
 import { FirebaseError } from 'firebase/app';
 
+import { AccountSecurityService } from '../../../services/account-security.service';
 import { AuthService } from '../../../services/auth.service';
 import { ChannelService } from '../../../services/channel.service';
 import { MessageService } from '../../../services/message.service';
-import { PendingInviteService } from '../../../services/pending-invite.service';
 import { RegistrationFormData, RegistrationService } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { AVATAR_OPTIONS } from '../../../shared/avatar-options';
 import { DEFAULT_CHANNEL_ID } from '../../../shared/channels.constants';
+import {
+  PASSWORD_TOO_SHORT_MESSAGE,
+  WEAK_PASSWORD_CODES,
+} from '../../../shared/validators/password.validators';
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { AvatarActivatorDirective } from '../../../shared/avatar/avatar-activator.directive';
 
 const SUCCESS_REDIRECT_DELAY_MS = 1500;
 const SUCCESS_TOAST_MESSAGE = 'Konto erfolgreich erstellt!';
 
-const PASSWORD_MIN_LENGTH = 6;
 const EMAIL_IN_USE_MESSAGE = 'Diese E-Mail-Adresse wird bereits verwendet';
-const WEAK_PASSWORD_MESSAGE = `Dein Passwort muss mindestens ${PASSWORD_MIN_LENGTH} Zeichen lang sein`;
 const GENERAL_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es später erneut.';
 
 /**
@@ -47,13 +49,13 @@ const GENERAL_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es 
 export class AvatarPickerComponent implements AfterViewInit {
   private readonly authService = inject(AuthService);
 
+  private readonly accountSecurity = inject(AccountSecurityService);
+
   private readonly channelService = inject(ChannelService);
 
   private readonly messageService = inject(MessageService);
 
   private readonly registration = inject(RegistrationService);
-
-  private readonly pendingInvite = inject(PendingInviteService);
 
   private readonly router = inject(Router);
 
@@ -117,13 +119,15 @@ export class AvatarPickerComponent implements AfterViewInit {
 
 
   /**
-   * Registers the account, then joins the default channel before showing
-   * success so the new user is a member immediately on first login.
+   * Registers the account, sends the verification e-mail (a failed send is
+   * tolerated — the verification screen offers a resend) and joins the
+   * default channel so the new user is a member immediately.
    * @param data Validated registration form values.
    */
   private async completeSignup(data: RegistrationFormData): Promise<void> {
     try {
       const uid = await this.authService.register(data, this.registration.avatarPath());
+      await this.accountSecurity.sendVerificationEmail().catch(() => undefined);
       await this.channelService.ensureDefaultChannelExists();
       await this.channelService.joinDefaultChannel(uid);
       await this.messageService.sendJoinMessage(DEFAULT_CHANNEL_ID);
@@ -135,17 +139,16 @@ export class AvatarPickerComponent implements AfterViewInit {
 
 
   /**
-   * Shows the success toast, then routes back to a pending channel invite
-   * (registration signs the user in, so the redeem page can offer the
-   * join directly) or to the login page.
+   * Shows the success toast, then routes to the verification screen; a
+   * pending channel invite stays stored and is consumed there after the
+   * address is confirmed.
    */
   private finishSuccessfully(): void {
     this.isSuccess.set(true);
     this.toast.show(SUCCESS_TOAST_MESSAGE);
     setTimeout(() => {
-      const token = this.pendingInvite.consume();
       this.registration.reset();
-      this.router.navigate(token ? ['/invite', token] : ['/auth/login']);
+      this.router.navigate(['/auth/verify-email']);
     }, SUCCESS_REDIRECT_DELAY_MS);
   }
 
@@ -160,8 +163,8 @@ export class AvatarPickerComponent implements AfterViewInit {
       this.failBackToForm('email', EMAIL_IN_USE_MESSAGE);
       return;
     }
-    if (code === 'auth/weak-password') {
-      this.failBackToForm('password', WEAK_PASSWORD_MESSAGE);
+    if (WEAK_PASSWORD_CODES.includes(code)) {
+      this.failBackToForm('password', PASSWORD_TOO_SHORT_MESSAGE);
       return;
     }
     this.generalError.set(GENERAL_ERROR_MESSAGE);

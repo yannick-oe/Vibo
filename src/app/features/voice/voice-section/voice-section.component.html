@@ -189,6 +189,30 @@
                     </svg>
                     <span class="sr-only">stummgeschaltet</span>
                   }
+                  @if (participant.sessionId !== ownSessionId) {
+                    <button
+                      class="voice__member-menu"
+                      type="button"
+                      aria-haspopup="dialog"
+                      [attr.aria-expanded]="volumeTarget()?.sessionId === participant.sessionId"
+                      (click)="openVolumeMenu(participant, $event)"
+                    >
+                      <svg
+                        class="voice__member-menu-glyph"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <circle cx="12" cy="5" r="2" />
+                        <circle cx="12" cy="12" r="2" />
+                        <circle cx="12" cy="19" r="2" />
+                      </svg>
+                      <span class="sr-only">
+                        Lautstärke von {{ displayName(participant.uid) }} anpassen
+                      </span>
+                    </button>
+                  }
                 </li>
               }
             </ul>
@@ -229,4 +253,13 @@
 
 @if (deleteTarget(); as deleteChannel) {
   <app-voice-delete-dialog [channel]="deleteChannel" (closed)="deleteTarget.set(null)" />
+}
+
+@if (volumeTarget(); as volumeParticipant) {
+  <app-voice-volume-menu
+    [uid]="volumeParticipant.uid"
+    [name]="displayName(volumeParticipant.uid)"
+    [anchor]="volumeAnchor()"
+    (closed)="volumeTarget.set(null)"
+  />
 }
