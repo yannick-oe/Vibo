@@ -201,11 +201,15 @@ export class TopbarComponent {
 
 
   /**
-   * Signs out and returns to the login page.
+   * Signs out and returns to the login page. The presence backdate is
+   * fired without awaiting: a Firestore write only settles on server ack,
+   * so awaiting it offline (or against denying rules) would block the
+   * sign-out forever — worst case the user stays visible as online until
+   * the heartbeat staleness window elapses.
    */
   protected async logout(): Promise<void> {
     this.state.set('closed');
-    await this.presenceService.markOffline();
+    void this.presenceService.markOffline();
     await this.authService.logout();
     this.router.navigate(['/auth/login']);
   }
