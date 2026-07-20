@@ -2,24 +2,37 @@
  * @file Route guards separating authenticated and unauthenticated areas.
  * All guards wait for the first Firebase auth-state emission so restored
  * sessions pass correctly after a page reload. The app area additionally
- * requires a verified e-mail address (the shared guest account is exempt);
- * unverified accounts are routed to the verification screen instead.
+ * requires a verified e-mail address (the shared guest account is exempt)
+ * AND a fresh verified-e-mail claim on the cached ID token — the Firestore
+ * rules check the token claim, which can lag behind the account state on a
+ * restored session (e.g. the continueUrl tab of the verification mail).
+ * Unverified accounts and accounts whose stale claim cannot be refreshed
+ * are routed to the verification screen instead of loading a broken app.
  */
 import { inject } from '@angular/core';
 import { Auth, User, authState } from '@angular/fire/auth';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
-import { map, take } from 'rxjs';
+import { firstValueFrom, map, take } from 'rxjs';
 
-import { isVerifiedOrGuest } from '../services/account-security.service';
+import {
+  AccountSecurityService,
+  isVerifiedOrGuest,
+} from '../services/account-security.service';
 
 /**
- * Allows the app area only for signed-in, verified-or-guest users;
- * signed-out users go to login, unverified ones to the verification screen.
+ * Allows the app area only for signed-in, verified-or-guest users whose ID
+ * token provably carries the verified claim; signed-out users go to login,
+ * unverified ones (or ones whose stale claim failed to refresh, e.g.
+ * offline) to the verification screen.
  */
-export const authGuard: CanActivateFn = () => {
-  const auth = inject(Auth);
+export const authGuard: CanActivateFn = async () => {
   const router = inject(Router);
-  return authState(auth).pipe(take(1), map(currentUser => appAreaTarget(currentUser, router)));
+  const accountSecurity = inject(AccountSecurityService);
+  const currentUser = await firstValueFrom(authState(inject(Auth)));
+  const target = appAreaTarget(currentUser, router);
+  if (target !== true || !currentUser) return target;
+  const hasFreshClaim = await accountSecurity.ensureVerifiedTokenClaim(currentUser);
+  return hasFreshClaim ? true : router.createUrlTree(['/auth/verify-email']);
 };
 
 /**
@@ -36,13 +49,20 @@ export const unauthGuard: CanActivateFn = () => {
 };
 
 /**
- * Allows the verification screen only while it applies: signed-out users
- * go to login, already verified (or guest) accounts into the app.
+ * Allows the verification screen only while it applies: signed-out users go
+ * to login, verified (or guest) accounts with a fresh token claim into the
+ * app. A verified account whose stale claim cannot be refreshed stays here
+ * — never bouncing back to the app guard, which would redirect-loop — and
+ * uses the screen's confirm action to retry the refresh.
  */
-export const verifyEmailGuard: CanActivateFn = () => {
-  const auth = inject(Auth);
+export const verifyEmailGuard: CanActivateFn = async () => {
   const router = inject(Router);
-  return authState(auth).pipe(take(1), map(currentUser => verifyScreenTarget(currentUser, router)));
+  const accountSecurity = inject(AccountSecurityService);
+  const currentUser = await firstValueFrom(authState(inject(Auth)));
+  if (!currentUser) return router.createUrlTree(['/auth/login']);
+  if (!isVerifiedOrGuest(currentUser)) return true;
+  const hasFreshClaim = await accountSecurity.ensureVerifiedTokenClaim(currentUser);
+  return hasFreshClaim ? router.createUrlTree(['/app']) : true;
 };
 
 
@@ -54,18 +74,5 @@ export const verifyEmailGuard: CanActivateFn = () => {
 function appAreaTarget(currentUser: User | null, router: Router): true | UrlTree {
   if (!currentUser) return router.createUrlTree(['/auth/login']);
   if (!isVerifiedOrGuest(currentUser)) return router.createUrlTree(['/auth/verify-email']);
-  return true;
-}
-
-
-/**
- * Resolves the verification-screen guard result for the first emitted
- * auth state.
- * @param currentUser Restored Firebase user, or null while signed out.
- * @param router Router used to build redirect trees.
- */
-function verifyScreenTarget(currentUser: User | null, router: Router): true | UrlTree {
-  if (!currentUser) return router.createUrlTree(['/auth/login']);
-  if (isVerifiedOrGuest(currentUser)) return router.createUrlTree(['/app']);
   return true;
 }

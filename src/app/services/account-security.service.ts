@@ -1,8 +1,9 @@
 /**
  * @file Account-security operations on top of Firebase Auth: e-mail
- * verification (send, confirm with a forced token refresh) and the in-app
- * password change with re-authentication. Pure Auth concerns — this
- * service never touches Firestore.
+ * verification (send, confirm with a forced token refresh, and the guard's
+ * stale-claim safety net for restored sessions) and the in-app password
+ * change with re-authentication. Pure Auth concerns — this service never
+ * touches Firestore.
  */
 import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
 import {
@@ -10,6 +11,7 @@ import {
   EmailAuthProvider,
   User,
   getIdToken,
+  getIdTokenResult,
   reauthenticateWithCredential,
   reload,
   sendEmailVerification,
@@ -49,6 +51,53 @@ export class AccountSecurityService {
   private readonly auth = inject(Auth);
 
   private readonly injector = inject(EnvironmentInjector);
+
+  private freshClaimUid: string | null = null;
+
+
+  /**
+   * Guard safety net for restored sessions (e.g. the continueUrl tab of the
+   * verification mail): the SDK may report `emailVerified` from refreshed
+   * account info while the cached ID token still carries a stale
+   * `email_verified = false` claim — and the Firestore rules only see the
+   * token. Checks the claim once per session (cached per uid afterwards)
+   * and forces a token refresh when it is stale.
+   * @param user Signed-in Firebase user entering the app area.
+   * @returns False when the claim could not be refreshed (e.g. offline).
+   */
+  async ensureVerifiedTokenClaim(user: User): Promise<boolean> {
+    if (!this.needsClaimCheck(user)) return true;
+    try {
+      await this.refreshStaleClaim(user);
+      this.freshClaimUid = user.uid;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+
+  /**
+   * Whether the token-claim check applies: only verified non-guest accounts
+   * are gated by the claim, and a passed check is cached for the session.
+   * @param user Signed-in Firebase user.
+   */
+  private needsClaimCheck(user: User): boolean {
+    if (!user.emailVerified || user.email === environment.guestEmail) return false;
+    return this.freshClaimUid !== user.uid;
+  }
+
+
+  /**
+   * Reads the cached ID token's claims and forces a refresh when the
+   * verified-e-mail claim has not caught up with the account state yet.
+   * @param user Signed-in Firebase user with a verified address.
+   */
+  private async refreshStaleClaim(user: User): Promise<void> {
+    const result = await this.inContext(() => getIdTokenResult(user));
+    if (result.claims['email_verified'] === true) return;
+    await this.inContext(() => getIdToken(user, true));
+  }
 
 
   /**
