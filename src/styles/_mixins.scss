@@ -210,6 +210,9 @@
   flex-shrink: 0;
 }
 
+// Presence shapes live in their own partial: see _presence.scss
+// (`presence-shape-*` and `presence-dot-inline` mixins).
+
 // Wrap around an avatar hosting the anchored presence dot (app-presence-dot):
 // collapses to exactly the avatar box — inline-flex removes the line-box
 // strut that would otherwise extend the wrap below the circle and push a
@@ -218,6 +221,23 @@
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
+}
+
+// ─── Form Action Row With Inline Error ───────────────────────────────────────
+
+// Action row hosting a general error message beside its submit button: below
+// the small breakpoint the message moves onto its own full-width line with the
+// reserved two-line slot, so an appearing or wrapping error never shifts the
+// row (visibility toggles inside the reserve, per the CLS rule).
+@mixin form-action-error-stack {
+  @media (max-width: v.$breakpoint-sm) {
+    flex-wrap: wrap;
+
+    .form-error {
+      flex-basis: 100%;
+      min-height: v.$form-error-reserved-height;
+    }
+  }
 }
 
 // ─── Visually Hidden (Accessibility) ─────────────────────────────────────────

@@ -37,7 +37,7 @@ export const USERNAME_ERRORS: Record<string, string> = {
   required: 'Bitte gib einen Benutzernamen ein.',
   minlength: `Dein Benutzername muss mindestens ${USERNAME_MIN_LENGTH} Zeichen lang sein.`,
   maxlength: `Dein Benutzername darf höchstens ${USERNAME_MAX_LENGTH} Zeichen lang sein.`,
-  pattern: 'Nur Buchstaben, Zahlen, Punkt und Unterstrich — ohne Leerzeichen.',
+  pattern: 'Nur Buchstaben, Zahlen, Punkt und Unterstrich.',
   profanity: 'Dieser Benutzername ist nicht erlaubt.',
   taken: 'Dieser Benutzername ist bereits vergeben.',
 };

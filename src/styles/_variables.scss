@@ -12,6 +12,8 @@ $colors: (
   'primary-hover':  #797ef3,
   'primary-active': #535af1,
   'online':         #92c83e,
+  'away':           #a87a00,
+  'busy':           #ed1e79,
   'error':          #ed1e79,
   'error-text':     #c4185f,
   'accent':         #d6177e,
@@ -27,6 +29,8 @@ $colors-dark: (
   'primary-hover':  #97a2ff,
   'primary-active': #6e7bf6,
   'online':         #9fd356,
+  'away':           #f5b940,
+  'busy':           #ff6fa5,
   'error':          #ff6fa5,
   'error-text':     #ff6fa5,
   'accent':         #ff3d9e,
@@ -161,6 +165,14 @@ $avatar-preview: 168px;
 $icon-sm: 20px;
 $icon-md: 24px;
 $icon-lg: 32px;
+
+// Reserved validation-message slots below form fields: one message line at
+// the 'min' size, and the reserved slot height covering the WORST CASE of a
+// message wrapping to two lines at the 320px viewport — an appearing error
+// toggles visibility inside the reserve and can never shift the layout.
+$form-message-line-height: font-size('min') * $line-height-base;
+$form-error-reserved-lines: 2;
+$form-error-reserved-height: $form-message-line-height * $form-error-reserved-lines;
 
 // Muted pin glyph in the message meta row (subtle, non-interactive marker).
 $pinned-flag-opacity: 0.55;

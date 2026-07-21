@@ -1,4 +1,5 @@
 @use 'variables' as v;
+@use 'mixins' as m;
 
 $link-touch-target: 44px;
 
@@ -32,6 +33,8 @@ $link-touch-target: 44px;
   display: flex;
   align-items: center;
   gap: v.space('md');
+
+  @include m.form-action-error-stack;
 
   .form-error {
     flex: 1;

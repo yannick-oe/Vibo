@@ -33,7 +33,9 @@
 }
 
 .verify-card__error {
+  justify-content: center;
   text-align: center;
+  min-height: v.$form-error-reserved-height;
 }
 
 .verify-card__status {

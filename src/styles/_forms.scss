@@ -1,9 +1,6 @@
 @use 'variables' as v;
 @use 'mixins' as m;
 
-$form-error-reserved-lines: 2;
-$form-error-reserved-height: v.font-size('min') * v.$line-height-base * $form-error-reserved-lines;
-
 // ─── Field Wrapper ────────────────────────────────────────────────────────────
 
 .form-field {
@@ -150,13 +147,13 @@ $form-error-reserved-height: v.font-size('min') * v.$line-height-base * $form-er
   font-size: v.font-size('min');
   font-weight: v.$font-weight-medium;
   color: v.color('error-text');
-  min-height: 18px;
+  line-height: v.$line-height-base;
+  min-height: v.$form-message-line-height;
 }
 
 .form-field .form-error {
   align-items: flex-start;
-  min-height: 1.778rem;
-  line-height: v.$line-height-base;
+  min-height: v.$form-error-reserved-height;
 }
 
 .form-success {

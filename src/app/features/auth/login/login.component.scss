@@ -32,6 +32,8 @@
 
 .login-card__general {
   justify-content: center;
+  text-align: center;
+  min-height: v.$form-error-reserved-height;
 }
 
 .login-card__forgot {

@@ -22,11 +22,9 @@ import { Router } from '@angular/router';
 import { FirebaseError } from 'firebase/app';
 
 import { AccountSecurityService } from '../../../services/account-security.service';
-import { AuthDiagnosticsService } from '../../../services/auth-diagnostics.service';
 import { AuthService } from '../../../services/auth.service';
 import { PendingInviteService } from '../../../services/pending-invite.service';
 import { ToastService } from '../../../services/toast.service';
-import { AuthDebugPanelComponent } from '../../../shared/auth-debug-panel/auth-debug-panel.component';
 
 const RESEND_COOLDOWN_S = 60;
 
@@ -54,15 +52,12 @@ const GENERAL_ERROR_MESSAGE = 'Das hat leider nicht geklappt. Bitte versuche es 
  */
 @Component({
   selector: 'app-verify-email',
-  imports: [AuthDebugPanelComponent],
   templateUrl: './verify-email.component.html',
   styleUrl: './verify-email.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VerifyEmailComponent implements AfterViewInit {
   private readonly accountSecurity = inject(AccountSecurityService);
-
-  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly authService = inject(AuthService);
 
@@ -122,13 +117,11 @@ export class VerifyEmailComponent implements AfterViewInit {
    */
   protected async confirm(): Promise<void> {
     if (this.isPending()) return;
-    this.diagnostics.log('verify', 'manual confirm start');
     this.isPending.set(true);
     this.isChecking.set(true);
     this.errorMessage.set('');
     try {
       const outcome = await this.accountSecurity.confirmVerified();
-      this.diagnostics.log('verify', `manual confirm outcome=${outcome}`);
       if (outcome === 'verified') return this.enterApp();
       this.errorMessage.set(outcome === 'unverified' ? NOT_VERIFIED_MESSAGE : GENERAL_ERROR_MESSAGE);
     } catch {
@@ -148,12 +141,10 @@ export class VerifyEmailComponent implements AfterViewInit {
    * the reserved checking status remains visible until the replace fires.
    */
   private async autoConfirm(): Promise<void> {
-    this.diagnostics.log('verify', 'auto-confirm start');
     this.isPending.set(true);
     this.isChecking.set(true);
     try {
       const outcome = await this.accountSecurity.confirmVerified();
-      this.diagnostics.log('verify', `auto-confirm outcome=${outcome}`);
       if (outcome === 'verified') return this.enterApp();
       if (outcome === 'failed') this.errorMessage.set(GENERAL_ERROR_MESSAGE);
     } catch {
@@ -185,7 +176,6 @@ export class VerifyEmailComponent implements AfterViewInit {
    * verify screen out of the history so Back cannot return to it.
    */
   private enterApp(): void {
-    this.diagnostics.log('verify', 'entering app via full-page load');
     location.replace(`${document.baseURI}${this.entryFragment()}`);
   }
 

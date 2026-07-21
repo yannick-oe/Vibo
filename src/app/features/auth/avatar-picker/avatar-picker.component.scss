@@ -84,6 +84,8 @@
   align-items: center;
   gap: v.space('md');
 
+  @include m.form-action-error-stack;
+
   .form-error {
     flex: 1;
     text-align: left;

@@ -56,9 +56,7 @@
       Anmelden mit Google
     </button>
 
-    @if (generalError()) {
-      <p class="form-error login-card__general" role="alert">{{ generalError() }}</p>
-    }
+    <p class="form-error login-card__general" role="alert">{{ generalError() }}</p>
 
     <div class="login-card__actions">
       <button class="btn btn-primary" type="submit" [disabled]="form.invalid || isPending()">
