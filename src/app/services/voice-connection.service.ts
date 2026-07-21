@@ -11,17 +11,15 @@
  * implicitly through sign-out and tab close (peers detect the latter via
  * the stale heartbeat and the connection watchdog).
  */
-import { Injectable, Signal, computed, effect, inject, signal } from '@angular/core';
+import { Injectable, Signal, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Subscription } from 'rxjs';
 
+import { MicSwitcher } from '../features/voice/webrtc/mic-switch';
 import { MuteDeafenControls } from '../features/voice/webrtc/mute-deafen-controls';
 import { RosterChimes } from '../features/voice/webrtc/roster-chimes';
 import { VoiceMesh } from '../features/voice/webrtc/voice-mesh';
-import {
-  MAX_VOICE_PARTICIPANTS,
-  VOICE_CONSTRAINTS,
-  VOICE_HEARTBEAT_MS,
-} from '../shared/voice.constants';
+import { MAX_VOICE_PARTICIPANTS, VOICE_HEARTBEAT_MS } from '../shared/voice.constants';
+import { AudioDeviceService } from './audio-device.service';
 import { AuthService } from './auth.service';
 import { ClientSessionService } from './client-session.service';
 import { SoundService } from './sound.service';
@@ -65,12 +63,22 @@ export class VoiceConnectionService {
 
   private readonly volumeService = inject(VoiceVolumeService);
 
+  private readonly audioDeviceService = inject(AudioDeviceService);
+
   private readonly connectedChannelState = signal<ConnectedVoiceChannel | null>(null);
 
   private readonly controls = new MuteDeafenControls({
     mesh: () => this.mesh,
     localStream: () => this.localStream,
     writeFlags: () => this.writeFlags(),
+  });
+
+  private readonly micSwitcher = new MicSwitcher({
+    mesh: () => this.mesh,
+    localStream: () => this.localStream,
+    setLocalStream: stream => (this.localStream = stream),
+    applyTrackMute: () => this.controls.applyTrackMute(),
+    capture: () => this.captureMicrophone(),
   });
 
   private readonly speakingSessionsState = signal<ReadonlySet<string>>(new Set());
@@ -115,11 +123,13 @@ export class VoiceConnectionService {
 
   /**
    * Wires the roster reconciliation, the live per-user volume application,
-   * the sign-out teardown and the best-effort cleanup on tab close.
+   * the live input-device switch, the sign-out teardown and the
+   * best-effort cleanup on tab close.
    */
   constructor() {
     effect(() => this.syncWithRoster());
     effect(() => this.applyUserVolumes());
+    effect(() => this.applyDeviceSelection());
     effect(() => {
       if (!this.authService.currentUser() && this.connectedChannelState()) void this.leave();
     });
@@ -209,17 +219,33 @@ export class VoiceConnectionService {
 
 
   /**
-   * Requests the microphone with the high-quality voice constraints; a
-   * denial shows the German toast and aborts before anything is written.
+   * Requests the microphone with the high-quality voice constraints plus
+   * the validated stored input device; a denial shows the German toast
+   * and aborts before anything is written.
    */
   private async captureMicrophone(): Promise<MediaStream | null> {
+    const audio = await this.audioDeviceService.resolveConstraints();
     try {
-      return await navigator.mediaDevices.getUserMedia({ audio: { ...VOICE_CONSTRAINTS } });
+      return await navigator.mediaDevices.getUserMedia({ audio });
     } catch {
       this.toastService.show(MIC_DENIED_TOAST);
       this.soundService.play('error');
       return null;
     }
+  }
+
+
+  /**
+   * Applies a changed microphone selection to the live connection via the
+   * switcher; outside a call the choice simply applies on the next join.
+   * Only the selection signal is tracked — connecting or leaving must not
+   * re-trigger a switch.
+   */
+  private applyDeviceSelection(): void {
+    this.audioDeviceService.selectedDeviceId();
+    untracked(() => {
+      if (this.connectedChannelState()) void this.micSwitcher.switch();
+    });
   }
 
 

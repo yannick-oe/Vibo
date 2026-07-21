@@ -1,8 +1,10 @@
 // Styles of the settings dialog: the card header, the "Sounds" section —
 // switch rows (master toggle + swipe opt-in), the labelled volume slider
-// and the preview button — and the "Konto" row opening the password-change
-// dialog. The slider and switch visuals come from the shared control
-// mixins (_controls.scss), which the per-user voice-volume menu reuses.
+// and the preview button — the "Sprache" section with the microphone
+// input-device select (permission hint in a CLS-proof reserved slot) and
+// the "Konto" row opening the password-change dialog. The slider and
+// switch visuals come from the shared control mixins (_controls.scss),
+// which the per-user voice-volume menu reuses.
 @use 'variables' as v;
 @use 'mixins' as m;
 @use 'controls' as c;
@@ -93,6 +95,51 @@
 
 .settings-dialog__sound-volume-slider {
   @include c.volume-slider;
+}
+
+.settings-dialog__device {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+}
+
+.settings-dialog__device-label {
+  font-size: v.font-size('body');
+  font-weight: v.$font-weight-medium;
+  color: v.color('black');
+}
+
+.settings-dialog__device-select {
+  min-height: c.$control-min-height;
+  padding: v.space('xs') v.space('sm');
+  border: 1px solid v.color('lines');
+  border-radius: v.$radius-sm;
+  background: none;
+  cursor: pointer;
+  font-family: v.$font-base;
+  font-size: v.font-size('body');
+  color: v.color('black');
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &:disabled {
+    opacity: c.$control-disabled-opacity;
+    cursor: default;
+  }
+}
+
+.settings-dialog__device-hint {
+  margin: 0;
+  min-height: v.$form-error-reserved-height;
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+  visibility: hidden;
+}
+
+.settings-dialog__device-hint--visible {
+  visibility: visible;
 }
 
 .settings-dialog__sound-preview {

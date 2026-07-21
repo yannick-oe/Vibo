@@ -61,6 +61,36 @@
     </button>
   </section>
 
+  <section class="settings-dialog__section" aria-labelledby="settings-voice-title">
+    <h3 class="settings-dialog__section-title" id="settings-voice-title">Sprache</h3>
+    <div class="settings-dialog__device">
+      <label class="settings-dialog__device-label" for="settings-mic-device">
+        Eingabegerät (Mikrofon)
+      </label>
+      <select
+        class="settings-dialog__device-select"
+        id="settings-mic-device"
+        aria-describedby="settings-mic-device-hint"
+        [disabled]="!micPermissionGranted()"
+        (change)="onDeviceSelect($event)"
+      >
+        <option value="" [selected]="selectedDeviceId() === null">Systemstandard</option>
+        @for (device of audioInputs(); track device.deviceId) {
+          <option [value]="device.deviceId" [selected]="device.deviceId === selectedDeviceId()">
+            {{ deviceLabel(device) }}
+          </option>
+        }
+      </select>
+      <p
+        class="settings-dialog__device-hint"
+        id="settings-mic-device-hint"
+        [class.settings-dialog__device-hint--visible]="!micPermissionGranted()"
+      >
+        Geräteliste verfügbar, sobald der Mikrofonzugriff einmal erlaubt wurde.
+      </p>
+    </div>
+  </section>
+
   @if (canChangePassword()) {
     <section class="settings-dialog__section" aria-labelledby="settings-account-title">
       <h3 class="settings-dialog__section-title" id="settings-account-title">Konto</h3>

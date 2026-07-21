@@ -134,6 +134,19 @@ export class VoicePeer {
 
 
   /**
+   * Swaps the outgoing microphone track in place on the audio sender
+   * (input-device switch); replaceTrack needs no renegotiation. A missing
+   * sender or a closed connection makes this a no-op.
+   * @param track Freshly captured microphone track.
+   */
+  async replaceAudioTrack(track: MediaStreamTrack): Promise<void> {
+    if (this.isClosed) return;
+    const sender = this.pc.getSenders().find(candidate => candidate.track?.kind === 'audio');
+    await sender?.replaceTrack(track).catch(() => undefined);
+  }
+
+
+  /**
    * Applies the remote answer to an own offer; ignored when the connection
    * is not awaiting an answer (duplicate or stray envelope).
    * @param payload Remote session description of kind answer.

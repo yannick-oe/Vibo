@@ -47,6 +47,9 @@ export const SCREEN_MAX_BITRATE = 2_000_000;
 /** localStorage key prefix of the per-user remote volume ("vibo:user-volume:{uid}"). */
 export const USER_VOLUME_KEY_PREFIX = 'vibo:user-volume:';
 
+/** localStorage key of the preferred microphone input device (per machine). */
+export const AUDIO_INPUT_DEVICE_KEY = 'vibo:audio-input-device';
+
 /** Default per-user remote volume in percent (unity gain). */
 export const USER_VOLUME_DEFAULT_PERCENT = 100;
 
