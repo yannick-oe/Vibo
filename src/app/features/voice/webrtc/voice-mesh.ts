@@ -12,8 +12,6 @@
  * share start/stop) and is answered on the same connection; the SHARER is
  * always the renegotiation initiator.
  */
-import { Timestamp } from '@angular/fire/firestore';
-
 import {
   SoundSignalPayload,
   VoiceParticipant,
@@ -22,6 +20,7 @@ import {
   VoiceSignalPayload,
 } from '../../../models/voice.model';
 import { RemoteAudioMixer } from './remote-audio-mixer';
+import { byCreation } from './signal-order';
 import { SpeakingMonitor } from './speaking-monitor';
 import { VoicePeer } from './voice-peer';
 
@@ -67,6 +66,8 @@ export class VoiceMesh {
 
   private readonly processedSignalIds = new Set<string>();
 
+  private localStream: MediaStream;
+
   private shareTrack: MediaStreamTrack | null = null;
 
   private shareStream: MediaStream | null = null;
@@ -82,8 +83,9 @@ export class VoiceMesh {
    */
   constructor(deps: VoiceMeshDeps) {
     this.deps = deps;
+    this.localStream = deps.localStream;
     this.monitor = new SpeakingMonitor(deps.onSpeakingChange);
-    this.monitor.add(deps.ownSessionId, deps.localStream);
+    this.monitor.add(deps.ownSessionId, this.localStream);
     this.mixer = new RemoteAudioMixer({
       context: this.monitor.acquireContext(),
       gainForUid: deps.gainForUid,
@@ -189,6 +191,24 @@ export class VoiceMesh {
 
 
   /**
+   * Swaps the local microphone stream after an input-device switch: every
+   * peer's audio sender replaces its track in place (no renegotiation),
+   * the own speaking analyser is rewired to the fresh stream and peers
+   * created later connect with it too. The caller applies the mute state
+   * to the fresh track before calling and stops the old tracks afterwards.
+   * @param stream Freshly captured microphone stream.
+   */
+  async replaceLocalAudio(stream: MediaStream): Promise<void> {
+    const track = stream.getAudioTracks()[0];
+    if (!track) return;
+    this.localStream = stream;
+    await Promise.all([...this.peers.values()].map(peer => peer.replaceAudioTrack(track)));
+    this.monitor.remove(this.deps.ownSessionId);
+    this.monitor.add(this.deps.ownSessionId, stream);
+  }
+
+
+  /**
    * Tears the whole mesh down: every peer connection, the playback mixer
    * and the speaking monitor (which closes the shared context). Idempotent.
    */
@@ -278,7 +298,7 @@ export class VoiceMesh {
    * @param uid Uid of the remote user (addressing the envelopes).
    */
   private createPeer(sessionId: string, uid: string): VoicePeer {
-    const peer = new VoicePeer(sessionId, this.deps.localStream, {
+    const peer = new VoicePeer(sessionId, this.localStream, {
       sendSignal: (kind, payload) => this.deps.sendSignal(sessionId, uid, kind, payload),
       onRemoteStream: (session, stream) => this.attachRemoteAudio(session, uid, stream),
       onRemoteVideo: (session, stream) => this.setRemoteScreen(session, stream),
@@ -356,28 +376,4 @@ export class VoiceMesh {
     else if (!this.remoteScreens.delete(sessionId)) return;
     this.deps.onRemoteScreensChange(new Map(this.remoteScreens));
   }
-}
-
-
-/**
- * Compares two envelopes by creation time so descriptions are applied
- * before their trailing candidates; unresolved timestamps sort last.
- * @param a First envelope.
- * @param b Second envelope.
- */
-function byCreation(a: VoiceSignal, b: VoiceSignal): number {
-  return signalMillis(a) - signalMillis(b);
-}
-
-
-/**
- * Resolves an envelope's creation time in milliseconds; unresolved server
- * timestamps sort last (they cannot occur in the inbox, which only ever
- * carries other clients' server-acknowledged writes).
- * @param signal Envelope from the inbox stream.
- */
-function signalMillis(signal: VoiceSignal): number {
-  return signal.createdAt instanceof Timestamp
-    ? signal.createdAt.toMillis()
-    : Number.MAX_SAFE_INTEGER;
 }
