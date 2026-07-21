@@ -132,28 +132,50 @@ function rampGain(context: AudioContext, gain: GainNode, target: number): void {
 /**
  * Creates the muted keep-alive element consuming a remote stream (WebKit
  * workaround); playback audio comes solely from the WebAudio graph. The
- * join click is the autoplay gesture; a still-blocked play retries once on
- * the next pointer gesture.
+ * element is force-silenced before the stream attaches and again before
+ * every play() attempt, so no path can ever make it audible next to the
+ * mixer (which would double the signal into a reverb). The join click is
+ * the autoplay gesture; a still-blocked play retries once on the next
+ * pointer gesture.
  * @param stream Remote audio stream to keep alive.
  */
 function createKeepAliveElement(stream: MediaStream): HTMLAudioElement {
   const element = new Audio();
+  silenceKeepAlive(element);
   element.srcObject = stream;
   element.autoplay = true;
-  element.muted = true;
   element.hidden = true;
   document.body.appendChild(element);
+  silenceKeepAlive(element);
   void element.play().catch(() => retryPlayOnGesture(element));
   return element;
 }
 
 
 /**
- * Retries blocked keep-alive playback once on the next user gesture.
+ * Forces a keep-alive element into its provably inaudible state: muted AND
+ * zero volume, so even a browser quirk that drops one of the two flags
+ * (e.g. around srcObject re-attachment) leaves the element silent.
+ * @param element Keep-alive element to silence.
+ */
+function silenceKeepAlive(element: HTMLAudioElement): void {
+  element.muted = true;
+  element.volume = 0;
+}
+
+
+/**
+ * Retries blocked keep-alive playback once on the next user gesture; the
+ * element is re-silenced before the retry and a retry firing after the
+ * element was already released is skipped.
  * @param element Audio element whose play() was rejected.
  */
 function retryPlayOnGesture(element: HTMLAudioElement): void {
-  const resume = (): void => void element.play().catch(() => undefined);
+  const resume = (): void => {
+    if (!element.isConnected) return;
+    silenceKeepAlive(element);
+    void element.play().catch(() => undefined);
+  };
   document.addEventListener('pointerdown', resume, { once: true });
 }
 
