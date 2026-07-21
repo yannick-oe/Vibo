@@ -4,6 +4,21 @@ Alle nennenswerten Änderungen an Vibo, kuratiert nach Feature-Bereichen im Stil
 
 ## [Unreleased]
 
+## [1.2.0] – 2026-07-20
+
+### Status & Präsenz
+
+- **Manueller Status im Discord-Stil:** Über die Statuszeile im eigenen Profil lassen sich vier Zustände wählen — Online, Abwesend, Beschäftigt („Benachrichtigungstöne sind aus.") und Unsichtbar („Du wirst als offline angezeigt."). Die manuelle Wahl ist sticky: Sie gilt über Sitzungen und Geräte hinweg, bis sie geändert wird; automatische Übergänge überschreiben sie nie
+- **Status-Punkte mit Form UND Farbe:** Online = gefüllter Punkt, Abwesend = Mond, Beschäftigt = Querbalken, Offline/Unsichtbar = hohler Ring — überall einheitlich (Seitenleiste, Mitgliederlisten, Chat-Kopf, Topbar, Suche, Freunde), mit deutschen Screenreader-Labels und AA-geprüften Farben in beiden Themes
+- **Beschäftigt schaltet die Benachrichtigungstöne stumm** — Glocke, Badge und Listen aktualisieren unverändert weiter
+- **Automatisch offline nach 60 Minuten Inaktivität** (ohne manuelle Wahl): Nach 5 Minuten Inaktivität Abwesend, nach 60 Minuten Offline — ohne einen einzigen zusätzlichen Schreibvorgang
+
+### Fixes
+
+- **Registrierungshinweis ohne Layout-Sprung:** Der Benutzernamen-Hinweis ist gekürzt („Nur Buchstaben, Zahlen, Punkt und Unterstrich.") und der reservierte Meldungsbereich unter den Formularfeldern auf den Worst Case von zwei Zeilen bei 320 px dimensioniert — beim Tippen verschiebt sich nichts mehr
+- **Auth-Formulare reservieren ihre Fehlerzeilen konsequent:** Die allgemeinen Fehlermeldungen (Login, Passwort vergessen/zurücksetzen, Avatar-Schritt, Verifizierung) erscheinen in fest reservierten Bereichen; auf schmalen Viewports rücken sie auf eine eigene volle Zeile statt neben den Button
+- **Temporäres Auth-Diagnose-Panel entfernt:** Nach der Abnahme des Verifizierungs-Flows sind Diagnose-Dienst, Panel und das `vibo:auth-debug`-Flag vollständig ausgebaut — die selbstheilenden Datenströme bleiben unverändert
+
 ## [1.1.3] – 2026-07-20
 
 ### Konto & Sicherheit
