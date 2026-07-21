@@ -4,6 +4,17 @@ Alle nennenswerten Änderungen an Vibo, kuratiert nach Feature-Bereichen im Stil
 
 ## [Unreleased]
 
+## [1.3.0] – 2026-07-21
+
+### Sprachkanäle
+
+- **Mikrofonauswahl im Discord-Stil:** Neuer Bereich „Sprache" in den Einstellungen mit dem Dropdown „Eingabegerät (Mikrofon)" — Systemstandard oder ein konkretes Gerät. Die Wahl gilt pro Gerät (lokal gespeichert, kein Firestore), greift **live mitten im Gespräch** (Trackwechsel ohne Neuverhandlung, die Stummschaltung bleibt erhalten) und fällt sicher auf den Systemstandard zurück, wenn das gespeicherte Mikrofon gerade fehlt — mit einmaligem Hinweis-Toast statt eines stillen Verwerfens der Wahl. Damit folgt Vibo auf dem Mac insbesondere nicht mehr blind einem Continuity-iPhone als Systemmikrofon
+- **Hall/Reverb-Härtung:** Das unhörbare Keep-Alive-Audioelement pro Remote-Stream (WebKit-Workaround) ist jetzt beweisbar stumm — `muted` UND Lautstärke 0, erzwungen bei Erzeugung, vor dem Stream-Anhängen und vor jedem Autoplay-Retry. Eine Doppelwiedergabe neben dem WebAudio-Mixer als Hall-Quelle ist damit strukturell ausgeschlossen; Echo-Unterdrückung, Rauschunterdrückung und automatische Pegelung der Aufnahme bleiben bewusst aktiv
+
+### Dokumentation
+
+- README: Screenshot-Platzhalter entfernt (Entscheidung: keine Screenshots im Repo) und die Mikrofonauswahl ergänzt; die Begründung der Aufnahme-Constraints und der Gerätewahl steht datiert in DEVIATIONS.md
+
 ## [1.2.0] – 2026-07-20
 
 ### Status & Präsenz

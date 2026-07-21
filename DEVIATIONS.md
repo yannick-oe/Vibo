@@ -2387,3 +2387,41 @@ ordering alone:
   the action rows hosting inline general errors (forgot/reset/auth-action/avatar
   picker) stack the message onto its own full-width two-line slot below
   `$breakpoint-sm` via the shared `form-action-error-stack` mixin.
+
+## v1.3.0: voice reverb audit, capture-constraint decision, microphone picker (2026-07-21)
+
+- **Reverb/hall audit — keep-alive element hardened, no audible in-code path found.**
+  Listeners reported a reverb/hall on a speaker's voice. Suspect 1 was double playback:
+  the per-remote-stream WebKit keep-alive `<audio>` element sounding next to the WebAudio
+  mixer (the same signal twice, a few ms apart). The audit found the element created with
+  `muted = true` but `volume` left at 1.0, and the autoplay-retry path calling `play()`
+  without re-asserting silence — no code path ever unmuted it, so an audible double
+  playback could not be proven, but the inaudibility invariant hung on a single flag.
+  Hardening: `silenceKeepAlive()` (muted AND `volume = 0`) now runs at element creation,
+  again before `play()`, and before every gesture retry; a retry firing after the element
+  was released is skipped. The remaining suspicion for the observed hall is acoustic
+  coupling — two participating devices in one room, or the Continuity-iPhone case where
+  macOS makes the iPhone the system microphone and echo cancellation runs against the
+  wrong playback reference. That is confirmed or refuted by the owner's headphone A/B
+  test, not by more speculative code.
+- **EC/NS/AGC deliberately on — HiFi capture rejected for a speech product.** The
+  microphone constraints keep `echoCancellation`, `noiseSuppression` and
+  `autoGainControl` explicitly `true` (named constants in `voice.constants.ts`,
+  unchanged by the audit): voice chat prioritizes intelligibility over fidelity, and
+  disabling the processing chain for "HiFi" capture would reintroduce exactly the
+  echo/reverb class this audit chased. The Opus 384k ceiling and the SDP stereo
+  parameters stay untouched — they are harmless with a mono-processed capture.
+- **Microphone input-device picker (Discord pattern), per-machine by design.** The
+  stored device id lives ONLY in `localStorage` (`vibo:audio-input-device`) — a device
+  choice is hardware-bound, so syncing it through Firestore would be wrong; zero new
+  Firestore reads/writes, the listener inventory is untouched. Capture requests the
+  stored id via `deviceId: { exact }` only after confirming its presence in
+  `enumerateDevices()`; an absent device (the iPhone left the room) falls back to the
+  system default WITHOUT silently clearing the stored choice and announces itself once
+  per session via toast. A selection change during a call swaps the track in place on
+  every peer via `RTCRtpSender.replaceTrack` (no renegotiation), re-applies the mute
+  flag to the fresh track before it is sent and rewires the local speaking analyser;
+  the settings dropdown is disabled with a reserved-slot hint until the microphone
+  permission was granted once (labels are unreadable before). File-size rule: the pure
+  envelope-ordering helpers left `voice-mesh.ts` (`signal-order.ts`) before the mesh
+  gained `replaceLocalAudio`, and the switch orchestration lives in `mic-switch.ts`.

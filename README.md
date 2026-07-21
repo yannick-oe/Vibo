@@ -48,6 +48,7 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 - **Soundboard**: zehn kuratierte Presets (u. a. Woah, Drumroll, Evil Laugh) als loudness-normalisierte MP3-Dateien, lazy geladen und pro Session gecacht — ausgelöst wird per kurzlebigem Signal mit Sound-Kennung, Audiodaten fließen nie durch Firestore; keine Uploads
 - Mute/Deafen mit Discord-Paritäts-Verhalten, lokale Speaking-Erkennung (AnalyserNode, null Firestore-Writes), Creator-only Umbenennen/Löschen
 - **Pro-Nutzer-Lautstärke (0–200 %)** mit lokalem Stummschalten über das ⋮-Menü jeder Teilnehmerzeile — ein WebAudio-GainNode pro Peer mit sanfter Rampe, lokal gespeichert und beim nächsten Verbinden automatisch wieder angewendet
+- **Mikrofonauswahl** in den Einstellungen (Bereich „Sprache"): Systemstandard oder ein konkretes Eingabegerät — die Wahl gilt pro Gerät (lokal gespeichert), wechselt **live mitten im Gespräch** ohne Neuverhandlung (die Stummschaltung bleibt dabei erhalten) und fällt sicher auf den Systemstandard zurück, wenn das gespeicherte Mikrofon gerade fehlt
 
 **Sound-Design**
 
@@ -64,20 +65,6 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 - **WCAG 2.1 AA in beiden Themes** — Kontraste gemessen, nicht angenommen; durchgängig tastaturbedienbar; korrekte Dialog-/Combobox-Semantik; `prefers-reduced-motion` und `prefers-reduced-transparency` respektiert
 - **Responsiv bis 320 px**, mobile Bottom-Sheets mit echter Drag-Physik, **CLS = 0** überall
 - **Lighthouse (Production-Build, final):** Desktop **99 / 100 / 100 / 100**, Mobil **72–78 / 100 / 100 / 100** (Performance/Accessibility/Best Practices/SEO). Die mobile Lücke ist der dokumentierte Preis des eager geladenen Firebase-SDK; Channel-Views mit GIF-Embeds erreichen Best Practices 96 statt 100 — der akzeptierte Preis der byte-sparenden GIF-Renditions. Beides ist in [DEVIATIONS.md](DEVIATIONS.md) begründet, nichts davon versteckt.
-
----
-
-## Screenshots
-
-> **Platzhalter:** Die Captures entstehen als letzter Schritt und landen in [`docs/screenshots/`](docs/screenshots/) — geplant sind jeweils Light + Dark: Channel-Ansicht, Thread, Befehlspalette, Sprachkanal mit Screen-Share, Soundboard, Mobile-Bottom-Sheet.
-
-| Ansicht | Dateiname (geplant) |
-|---|---|
-| Channel (Light/Dark) | `channel-light.png` / `channel-dark.png` |
-| Befehlspalette | `command-palette.png` |
-| Sprachkanal + Screen-Share | `voice-share.png` |
-| Soundboard | `soundboard.png` |
-| Mobile Bottom-Sheet | `mobile-sheet.png` |
 
 ---
 
