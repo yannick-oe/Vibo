@@ -18,6 +18,8 @@
 | Purple 2 | `#797EF3` | `primary-hover` | Heller Akzent / Hover |
 | Purple 3 | `#535AF1` | `primary-active` | Aktiv/Pressed-Zustand |
 | online green | `#92C83E` | `online` | Online-Status-Indikator |
+| — (kein Figma, v1.2.0) | `#A87A00` | `away` | Abwesend-Status-Indikator (Gold; Dark: `#F5B940`) |
+| — (kein Figma, v1.2.0) | `#ED1E79` | `busy` | Beschäftigt-Status-Indikator (bewusste Wiederverwendung des Error-Werts, AA-geprüft; Dark: `#FF6FA5`) |
 | Rosa error | `#ED1E79` | `error` | Fehlermeldungen, Validierungsfehler |
 
 ```scss
@@ -32,6 +34,8 @@ $colors: (
   primary-hover:  #797EF3,
   primary-active: #535AF1,
   online:         #92C83E,
+  away:           #A87A00,
+  busy:           #ED1E79,
   error:          #ED1E79,
 );
 
@@ -135,8 +139,14 @@ Alle Buttons sind **vollständig pill-förmig** (`border-radius` = Höhe/2) mit 
 
 ## 6. Status & Indikatoren
 
-- Online: Punkt in `online` (#92C83E).
-- Abwesend/Offline: `text-gray` (#686868).
+Vier Status, jeweils Form UND Farbe (nie Farbe allein; Formen als `presence-shape-*`-Mixins):
+
+- Online: gefüllter Punkt in `online` (#92C83E).
+- Abwesend: Punkt mit Mond-Aussparung in `away` (#A87A00; Dark `#F5B940`).
+- Beschäftigt: Punkt mit Quer-Balken-Aussparung in `busy` (#ED1E79; Dark `#FF6FA5`).
+- Offline/Unsichtbar: hohler Ring in `text-gray` (#686868).
+
+Kontrast der Statusfarben ≥ 3:1 gegen beide Theme-Flächen (`white`, `bg`) — geprüft 2026-07-20: `away` hell 3,85/3,35, dunkel 10,15/11,12; `busy` hell 4,15/3,60, dunkel 6,89/7,54.
 
 ### Chat (Frames 06/09, gemessen)
 

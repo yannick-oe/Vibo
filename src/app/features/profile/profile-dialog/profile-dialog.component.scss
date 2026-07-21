@@ -1,5 +1,6 @@
 @use 'variables' as v;
 @use 'mixins' as m;
+@use 'presence' as p;
 
 $profile-banner-height: 190px;
 $profile-banner-height-sm: 150px;
@@ -121,11 +122,7 @@ $name-error-lines: 2;
   align-items: center;
   gap: v.space('sm');
   font-size: v.font-size('body');
-  color: v.color('online');
-
-  &--away {
-    color: v.color('text-gray');
-  }
+  color: v.color('text-gray');
 }
 
 .profile__fields {
@@ -236,11 +233,7 @@ $name-error-lines: 2;
 }
 
 .profile__status-dot {
-  @include m.status-dot;
-
-  .profile__status--away & {
-    background-color: v.color('text-gray');
-  }
+  @include p.presence-dot-inline;
 }
 
 .profile__mail {

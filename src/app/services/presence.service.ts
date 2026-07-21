@@ -1,13 +1,17 @@
 /**
  * @file Real online-presence tracking backed by a Firestore heartbeat. While a
  * user is signed in, the app refreshes users/{uid}.lastActive on an interval; a
- * user counts as online when that timestamp is within a recent threshold, which
- * is re-evaluated on a ticker so silent disconnects flip to offline. On top of
- * that, users/{uid}.presence carries 'online' | 'away' and is written ONLY on
- * state transitions (never on an interval): away when the tab hides or after
- * the idle deadline without user activity, back to online on the first
- * activity or visibility regain. Offline always derives from the stale
- * heartbeat and takes precedence over the presence field.
+ * user counts as connected when that timestamp is within a recent threshold,
+ * which is re-evaluated on a ticker so silent disconnects flip to offline. On
+ * top of that, users/{uid}.presence carries 'online' | 'away' and is written
+ * ONLY on state transitions (never on an interval): away when the tab hides or
+ * after the idle deadline without user activity, back to online on the first
+ * activity or visibility regain. A second idle stage suspends the heartbeat
+ * once inactivity spans the auto-offline window, so idle users read as offline
+ * everywhere with zero extra writes. The DISPLAYED status of every user is
+ * resolved through the shared effectivePresence helper, which lets the sticky
+ * manual choice on the user document (away/busy/invisible) override the
+ * automatic behavior; a stale heartbeat always takes precedence.
  */
 import {
   EnvironmentInjector,
@@ -28,28 +32,29 @@ import {
   updateDoc,
 } from '@angular/fire/firestore';
 
-import { UserDoc } from '../models/user.model';
+import { PresenceState, effectivePresence } from '../shared/presence-status';
 import { AuthService } from './auth.service';
+import { PresenceHeartbeat } from './presence-heartbeat';
+import { collectAwayUids, collectManualStatuses, collectOnlineUids } from './presence-sets';
 import { UserService } from './user.service';
 
-const HEARTBEAT_INTERVAL_MS = 60_000;
 const ONLINE_THRESHOLD_MS = 120_000;
 const PRESENCE_TICK_MS = 30_000;
 const OFFLINE_BACKDATE_MS = 86_400_000;
 const AWAY_AFTER_MS = 300_000;
+const OFFLINE_AFTER_MIN = 60;
+const OFFLINE_AFTER_MS = OFFLINE_AFTER_MIN * 60_000;
 const ACTIVITY_THROTTLE_MS = 10_000;
 const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const;
 
 /** Session presence written on transitions; offline derives client-side. */
 type SessionPresence = 'online' | 'away';
 
-/** Displayed presence of a user, offline taking precedence. */
-export type PresenceState = SessionPresence | 'offline';
-
 /**
  * Tracks which users are currently online via a Firestore heartbeat and a
- * client-side freshness check, maintains the own transition-only away
- * state, and exposes both as signals for the UI.
+ * client-side freshness check, maintains the own transition-only away and
+ * auto-offline state, and resolves every user's displayed status through
+ * the shared effectivePresence helper.
  */
 @Injectable({ providedIn: 'root' })
 export class PresenceService {
@@ -63,7 +68,7 @@ export class PresenceService {
 
   private readonly nowMs = signal(Date.now());
 
-  private heartbeat: ReturnType<typeof setInterval> | null = null;
+  private readonly heartbeat = new PresenceHeartbeat(uid => this.beat(uid));
 
   private currentPresence: SessionPresence | null = null;
 
@@ -73,9 +78,15 @@ export class PresenceService {
 
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
 
-  readonly onlineUids = computed(() => this.collectOnlineUids());
+  readonly onlineUids = computed(() =>
+    collectOnlineUids(this.userService.users(), this.nowMs() - ONLINE_THRESHOLD_MS),
+  );
 
-  private readonly awayUids = computed(() => this.collectAwayUids());
+  private readonly awayUids = computed(() => collectAwayUids(this.userService.users()));
+
+  private readonly manualStatusByUid = computed(() =>
+    collectManualStatuses(this.userService.users()),
+  );
 
 
   /**
@@ -91,41 +102,34 @@ export class PresenceService {
 
 
   /**
-   * Reports whether the given user counts as online right now.
+   * Reports whether the given user reads as anything but offline right now
+   * (drives the online/offline grouping of the friends view).
    * @param uid User id to check.
    */
   isOnline(uid: string): boolean {
-    return this.onlineUids().has(uid);
+    return this.stateFor(uid) !== 'offline';
   }
 
 
   /**
-   * Resolves the displayed presence of a user: offline while the heartbeat
-   * is stale, otherwise the transition-written session state.
+   * Resolves the displayed presence of a user through the shared effective
+   * resolver: stale heartbeat → offline, then the sticky manual choice,
+   * otherwise the transition-written session state.
    * @param uid User id to resolve.
    */
   stateFor(uid: string): PresenceState {
-    if (!this.onlineUids().has(uid)) return 'offline';
-    return this.awayUids().has(uid) ? 'away' : 'online';
+    const manual = this.manualStatusByUid().get(uid);
+    return effectivePresence(manual, this.onlineUids().has(uid), this.awayUids().has(uid));
   }
 
 
   /**
-   * Builds the set of uids whose session presence is 'away'.
+   * Reports whether the OWN effective status is busy; the notification
+   * toast suppresses its receive sound while it is.
    */
-  private collectAwayUids(): Set<string> {
-    const away = this.userService.users().filter(user => user.presence === 'away');
-    return new Set(away.map(user => user.uid));
-  }
-
-
-  /**
-   * Builds the set of uids whose last heartbeat is within the online window.
-   */
-  private collectOnlineUids(): Set<string> {
-    const cutoff = this.nowMs() - ONLINE_THRESHOLD_MS;
-    const fresh = this.userService.users().filter(user => lastActiveMs(user) >= cutoff);
-    return new Set(fresh.map(user => user.uid));
+  isOwnBusy(): boolean {
+    const uid = this.auth.currentUser()?.uid;
+    return uid !== undefined && this.stateFor(uid) === 'busy';
   }
 
 
@@ -144,10 +148,11 @@ export class PresenceService {
    * @param user Currently authenticated user, or null.
    */
   private syncHeartbeat(user: User | null): void {
-    this.stopHeartbeat();
-    if (!user) return this.stopIdleTracking();
-    this.beat(user.uid);
-    this.heartbeat = setInterval(() => this.beat(user.uid), HEARTBEAT_INTERVAL_MS);
+    if (!user) {
+      this.heartbeat.stop();
+      return this.stopIdleTracking();
+    }
+    this.heartbeat.start(user.uid);
     this.currentPresence = null;
     this.transitionTo(document.visibilityState === 'hidden' ? 'away' : 'online');
     this.armIdleTimer();
@@ -168,12 +173,13 @@ export class PresenceService {
 
 
   /**
-   * Registers user activity: the first interaction of an away session
-   * flips back to online; the idle deadline is re-armed (throttled so the
-   * high-frequency listeners stay cheap).
+   * Registers user activity: a suspended heartbeat revives, the first
+   * interaction of an away session flips back to online, and the idle
+   * deadline is re-armed (throttled so the listeners stay cheap).
    */
   private onActivity(): void {
     this.lastActivityMs = Date.now();
+    this.resumeOnActivity();
     if (this.currentPresence === 'away' && document.visibilityState === 'visible') {
       this.transitionTo('online');
     }
@@ -183,13 +189,23 @@ export class PresenceService {
 
   /**
    * Flips to away when the tab hides and back to online when it becomes
-   * visible again.
+   * visible again (reviving a suspended heartbeat).
    */
   private onVisibilityChange(): void {
     if (document.visibilityState === 'hidden') return this.transitionTo('away');
     this.lastActivityMs = Date.now();
+    this.resumeOnActivity();
     this.transitionTo('online');
     this.armIdleTimer();
+  }
+
+
+  /**
+   * Revives a suspended heartbeat for the signed-in user.
+   */
+  private resumeOnActivity(): void {
+    const uid = this.auth.currentUser()?.uid;
+    if (uid) this.heartbeat.resume(uid);
   }
 
 
@@ -213,14 +229,53 @@ export class PresenceService {
 
 
   /**
-   * Goes away when the last activity is old enough; because the arming is
-   * throttled the timer can fire slightly early, in which case it re-arms
-   * for the exact remaining time instead of writing anything.
+   * Goes away when the last activity is old enough and chains into the
+   * auto-offline stage; because the arming is throttled the timer can fire
+   * slightly early, in which case it re-arms for the exact remaining time
+   * instead of writing anything.
    */
   private onIdleDeadline(): void {
     const remaining = AWAY_AFTER_MS - (Date.now() - this.lastActivityMs);
-    if (remaining <= 0) return this.transitionTo('away');
-    this.idleTimer = setTimeout(() => this.onIdleDeadline(), remaining);
+    if (remaining > 0) {
+      this.idleTimer = setTimeout(() => this.onIdleDeadline(), remaining);
+      return;
+    }
+    this.transitionTo('away');
+    this.armOfflineTimer();
+  }
+
+
+  /**
+   * Arms the second idle stage firing at the earliest possible auto-offline
+   * moment (the away stage chains into it; no separate timer system).
+   */
+  private armOfflineTimer(): void {
+    const remaining = OFFLINE_AFTER_MS - (Date.now() - this.lastActivityMs);
+    this.idleTimer = setTimeout(() => this.onOfflineDeadline(), remaining);
+  }
+
+
+  /**
+   * Suspends the heartbeat once the inactivity really spans the offline
+   * window — but only in automatic mode: sticky manual choices are never
+   * overridden by idle transitions. The stale heartbeat then flips the
+   * user to offline on every client via the existing freshness check.
+   */
+  private onOfflineDeadline(): void {
+    const remaining = OFFLINE_AFTER_MS - (Date.now() - this.lastActivityMs);
+    if (remaining > 0) return this.armOfflineTimer();
+    if (this.isAutomatic()) this.heartbeat.suspend();
+  }
+
+
+  /**
+   * Reports whether the own presence runs in automatic mode, i.e. without
+   * a sticky manual status choice.
+   */
+  private isAutomatic(): boolean {
+    const uid = this.auth.currentUser()?.uid;
+    const manual = uid ? this.manualStatusByUid().get(uid) : undefined;
+    return (manual ?? 'online') === 'online';
   }
 
 
@@ -260,15 +315,6 @@ export class PresenceService {
 
 
   /**
-   * Clears any running heartbeat interval.
-   */
-  private stopHeartbeat(): void {
-    if (this.heartbeat !== null) clearInterval(this.heartbeat);
-    this.heartbeat = null;
-  }
-
-
-  /**
    * Writes a fresh server-time heartbeat for the user (best effort).
    * @param uid User whose lastActive is refreshed.
    */
@@ -299,14 +345,4 @@ export class PresenceService {
       updateDoc(doc(this.firestore, `users/${uid}`), { lastActive }),
     );
   }
-}
-
-
-/**
- * Resolves a user's last-active time in milliseconds; missing or still-pending
- * values resolve to 0 so the user is treated as offline.
- * @param user User document read from the live stream.
- */
-function lastActiveMs(user: UserDoc): number {
-  return user.lastActive instanceof Timestamp ? user.lastActive.toMillis() : 0;
 }

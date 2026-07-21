@@ -1,18 +1,25 @@
 @use 'variables' as v;
+@use 'presence' as p;
 
 :host {
+  @include p.presence-shape-base;
+
   position: absolute;
   right: 0;
   bottom: 0;
   display: block;
   width: min(#{v.$presence-dot-ratio}, #{v.$presence-dot-max});
-  aspect-ratio: 1;
   border: v.$presence-dot-ring solid v.color('white');
-  border-radius: v.$radius-round;
-  background-color: v.color('online');
 }
 
-:host(.presence-dot--away),
+:host(.presence-dot--away) {
+  @include p.presence-shape-away;
+}
+
+:host(.presence-dot--busy) {
+  @include p.presence-shape-busy;
+}
+
 :host(.presence-dot--offline) {
-  background-color: v.color('text-gray');
+  @include p.presence-shape-offline;
 }

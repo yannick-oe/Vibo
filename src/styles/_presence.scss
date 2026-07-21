@@ -1,0 +1,86 @@
+@use 'variables' as v;
+
+// ─── Presence Shapes ─────────────────────────────────────────────────────────
+// Discord-style four-state presence glyphs — shape AND color, so status is
+// never conveyed by color alone: filled dot (online), moon cutout (away),
+// horizontal-bar cutout (busy), hollow ring (offline/invisible). Cutouts are
+// ::before overlays in color('white') — the surface/ring color the dot sits
+// on — so the shapes read as punched out at any size, without CSS masks and
+// with zero layout impact (all overlays live inside the fixed dot box).
+
+$presence-moon-size: 68%;
+$presence-moon-offset: -16%;
+$presence-bar-inset: 16%;
+$presence-bar-height: 30%;
+$presence-ring-inset: 27%;
+
+@mixin presence-shape-base {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: v.$radius-round;
+  overflow: hidden;
+  background-color: v.color('online');
+
+  &::before {
+    content: '';
+    position: absolute;
+    display: none;
+    background-color: v.color('white');
+  }
+}
+
+@mixin presence-shape-away {
+  background-color: v.color('away');
+
+  &::before {
+    display: block;
+    width: $presence-moon-size;
+    height: $presence-moon-size;
+    border-radius: v.$radius-round;
+    top: $presence-moon-offset;
+    left: $presence-moon-offset;
+  }
+}
+
+@mixin presence-shape-busy {
+  background-color: v.color('busy');
+
+  &::before {
+    display: block;
+    inset: 0 $presence-bar-inset;
+    height: $presence-bar-height;
+    margin: auto 0;
+    border-radius: v.$radius-pill;
+  }
+}
+
+@mixin presence-shape-offline {
+  background-color: v.color('text-gray');
+
+  &::before {
+    display: block;
+    inset: $presence-ring-inset;
+    border-radius: v.$radius-round;
+  }
+}
+
+// Inline list/pill presence dot at the unified fixed size, with the state
+// modifiers attached to the including selector (BEM `--away/--busy/--offline`).
+@mixin presence-dot-inline {
+  @include presence-shape-base;
+
+  width: v.$status-dot-md;
+  flex-shrink: 0;
+
+  &--away {
+    @include presence-shape-away;
+  }
+
+  &--busy {
+    @include presence-shape-busy;
+  }
+
+  &--offline {
+    @include presence-shape-offline;
+  }
+}

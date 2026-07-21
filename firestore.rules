@@ -216,6 +216,15 @@ service cloud.firestore {
         return request.resource.data.get('username', null) == resource.data.get('username', null);
       }
 
+      // Manual presence status (v1.2.0): the sticky Discord-style choice.
+      // Validated whenever the update carries the key; an absent key (all
+      // other profile writes, legacy docs) passes untouched — the guard is
+      // ADDITIVE and safe to deploy before the app writes the field.
+      function manualStatusValid() {
+        return !('manualStatus' in request.resource.data)
+          || request.resource.data.manualStatus in ['online', 'away', 'busy', 'invisible'];
+      }
+
       // Reads for verified users; the own document additionally at plain
       // signedIn() — the Google first-sign-in repair path reads it before
       // a verification round-trip can have happened.
@@ -223,7 +232,8 @@ service cloud.firestore {
       // Create stays at signedIn(): this IS the signup-time write, the
       // account cannot be verified yet when its profile is created.
       allow create: if signedIn() && request.auth.uid == uid && validNewUsername();
-      allow update: if verifiedOrGuest() && request.auth.uid == uid && usernameUnchanged();
+      allow update: if verifiedOrGuest() && request.auth.uid == uid && usernameUnchanged()
+        && manualStatusValid();
       allow delete: if verifiedOrGuest() && request.auth.uid == uid;
 
       // Activity notifications (thread replies, reactions on own messages):

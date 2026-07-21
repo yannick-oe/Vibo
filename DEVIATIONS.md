@@ -2336,3 +2336,54 @@ ordering alone:
   steps, guard decisions and gated-stream starts/first errors; no Firestore access.
   **Removal condition:** delete both files, their two mounts and the guard/stream/verify
   log calls once the owner's live pass confirms the verification flow end-to-end.
+  **Resolved 2026-07-20 (v1.2.0):** the owner's live pass signed the verification flow
+  off, so the removal condition is met. `AuthDiagnosticsService`, `AuthDebugPanelComponent`,
+  both mounts (verify screen, app shell), the `vibo:auth-debug` flag handling and every
+  guard/stream/verify log call are deleted; the `label`/`diagnostics` fields left the
+  token-gated stream config with them. The self-healing stream behavior above is
+  unchanged — only the diagnostic reporting sink was removed.
+
+## v1.2.0: manual presence status, CLS-proof form-message slots (2026-07-20)
+
+- **Manual presence status (Discord pattern, no Figma design).** `users/{uid}` gains the
+  optional `manualStatus` field (`'online' | 'away' | 'busy' | 'invisible'`); absent or
+  `'online'` means automatic behavior, the other three are STICKY — they persist across
+  sessions and devices until changed and are never overridden by auto transitions. The
+  displayed status of EVERY user resolves through one pure helper
+  (`shared/presence-status.ts` → `effectivePresence`): stale heartbeat → offline always
+  wins, then the manual choice (invisible renders offline on every client, the own one
+  included), and only automatic mode falls through to the transition-written session
+  presence. Decisions: the existing auto-away threshold (5 min) was already below the
+  15-minute cap and stays; auto-offline extends the SAME idle-timer chain (the away
+  stage arms a second deadline at 60 min) and works by SUSPENDING the heartbeat — the
+  stale `lastActive` flips the user to offline everywhere through the existing freshness
+  check, zero extra writes, no parallel timer system (heartbeat mechanics extracted to
+  `presence-heartbeat.ts` for file-size reasons only). Selecting writes `'online'`
+  literally instead of deleting the field (one uniform single-field write path). The
+  rules guard is additive (`manualStatusValid()` validates the key only when present),
+  so the rules deploy safely before the app. The shared guest account keeps the
+  read-only status line (consistent with its other profile restrictions); busy
+  suppresses ONLY the receive chime via one guard in `NotificationToastService.show`.
+- **Four-state presence dots, shape + color.** New tokens `away` (light `#a87a00`,
+  dark `#f5b940`) and `busy` (deliberate reuse of the error values `#ed1e79`/`#ff6fa5`
+  under an own key — reuse passed the 3:1 check, so no third red was invented); all
+  four state colors hold ≥ 3:1 against both theme surfaces (measured 2026-07-20:
+  away 3.85/3.35 light, 10.15/11.12 dark; busy 4.15/3.60 light, 6.89/7.54 dark).
+  Shapes are CSS-only `presence-shape-*` mixins (filled dot, moon cutout, bar cutout,
+  hollow ring): cutouts are `::before` overlays in `color('white')` — the ring/surface
+  color the dot sits on — clipped by the dot's own rounded box, so no CSS masks, no
+  layout impact, and the shared dot component, the profile status pill and the status
+  menu all render from the same mixins. The foreign-profile status pill also dropped
+  its green label text (1.99:1 on white — a pre-existing AA failure) for `text-gray`;
+  the dot carries the state.
+- **Form-message slots sized for the worst case (CLS rule).** The reserved per-field
+  error slot was a hardcoded `min-height: 1.778rem` (~1.3 lines) — the shortened
+  username hint („Nur Buchstaben, Zahlen, Punkt und Unterstrich.") still wraps to two
+  lines at 320 px, so the slot now uses the token-derived
+  `$form-error-reserved-height` (2 × line at `min` size; the constant existed unused
+  since its introduction and moved to `_variables.scss`). The bare `.form-error` base
+  reserve grew from 18px (below one line box) to one token line; the login general
+  error is rendered permanently (visibility toggling) instead of `@if`-inserted; and
+  the action rows hosting inline general errors (forgot/reset/auth-action/avatar
+  picker) stack the message onto its own full-width two-line slot below
+  `$breakpoint-sm` via the shared `form-action-error-stack` mixin.

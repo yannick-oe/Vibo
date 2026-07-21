@@ -17,7 +17,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 import { AuthService } from '../../../services/auth.service';
-import { PresenceService, PresenceState } from '../../../services/presence.service';
+import { PresenceService } from '../../../services/presence.service';
 import { DEFAULT_AVATAR_PATH, resolveAvatarStillSrc } from '../../../services/registration.service';
 import { ToastService } from '../../../services/toast.service';
 import { ProfileDraft, UserService } from '../../../services/user.service';
@@ -27,10 +27,12 @@ import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { BadgeListComponent } from '../../../shared/badge-list/badge-list.component';
 import { displayBadges } from '../../../shared/badge-options';
 import { BANNER_NONE, BANNER_OPTIONS } from '../../../shared/banner-options';
+import { PresenceState } from '../../../shared/presence-status';
 import { ProfileBannerComponent } from '../../../shared/profile-banner/profile-banner.component';
 import { DialogAnchor } from '../../../shared/dialog-shell/dialog-anchor';
 import { DialogShellComponent } from '../../../shared/dialog-shell/dialog-shell.component';
 import { FriendActionComponent } from '../../../shared/friend-action/friend-action.component';
+import { StatusMenuComponent } from '../status-menu/status-menu.component';
 import {
   NAME_MAX_LENGTH,
   displayNameErrorMessage,
@@ -44,6 +46,7 @@ const UNKNOWN_USER = 'Unbekannt';
 const STATUS_LABELS: Record<PresenceState, string> = {
   online: 'Aktiv',
   away: 'Abwesend',
+  busy: 'Beschäftigt',
   offline: 'Offline',
 };
 const PROFILE_VIEW_TITLE = 'Profil';
@@ -63,8 +66,9 @@ type ProfileMode = 'view' | 'edit';
  * the "Bearbeiten" link switching to the edit card with name input and
  * avatar selection from the provided set; foreign profiles offer the
  * "Nachricht" button that opens the direct conversation. The status row
- * shows the user's live presence with the Figma vocabulary ("Aktiv" /
- * "Abwesend").
+ * shows the live effective presence — for the own (non-guest) profile it
+ * is the manual-status trigger, otherwise a read-only pill with the Figma
+ * vocabulary ("Aktiv" / "Abwesend").
  */
 @Component({
   selector: 'app-profile-dialog',
@@ -76,6 +80,7 @@ type ProfileMode = 'view' | 'edit';
     AuroraNameComponent,
     AvatarComponent,
     BadgeListComponent,
+    StatusMenuComponent,
   ],
   templateUrl: './profile-dialog.component.html',
   styleUrl: './profile-dialog.component.scss',
@@ -261,11 +266,12 @@ export class ProfileDialogComponent {
 
 
   /**
-   * Builds the absolute asset URL of an avatar option.
+   * Maps an avatar option to its lightest still rendition (static WebP when
+   * one ships); missing paths fall back to the placeholder.
    * @param path Public asset path of the avatar.
    */
   protected optionSrc(path: string): string {
-    return assetUrl(path);
+    return resolveAvatarStillSrc(path);
   }
 
 
@@ -353,16 +359,6 @@ export class ProfileDialogComponent {
   }
 
 
-}
-
-
-/**
- * Maps an avatar path to its lightest still rendition (static WebP when
- * one ships); missing paths and external URLs fall back to the placeholder.
- * @param path Avatar path stored on a user document.
- */
-function assetUrl(path: string | undefined): string {
-  return resolveAvatarStillSrc(path);
 }
 
 
