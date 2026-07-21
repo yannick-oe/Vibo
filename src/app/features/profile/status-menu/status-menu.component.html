@@ -1,0 +1,42 @@
+<button
+  #trigger
+  class="status-menu__trigger"
+  type="button"
+  aria-haspopup="menu"
+  [attr.aria-expanded]="isOpen()"
+  (click)="openMenu()"
+>
+  <span class="status-menu__dot status-menu__dot--{{ ownShape() }}" aria-hidden="true"></span>
+  <span class="status-menu__label">{{ triggerLabel() }}</span>
+  <img class="status-menu__chevron" src="app-icons/arrow-down.svg" alt="" aria-hidden="true" />
+</button>
+
+@if (isOpen()) {
+  <app-dialog-shell [anchor]="menuAnchor()" size="menu" labelledBy="status-menu-title" (closed)="closeMenu()">
+    <div class="status-menu__card">
+      <h3 class="sr-only" id="status-menu-title">Status ändern</h3>
+      <div class="status-menu__items" role="menu" aria-labelledby="status-menu-title">
+        @for (option of options; track option.value; let i = $index) {
+          <button
+            #optionButton
+            class="status-menu__item"
+            type="button"
+            role="menuitemradio"
+            [class.status-menu__item--selected]="selected() === option.value"
+            [attr.aria-checked]="selected() === option.value"
+            (click)="select(option.value)"
+            (keydown)="onOptionKeydown($event, i)"
+          >
+            <span class="status-menu__dot status-menu__dot--{{ option.shape }}" aria-hidden="true"></span>
+            <span class="status-menu__text">
+              <span class="status-menu__name">{{ option.label }}</span>
+              @if (option.description; as description) {
+                <span class="status-menu__description">{{ description }}</span>
+              }
+            </span>
+          </button>
+        }
+      </div>
+    </div>
+  </app-dialog-shell>
+}

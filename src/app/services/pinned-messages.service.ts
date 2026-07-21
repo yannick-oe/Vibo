@@ -24,16 +24,11 @@ import {
 
 import { readSeenPinCount, storeSeenPinCount } from '../features/chat/pinned-messages/pins-seen.storage';
 import { Message, MessageDoc } from '../models/message.model';
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 
 /** Maximum pinned messages fetched for the header dialog. */
 export const PINNED_QUERY_LIMIT = 50;
 
 const PINNED_FIELD = 'pinned';
-
-const PIN_COUNT_LABEL = 'pinned-count';
-
-const PIN_LIST_LABEL = 'pinned-list';
 
 
 /**
@@ -54,8 +49,6 @@ export class PinnedMessagesService {
   private readonly firestore = inject(Firestore);
 
   private readonly injector = inject(Injector);
-
-  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly contextPath = signal<string | null>(null);
 
@@ -91,8 +84,8 @@ export class PinnedMessagesService {
       if (this.contextPath() !== messagesPath) return;
       this.count.set(snapshot.data().count);
       this.clampSeen(messagesPath);
-    } catch (error) {
-      this.diagnostics.streamError(PIN_COUNT_LABEL, error);
+    } catch {
+      return;
     }
   }
 
@@ -153,8 +146,7 @@ export class PinnedMessagesService {
       const snapshot = await this.inContext(() => getDocs(pinnedQuery));
       const messages = snapshot.docs.map(entry => ({ id: entry.id, ...(entry.data() as MessageDoc) }));
       return messages.sort((a, b) => createdMillis(b.createdAt) - createdMillis(a.createdAt));
-    } catch (error) {
-      this.diagnostics.streamError(PIN_LIST_LABEL, error);
+    } catch {
       return [];
     }
   }

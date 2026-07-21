@@ -24,7 +24,6 @@ import { SoundService } from '../../../services/sound.service';
 import { ThreadService } from '../../../services/thread.service';
 import { VoiceConnectionService } from '../../../services/voice-connection.service';
 import { VoiceCreateService } from '../../../services/voice-create.service';
-import { AuthDebugPanelComponent } from '../../../shared/auth-debug-panel/auth-debug-panel.component';
 import { NotificationToastComponent } from '../../../shared/notification-toast/notification-toast.component';
 import { ProfileDialogComponent } from '../../profile/profile-dialog/profile-dialog.component';
 import { ScreenViewerComponent } from '../../voice/screen-viewer/screen-viewer.component';
@@ -58,7 +57,6 @@ type MobileView = 'menu' | 'chat' | 'thread';
 @Component({
   selector: 'app-shell',
   imports: [
-    AuthDebugPanelComponent,
     ChannelCreateDialogComponent,
     CommandPaletteComponent,
     NotificationToastComponent,

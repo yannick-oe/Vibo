@@ -7,6 +7,7 @@
  */
 import { Injectable, Signal, inject, signal } from '@angular/core';
 
+import { PresenceService } from './presence.service';
 import { SoundService } from './sound.service';
 
 const AUTO_DISMISS_MS = 5000;
@@ -42,6 +43,8 @@ export class NotificationToastService {
 
   private readonly soundService = inject(SoundService);
 
+  private readonly presenceService = inject(PresenceService);
+
   private readonly toastState = signal<NotificationToastData | null>(null);
 
   /** The active notification toast, consumed by the toast component. */
@@ -51,13 +54,15 @@ export class NotificationToastService {
   /**
    * Shows a toast (replacing any active one), restarts the auto-dismiss
    * timer and plays the receive sound via the central sound service (its
-   * per-kind throttle guards against notification bursts).
+   * per-kind throttle guards against notification bursts). While the own
+   * effective status is busy the sound is suppressed — the toast, the bell
+   * badge and every list keep updating unchanged.
    * @param toast Fully built toast payload.
    */
   show(toast: NotificationToastData): void {
     this.toastState.set(toast);
     this.restartTimer();
-    this.soundService.play('receive');
+    if (!this.presenceService.isOwnBusy()) this.soundService.play('receive');
   }
 
 

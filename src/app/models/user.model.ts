@@ -3,6 +3,8 @@
  */
 import { FieldValue, Timestamp } from '@angular/fire/firestore';
 
+import { ManualStatus } from '../shared/presence-status';
+
 /**
  * Firestore document stored at users/{uid}. On write, createdAt holds the
  * serverTimestamp() sentinel; on read it resolves to a Timestamp.
@@ -36,4 +38,6 @@ export interface UserDoc {
   lastActive?: Timestamp | FieldValue;
   /** Session presence, written only on transitions; offline derives from lastActive. */
   presence?: 'online' | 'away';
+  /** Sticky manual status choice; absent or 'online' means automatic behavior. */
+  manualStatus?: ManualStatus;
 }

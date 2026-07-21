@@ -33,7 +33,6 @@ import {
 import { Observable } from 'rxjs';
 
 import { NOTIFICATION_FEED_LIMIT, NotificationEntry } from '../models/notification.model';
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { tokenGatedStream } from './token-gated-stream';
 import { ChannelService } from './channel.service';
@@ -83,8 +82,6 @@ export class NotificationFeedService {
   private readonly router = inject(Router);
 
   private readonly injector = inject(EnvironmentInjector);
-
-  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private currentUid: string | null = null;
 
@@ -155,12 +152,10 @@ export class NotificationFeedService {
    */
   private buildFeedStream(): Observable<NotificationEntry[]> {
     return tokenGatedStream({
-      label: 'notifications',
       source: this.authService.tokenChanges,
       gate: current => current.uid,
       empty: [] as NotificationEntry[],
       build: current => this.stream(current.uid),
-      diagnostics: this.diagnostics,
     });
   }
 

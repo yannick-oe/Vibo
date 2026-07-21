@@ -24,7 +24,6 @@ import {
 } from '@angular/fire/firestore';
 import { Observable, catchError, of } from 'rxjs';
 
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { ClientSessionService } from './client-session.service';
 
@@ -60,8 +59,6 @@ export class TypingService {
   private readonly clientSession = inject(ClientSessionService);
 
   private readonly injector = inject(EnvironmentInjector);
-
-  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly lastWriteAt = new Map<string, number>();
 
@@ -117,7 +114,7 @@ export class TypingService {
         { idField: 'sessionId' },
       ),
     ) as Observable<TypingEntry[]>;
-    return entries.pipe(catchError(error => this.recoverStream(error)));
+    return entries.pipe(catchError(() => this.recoverStream()));
   }
 
 
@@ -125,10 +122,8 @@ export class TypingService {
    * Degrades an errored typing stream to the empty list — typing is
    * best-effort and must never break the consuming chat view; the next
    * context switch rebuilds the stream.
-   * @param error Error the stream died with.
    */
-  private recoverStream(error: unknown): Observable<TypingEntry[]> {
-    this.diagnostics.streamError('typing', error);
+  private recoverStream(): Observable<TypingEntry[]> {
     return of([] as TypingEntry[]);
   }
 

@@ -1,0 +1,101 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+@use 'presence' as p;
+
+// Minimum touch-target height of the status trigger (WCAG 2.5.8).
+$status-trigger-min-height: 44px;
+
+:host {
+  display: block;
+  align-self: flex-start;
+}
+
+.status-menu__trigger {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  min-height: $status-trigger-min-height;
+  padding: v.space('xs') v.space('sm');
+  margin-left: calc(-1 * #{v.space('sm')});
+  border: none;
+  border-radius: v.$radius-sm;
+  background: none;
+  font-size: v.font-size('body');
+  color: v.color('black');
+  cursor: pointer;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
+.status-menu__chevron {
+  width: v.$icon-sm;
+  height: v.$icon-sm;
+}
+
+.status-menu__dot {
+  @include p.presence-dot-inline;
+}
+
+.status-menu__card {
+  padding: v.space('sm');
+}
+
+.status-menu__items {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+}
+
+.status-menu__item {
+  display: flex;
+  align-items: center;
+  gap: v.space('sm');
+  width: 100%;
+  padding: v.space('sm') v.space('sm-md');
+  border: none;
+  border-radius: v.$radius-sm;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background-color: v.color('bg');
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+
+  &--selected {
+    background-color: v.color('bg');
+
+    .status-menu__name {
+      font-weight: v.$font-weight-semibold;
+    }
+  }
+}
+
+.status-menu__text {
+  display: flex;
+  flex-direction: column;
+  gap: v.space('xs');
+  min-width: 0;
+}
+
+.status-menu__name {
+  font-size: v.font-size('body');
+  color: v.color('black');
+}
+
+.status-menu__description {
+  font-size: v.font-size('min');
+  color: v.color('text-gray');
+}

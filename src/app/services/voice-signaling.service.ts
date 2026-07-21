@@ -32,7 +32,6 @@ import {
   VOICE_CHANNELS_COLLECTION,
   VOICE_SIGNALS_SEGMENT,
 } from '../shared/voice.constants';
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { ClientSessionService } from './client-session.service';
 
@@ -50,8 +49,6 @@ export class VoiceSignalingService {
   private readonly clientSession = inject(ClientSessionService);
 
   private readonly injector = inject(EnvironmentInjector);
-
-  private readonly diagnostics = inject(AuthDiagnosticsService);
 
 
   /**
@@ -127,17 +124,15 @@ export class VoiceSignalingService {
         { idField: 'id' },
       ),
     ) as Observable<VoiceSignal[]>;
-    return inbox.pipe(catchError(error => this.recoverInbox(error)));
+    return inbox.pipe(catchError(() => this.recoverInbox()));
   }
 
 
   /**
-   * Degrades an errored inbox stream to the empty list; the diagnostic
-   * panel records the first error.
-   * @param error Error the stream died with.
+   * Degrades an errored inbox stream to the empty list; the next connection
+   * rebuilds the connection-scoped query.
    */
-  private recoverInbox(error: unknown): Observable<VoiceSignal[]> {
-    this.diagnostics.streamError('voice-inbox', error);
+  private recoverInbox(): Observable<VoiceSignal[]> {
     return of([] as VoiceSignal[]);
   }
 

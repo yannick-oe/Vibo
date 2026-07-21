@@ -9,7 +9,8 @@
  * Firestore stream errors — Firestore listeners die terminally, e.g. when
  * they attached under a stale `email_verified` claim — the error is caught
  * INSIDE the projection: the safe empty value is emitted, the error is
- * reported once, and the next ID-token emission re-subscribes the query.
+ * reported once via the stream's own error path, and the next ID-token
+ * emission re-subscribes the query.
  * The outer auth-driven chain itself can therefore never die, and at most
  * one inner Firestore subscription exists per stream at any time — the
  * listener inventory is unchanged.
@@ -17,12 +18,8 @@
 import { User } from '@angular/fire/auth';
 import { Observable, catchError, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
-
 /** Configuration of one self-healing, token-gated Firestore stream. */
 export interface TokenGatedStreamConfig<T> {
-  /** Stable stream label for the diagnostic panel. */
-  readonly label: string;
   /** Raw ID-token lifecycle source ({@link AuthService.tokenChanges}). */
   readonly source: Observable<User | null>;
   /** Maps a signed-in user to a stable gate key, or null to stay empty. */
@@ -31,8 +28,6 @@ export interface TokenGatedStreamConfig<T> {
   readonly empty: T;
   /** Builds the inner Firestore stream for a passing gate. */
   readonly build: (current: User) => Observable<T>;
-  /** Diagnostics sink recording stream (re)starts and first errors. */
-  readonly diagnostics: AuthDiagnosticsService;
   /** Reports one inner death via the existing error path (e.g. a toast). */
   readonly onError?: (error: unknown) => void;
   /** Runs at every (re)projection, e.g. to reset a loaded flag. */
@@ -95,7 +90,6 @@ function projectGate<T>(
   config.reset?.();
   const key = state.key;
   if (!state.current || key === null) return of(config.empty);
-  config.diagnostics.streamStarted(config.label);
   return config.build(state.current).pipe(
     catchError(error => recoverFromDeath(config, key, health, error)),
   );
@@ -118,7 +112,6 @@ function recoverFromDeath<T>(
   error: unknown,
 ): Observable<T> {
   health.deadKey = key;
-  config.diagnostics.streamError(config.label, error);
   config.onError?.(error);
   return of(config.empty);
 }

@@ -35,7 +35,6 @@ import {
   RelationshipState,
   buildFriendshipId,
 } from '../models/friendship.model';
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { tokenGatedStream } from './token-gated-stream';
 import { environment } from '../../environments/environment';
@@ -61,8 +60,6 @@ export class FriendshipService {
   private readonly authService = inject(AuthService);
 
   private readonly injector = inject(EnvironmentInjector);
-
-  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly loadedState = signal(false);
 
@@ -324,12 +321,10 @@ export class FriendshipService {
    */
   private streamFriendships(): Observable<FriendshipDoc[]> {
     return tokenGatedStream({
-      label: 'friendships',
       source: this.authService.tokenChanges,
       gate: current => current.uid,
       empty: [] as FriendshipDoc[],
       build: current => runInInjectionContext(this.injector, () => this.queryFriendships(current.uid)),
-      diagnostics: this.diagnostics,
       onError: () => this.loadedState.set(true),
     });
   }

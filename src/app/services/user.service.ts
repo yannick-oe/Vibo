@@ -15,8 +15,8 @@ import {
 import { Observable } from 'rxjs';
 
 import { UserDoc } from '../models/user.model';
+import { ManualStatus } from '../shared/presence-status';
 import { isVerifiedOrGuest } from './account-security.service';
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
 import { tokenGatedStream } from './token-gated-stream';
@@ -46,8 +46,6 @@ export class UserService {
 
   private readonly injector = inject(EnvironmentInjector);
 
-  private readonly diagnostics = inject(AuthDiagnosticsService);
-
   readonly users = toSignal(this.streamUsers(), { initialValue: [] as UserDoc[] });
 
 
@@ -72,6 +70,21 @@ export class UserService {
 
 
   /**
+   * Persists the sticky manual status choice on the own user document as a
+   * single one-field update. 'online' is stored literally (one uniform write
+   * path, no field deletion) and means automatic behavior; the change
+   * propagates to every presence dot through the user stream.
+   * @param status Manual status option chosen in the status menu.
+   */
+  setManualStatus(status: ManualStatus): Promise<void> {
+    const uid = this.authService.requireUid();
+    return runInInjectionContext(this.injector, () =>
+      updateDoc(doc(this.firestore, `users/${uid}`), { manualStatus: status }),
+    );
+  }
+
+
+  /**
    * Streams the users collection ordered by name; emits an empty list while
    * signed out or unverified, mirroring the security rules — the list query
    * has no signup-time carve-out, so starting it for the freshly created,
@@ -83,12 +96,10 @@ export class UserService {
    */
   private streamUsers(): Observable<UserDoc[]> {
     return tokenGatedStream({
-      label: 'users',
       source: this.authService.tokenChanges,
       gate: current => (isVerifiedOrGuest(current) ? current.uid : null),
       empty: [] as UserDoc[],
       build: () => runInInjectionContext(this.injector, () => this.queryUsers()),
-      diagnostics: this.diagnostics,
       onError: () => this.toastService.show(USERS_LOAD_ERROR),
     });
   }

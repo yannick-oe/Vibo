@@ -36,7 +36,6 @@ import {
   DEFAULT_CHANNEL_ID,
   DEFAULT_CHANNEL_NAME,
 } from '../shared/channels.constants';
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { deleteChannelDeep } from './channel-teardown';
 import { ToastService } from './toast.service';
@@ -58,8 +57,6 @@ export class ChannelService {
   private readonly toastService = inject(ToastService);
 
   private readonly injector = inject(EnvironmentInjector);
-
-  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly hasLoadedChannelsState = signal(false);
 
@@ -309,12 +306,10 @@ export class ChannelService {
    */
   private streamChannels(): Observable<Channel[]> {
     return tokenGatedStream({
-      label: 'channels',
       source: this.authService.tokenChanges,
       gate: current => current.uid,
       empty: [] as Channel[],
       build: current => runInInjectionContext(this.injector, () => this.queryChannels(current.uid)),
-      diagnostics: this.diagnostics,
       onError: () => this.toastService.show(CHANNELS_LOAD_ERROR),
       reset: () => this.hasLoadedChannelsState.set(false),
     });

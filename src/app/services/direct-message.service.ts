@@ -29,7 +29,6 @@ import { Observable } from 'rxjs';
 import { DirectMessageDoc, buildConversationId } from '../models/direct-message.model';
 import { GifResult } from '../models/gif.model';
 import { ReplyRef } from '../models/message.model';
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { FriendshipService } from './friendship.service';
 import { MessageService } from './message.service';
@@ -61,8 +60,6 @@ export class DirectMessageService {
   private readonly toastService = inject(ToastService);
 
   private readonly injector = inject(EnvironmentInjector);
-
-  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   readonly conversations = toSignal(this.streamConversations(), {
     initialValue: [] as DirectMessageDoc[],
@@ -199,13 +196,11 @@ export class DirectMessageService {
    */
   private streamConversations(): Observable<DirectMessageDoc[]> {
     return tokenGatedStream({
-      label: 'dm-conversations',
       source: this.authService.tokenChanges,
       gate: current => current.uid,
       empty: [] as DirectMessageDoc[],
       build: current =>
         runInInjectionContext(this.injector, () => this.queryConversations(current.uid)),
-      diagnostics: this.diagnostics,
     });
   }
 

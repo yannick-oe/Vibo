@@ -32,11 +32,8 @@ import {
   VOICE_STALE_MS,
   VOICE_STALE_SWEEP_MS,
 } from '../shared/voice.constants';
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 import { VoiceChannelService } from './voice-channel.service';
-
-const ROSTER_STREAM_LABEL = 'voice-roster';
 
 /**
  * Streams the participant sessions of every voice channel and exposes them
@@ -53,8 +50,6 @@ export class VoiceRosterService {
   private readonly voiceChannelService = inject(VoiceChannelService);
 
   private readonly injector = inject(EnvironmentInjector);
-
-  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly participantsState = signal<VoiceParticipant[]>([]);
 
@@ -105,12 +100,11 @@ export class VoiceRosterService {
    * an empty roster (best effort — occupancy is never load-bearing).
    */
   private listen(): Unsubscribe {
-    this.diagnostics.streamStarted(ROSTER_STREAM_LABEL);
     return runInInjectionContext(this.injector, () =>
       onSnapshot(
         collectionGroup(this.firestore, VOICE_PARTICIPANTS_SEGMENT),
         snapshot => this.participantsState.set(mapParticipants(snapshot)),
-        error => this.recoverFromError(error),
+        () => this.recoverFromError(),
       ),
     );
   }
@@ -122,11 +116,9 @@ export class VoiceRosterService {
    * ID-token emission — never immediately, so a persistent rejection
    * cannot loop — restoring the intended one-listener inventory instead of
    * staying dark for the rest of the session.
-   * @param error Error the listener died with.
    */
-  private recoverFromError(error: unknown): void {
+  private recoverFromError(): void {
     this.participantsState.set([]);
-    this.diagnostics.streamError(ROSTER_STREAM_LABEL, error);
     if (this.retryArm) return;
     this.retryArm = this.authService.tokenChanges
       .pipe(skip(1), take(1))

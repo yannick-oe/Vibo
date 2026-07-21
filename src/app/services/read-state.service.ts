@@ -23,7 +23,6 @@ import {
 } from '@angular/fire/firestore';
 import { Observable, catchError, of } from 'rxjs';
 
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { AuthService } from './auth.service';
 
 const READS_SEGMENT = 'reads';
@@ -60,8 +59,6 @@ export class ReadStateService {
 
   private readonly injector = inject(EnvironmentInjector);
 
-  private readonly diagnostics = inject(AuthDiagnosticsService);
-
 
   /**
    * Marks a conversation read for the signed-in user (lastReadAt = now), so
@@ -86,7 +83,7 @@ export class ReadStateService {
     const meta = runInInjectionContext(this.injector, () =>
       docData(doc(this.firestore, conversationPath)),
     ) as Observable<ConversationMeta | undefined>;
-    return meta.pipe(catchError(error => this.recover(error, 'conversation-meta', undefined)));
+    return meta.pipe(catchError(() => this.recover(undefined)));
   }
 
 
@@ -100,7 +97,7 @@ export class ReadStateService {
     const marker = runInInjectionContext(this.injector, () =>
       docData(doc(this.firestore, this.readPath(conversationPath, uid))),
     ) as Observable<ReadMarker | undefined>;
-    return marker.pipe(catchError(error => this.recover(error, 'read-marker', undefined)));
+    return marker.pipe(catchError(() => this.recover(undefined)));
   }
 
 
@@ -133,21 +130,18 @@ export class ReadStateService {
         { idField: 'uid' },
       ),
     ) as Observable<ReadEntry[]>;
-    return reads.pipe(catchError(error => this.recover(error, 'conversation-reads', [] as ReadEntry[])));
+    return reads.pipe(catchError(() => this.recover([] as ReadEntry[])));
   }
 
 
   /**
    * Degrades an errored (terminal) read-state stream to its safe empty
-   * value: the diagnostic panel records the first error, consumers keep
-   * their last derived state and the next context switch rebuilds the
-   * stream. Read state is best-effort and never surfaces errors to users.
-   * @param error Error the stream died with.
-   * @param label Diagnostic stream label.
+   * value: consumers keep their last derived state and the next context
+   * switch rebuilds the stream. Read state is best-effort and never
+   * surfaces errors to users.
    * @param empty Safe value to emit instead.
    */
-  private recover<T>(error: unknown, label: string, empty: T): Observable<T> {
-    this.diagnostics.streamError(label, error);
+  private recover<T>(empty: T): Observable<T> {
     return of(empty);
   }
 

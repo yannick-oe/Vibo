@@ -18,7 +18,6 @@ import {
 import { Observable, catchError, of } from 'rxjs';
 
 import { Message, Reply } from '../models/message.model';
-import { AuthDiagnosticsService } from './auth-diagnostics.service';
 import { MESSAGES_LOAD_ERROR } from './message.service';
 import { ToastService } from './toast.service';
 
@@ -32,8 +31,6 @@ export class ThreadStreamsService {
   private readonly firestore = inject(Firestore);
 
   private readonly toastService = inject(ToastService);
-
-  private readonly diagnostics = inject(AuthDiagnosticsService);
 
   private readonly injector = inject(EnvironmentInjector);
 
@@ -49,7 +46,7 @@ export class ThreadStreamsService {
     const message = runInInjectionContext(this.injector, () =>
       docData(doc(this.firestore, messagePath), { idField: 'id' }),
     ) as Observable<Message | undefined>;
-    return message.pipe(catchError(error => this.recoverMessageDoc(error)));
+    return message.pipe(catchError(() => this.recoverMessageDoc()));
   }
 
 
@@ -73,28 +70,24 @@ export class ThreadStreamsService {
       orderBy('createdAt'),
     );
     return (collectionData(repliesQuery, { idField: 'id' }) as Observable<Reply[]>).pipe(
-      catchError(error => this.reportLoadError(error)),
+      catchError(() => this.reportLoadError()),
     );
   }
 
 
   /**
-   * Degrades a dead origin-message stream to undefined; the diagnostic
-   * panel records the first error.
-   * @param error Error the stream died with.
+   * Degrades a dead origin-message stream to undefined; the next thread
+   * open rebuilds it.
    */
-  private recoverMessageDoc(error: unknown): Observable<Message | undefined> {
-    this.diagnostics.streamError('message-doc', error);
+  private recoverMessageDoc(): Observable<Message | undefined> {
     return of(undefined);
   }
 
 
   /**
    * Shows the load-error toast and recovers with an empty replies list.
-   * @param error Error the replies stream died with.
    */
-  private reportLoadError(error: unknown): Observable<Reply[]> {
-    this.diagnostics.streamError('thread-replies', error);
+  private reportLoadError(): Observable<Reply[]> {
     this.toastService.show(MESSAGES_LOAD_ERROR);
     return of([]);
   }
