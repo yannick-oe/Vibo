@@ -5,9 +5,6 @@
   // Dated log entries open with their summary line directly under the heading (house style).
   "MD022": { "lines_below": 0 },
 
-  // The changelog repeats feature-area headings under each version by design (Keep a Changelog).
-  "MD024": { "siblings_only": true },
-
   // Adjacent standalone note blockquotes in design-system.md are deliberate, not one split quote.
   "MD028": false,
 

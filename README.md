@@ -151,7 +151,7 @@ Die ngsw-Asset-Strategie ist zweigeteilt: Die `app`-Gruppe **prefetcht** das She
 
 ### Dokumentierte Trade-offs
 
-Die volle Begründung jeder Abweichung steht datiert in **[DEVIATIONS.md](DEVIATIONS.md)** — u. a. Hash-Routing statt SSR (statisches Hosting ohne `mod_rewrite`), das eager geladene Firebase-SDK (Mobile-Performance-Preis zugunsten eines stabilen Auth-Bootstraps), STUN-only ohne TURN-Relay (symmetrische NAT-Paare ~10–15 % verbinden nicht — pro Peer-Leg, nie als Kanalfehler) und die client-enforced Caps (Voice-Kapazität), deren Races bewusst toleriert werden. Eine kuratierte, nutzerorientierte Zusammenfassung aller Releases führt das [CHANGELOG.md](CHANGELOG.md).
+Die volle Begründung jeder Abweichung steht datiert in **[DEVIATIONS.md](DEVIATIONS.md)** — u. a. Hash-Routing statt SSR (statisches Hosting ohne `mod_rewrite`), das eager geladene Firebase-SDK (Mobile-Performance-Preis zugunsten eines stabilen Auth-Bootstraps), STUN-only ohne TURN-Relay (symmetrische NAT-Paare ~10–15 % verbinden nicht — pro Peer-Leg, nie als Kanalfehler) und die client-enforced Caps (Voice-Kapazität), deren Races bewusst toleriert werden.
 
 ---
 

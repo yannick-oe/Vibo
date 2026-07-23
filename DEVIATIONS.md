@@ -2425,3 +2425,56 @@ ordering alone:
   permission was granted once (labels are unreadable before). File-size rule: the pure
   envelope-ordering helpers left `voice-mesh.ts` (`signal-order.ts`) before the mesh
   gained `replaceLocalAudio`, and the switch orchestration lives in `mic-switch.ts`.
+
+## Post-v1.3.0 patch: mobile soundboard context, settings spacing, changelog retired (2026-07-23)
+
+- **Soundboard inaudible for mobile receivers — root cause: the wrong AudioContext.**
+  Received `sound` envelopes played through the UI sound engine's AudioContext
+  (`SoundService.playBuffer`), whose only resume lives in the one-time unlock listeners
+  (pointerdown/keydown) that are removed after the first success. Mobile browsers
+  re-suspend that context afterwards (iOS suspends WebAudio on audio-session changes,
+  e.g. when the WebRTC call takes over), and a broadcast arriving via Firestore runs
+  outside any user gesture — `runningContext()` returned null and the buffer was
+  dropped silently by design. Fix: received broadcasts now render on the voice
+  connection's own AudioContext (the SpeakingMonitor/RemoteAudioMixer context), which
+  is provably running for any connected participant — the join tap created it and
+  remote voice audibly plays through it; the mesh hands that context to the dispatch
+  with each broadcast. Semantics preserved: the „Sounds aus" master toggle still
+  short-circuits before the lazy fetch AND playback, the master volume applies via a
+  per-play gain, unknown ids stay silent, and deafen still does not gate the soundboard
+  (as before). The decoded-buffer cache stays session-wide and context-independent —
+  per the Web Audio spec an AudioBuffer is plain PCM usable by any context (only nodes
+  are context-bound), so nothing is cached against the per-connection context and its
+  close on leave frees the per-play nodes: no re-decode per connection, no leak. The
+  SENDER's local playback keeps the UI-engine path (a press is a gesture). Defensively,
+  the join tap now also resumes the UI sound context (`unlockFromGesture`, helping
+  chimes and UI sounds on mobile generally), and the receive path attempts one
+  `resume()` on a suspended target before skipping — never throwing, never logging.
+  Honest residual: on iOS the hardware silent switch may mute WebAudio output entirely
+  while WebRTC voice continues — OS behavior, out of scope. File-size rule: before this
+  change, the inbox-subscription/heartbeat lifecycle left the connection service
+  (`connection-plumbing.ts`), the selection-change reaction moved into `mic-switch.ts`,
+  and the screen-share state left the mesh (`share-state.ts`).
+- **Reverb closed: the Continuity system-mic was the cause.** After the v1.3.0
+  keep-alive hardening and the microphone device picker, the owner's live pass
+  reproduces no hall even with the speaker's per-user volume slider at 200 % — the
+  macOS Continuity iPhone as system microphone was the cause and the device picker is
+  the fix. Same-room multi-device coupling remains physics, not a bug; no audio-graph
+  rework is planned.
+- **Settings „Sprache": the permission hint reserves its slot only while shown.** The
+  two-line hint reserve under the microphone dropdown rendered permanently
+  (visibility-toggled), leaving dead space before „KONTO" once the permission was
+  granted. The hint — with its worst-case two-line reserve at 320 px — now renders only
+  in the no-permission state, and the granted section ends after the select with the
+  standard section gap; `aria-describedby` points at the hint only while it exists. The
+  state is fixed at dialog open; a permission granted mid-open relayouts the section
+  once — an accepted mode change, documented in the component TSDoc.
+- **Production spot-check after v1.3.0 (owner-measured on the live channel URL,
+  Lighthouse incognito):** Performance 96, Accessibility 100, Best Practices 96,
+  SEO 100 — one point above the documented v1.0 final on Performance; the documented
+  accepted deviations are unchanged.
+- **Changelog and version tags retired (owner decision).** CHANGELOG.md is deleted and
+  git version tags are intentionally not maintained; the README, this decision log and
+  the commit history are the documentation surface. The markdownlint MD024
+  `siblings_only` override existed solely for the Keep-a-Changelog heading pattern and
+  left with it.
