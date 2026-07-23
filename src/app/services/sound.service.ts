@@ -133,6 +133,17 @@ export class SoundService {
 
 
   /**
+   * Creates or resumes the AudioContext from an explicit user gesture the
+   * caller vouches for (the voice-join tap): mobile browsers re-suspend
+   * the context after the one-time unlock listeners are gone, and this is
+   * the second chance for chimes and UI sounds there. Never throws.
+   */
+  unlockFromGesture(): void {
+    this.unlock();
+  }
+
+
+  /**
    * Enables or disables all UI sounds and persists the choice.
    * @param enabled New master-toggle state.
    */
