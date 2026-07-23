@@ -1,6 +1,8 @@
 # Vibo
 
-![Vibo Logo](public/logos/logo.svg)
+<p align="center">
+  <img src="public/logos/logo.svg" alt="Vibo Logo" width="140">
+</p>
 
 **Echtzeit-Teamchat mit Channels, Direktnachrichten, Threads und P2P-Sprachkanälen — als Solo-Portfolio-Projekt auf Angular 21 gebaut.**
 
