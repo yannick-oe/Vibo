@@ -20,6 +20,7 @@ import {
   VoiceSignalPayload,
 } from '../../../models/voice.model';
 import { RemoteAudioMixer } from './remote-audio-mixer';
+import { ShareState } from './share-state';
 import { byCreation } from './signal-order';
 import { SpeakingMonitor } from './speaking-monitor';
 import { VoicePeer } from './voice-peer';
@@ -47,8 +48,8 @@ export interface VoiceMeshDeps {
   readonly onSpeakingChange: (speaking: ReadonlySet<string>) => void;
   /** Publishes the changed map of remote screen streams by session id. */
   readonly onRemoteScreensChange: (screens: ReadonlyMap<string, MediaStream>) => void;
-  /** Dispatches a received soundboard broadcast. */
-  readonly onSoundSignal: (fromSession: string, soundId: string) => void;
+  /** Dispatches a received soundboard broadcast on the connection's running AudioContext. */
+  readonly onSoundSignal: (fromSession: string, soundId: string, context: AudioContext) => void;
 }
 
 /**
@@ -68,9 +69,7 @@ export class VoiceMesh {
 
   private localStream: MediaStream;
 
-  private shareTrack: MediaStreamTrack | null = null;
-
-  private shareStream: MediaStream | null = null;
+  private readonly share = new ShareState();
 
   private readonly remoteScreens = new Map<string, MediaStream>();
 
@@ -158,20 +157,14 @@ export class VoiceMesh {
 
 
   /**
-   * Starts sharing a screen track: it is added to every existing peer and
-   * each one is renegotiated; peers joining later receive it in their
-   * negotiation automatically. A failed renegotiation is swallowed — the
-   * peer keeps its working audio and only misses the video.
+   * Starts sharing a screen track via the extracted {@link ShareState}:
+   * added to every existing peer with a renegotiation; peers joining
+   * later receive it in their negotiation automatically.
    * @param track Captured screen video track.
    * @param stream Capture stream the track belongs to.
    */
   startShare(track: MediaStreamTrack, stream: MediaStream): void {
-    this.shareTrack = track;
-    this.shareStream = stream;
-    for (const peer of this.peers.values()) {
-      peer.addVideo(track, stream);
-      void peer.initiate().catch(() => undefined);
-    }
+    this.share.start(track, stream, this.peers.values());
   }
 
 
@@ -180,13 +173,7 @@ export class VoiceMesh {
    * each one is renegotiated. Idempotent — repeated stops are no-ops.
    */
   stopShare(): void {
-    if (!this.shareTrack) return;
-    this.shareTrack = null;
-    this.shareStream = null;
-    for (const peer of this.peers.values()) {
-      peer.removeVideo();
-      void peer.initiate().catch(() => undefined);
-    }
+    this.share.stop(this.peers.values());
   }
 
 
@@ -239,13 +226,16 @@ export class VoiceMesh {
 
 
   /**
-   * Dispatches a soundboard broadcast; malformed payloads are ignored.
+   * Dispatches a soundboard broadcast together with the connection's
+   * shared AudioContext — provably running while voice plays through it,
+   * unlike the UI sound engine's context, which mobile browsers keep
+   * suspended outside user gestures. Malformed payloads are ignored.
    * @param signal Envelope of kind sound.
    */
   private handleSound(signal: VoiceSignal): void {
     const soundId = (signal.payload as SoundSignalPayload).soundId;
     if (typeof soundId !== 'string') return;
-    this.deps.onSoundSignal(signal.fromSession, soundId);
+    this.deps.onSoundSignal(signal.fromSession, soundId, this.monitor.acquireContext());
   }
 
 
@@ -286,9 +276,7 @@ export class VoiceMesh {
     } catch {
       return this.dropPeer(signal.fromSession);
     }
-    if (!this.shareTrack || !this.shareStream) return;
-    peer.addVideo(this.shareTrack, this.shareStream);
-    void peer.initiate().catch(() => undefined);
+    this.share.renegotiateInto(peer);
   }
 
 
@@ -330,7 +318,7 @@ export class VoiceMesh {
    */
   private initiatePeer(participant: VoiceParticipant): void {
     const peer = this.createPeer(participant.sessionId, participant.uid);
-    if (this.shareTrack && this.shareStream) peer.addVideo(this.shareTrack, this.shareStream);
+    this.share.includeIn(peer);
     void peer.initiate().catch(() => this.dropPeer(participant.sessionId));
   }
 

@@ -70,7 +70,7 @@
       <select
         class="settings-dialog__device-select"
         id="settings-mic-device"
-        aria-describedby="settings-mic-device-hint"
+        [attr.aria-describedby]="micPermissionGranted() ? null : 'settings-mic-device-hint'"
         [disabled]="!micPermissionGranted()"
         (change)="onDeviceSelect($event)"
       >
@@ -81,13 +81,11 @@
           </option>
         }
       </select>
-      <p
-        class="settings-dialog__device-hint"
-        id="settings-mic-device-hint"
-        [class.settings-dialog__device-hint--visible]="!micPermissionGranted()"
-      >
-        Geräteliste verfügbar, sobald der Mikrofonzugriff einmal erlaubt wurde.
-      </p>
+      @if (!micPermissionGranted()) {
+        <p class="settings-dialog__device-hint" id="settings-mic-device-hint">
+          Geräteliste verfügbar, sobald der Mikrofonzugriff einmal erlaubt wurde.
+        </p>
+      }
     </div>
   </section>
 

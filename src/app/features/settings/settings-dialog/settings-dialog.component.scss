@@ -1,10 +1,12 @@
 // Styles of the settings dialog: the card header, the "Sounds" section —
 // switch rows (master toggle + swipe opt-in), the labelled volume slider
 // and the preview button — the "Sprache" section with the microphone
-// input-device select (permission hint in a CLS-proof reserved slot) and
-// the "Konto" row opening the password-change dialog. The slider and
-// switch visuals come from the shared control mixins (_controls.scss),
-// which the per-user voice-volume menu reuses.
+// input-device select (the permission hint renders only in the
+// no-permission state, keeping its worst-case two-line reserve there so
+// nothing shifts within that state) and the "Konto" row opening the
+// password-change dialog. The slider and switch visuals come from the
+// shared control mixins (_controls.scss), which the per-user voice-volume
+// menu reuses.
 @use 'variables' as v;
 @use 'mixins' as m;
 @use 'controls' as c;
@@ -135,11 +137,6 @@
   min-height: v.$form-error-reserved-height;
   font-size: v.font-size('min');
   color: v.color('text-gray');
-  visibility: hidden;
-}
-
-.settings-dialog__device-hint--visible {
-  visibility: visible;
 }
 
 .settings-dialog__sound-preview {

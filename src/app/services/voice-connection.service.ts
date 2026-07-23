@@ -11,14 +11,14 @@
  * implicitly through sign-out and tab close (peers detect the latter via
  * the stale heartbeat and the connection watchdog).
  */
-import { Injectable, Signal, computed, effect, inject, signal, untracked } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Injectable, Signal, computed, effect, inject, signal } from '@angular/core';
 
+import { ConnectionPlumbing } from '../features/voice/webrtc/connection-plumbing';
 import { MicSwitcher } from '../features/voice/webrtc/mic-switch';
 import { MuteDeafenControls } from '../features/voice/webrtc/mute-deafen-controls';
 import { RosterChimes } from '../features/voice/webrtc/roster-chimes';
 import { VoiceMesh } from '../features/voice/webrtc/voice-mesh';
-import { MAX_VOICE_PARTICIPANTS, VOICE_HEARTBEAT_MS } from '../shared/voice.constants';
+import { MAX_VOICE_PARTICIPANTS } from '../shared/voice.constants';
 import { AudioDeviceService } from './audio-device.service';
 import { AuthService } from './auth.service';
 import { ClientSessionService } from './client-session.service';
@@ -112,9 +112,7 @@ export class VoiceConnectionService {
 
   private localStream: MediaStream | null = null;
 
-  private inboxSubscription: Subscription | null = null;
-
-  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly plumbing = new ConnectionPlumbing();
 
   private readonly soundboardDispatch = inject(SoundboardDispatchService);
 
@@ -129,7 +127,9 @@ export class VoiceConnectionService {
   constructor() {
     effect(() => this.syncWithRoster());
     effect(() => this.applyUserVolumes());
-    effect(() => this.applyDeviceSelection());
+    effect(() =>
+      this.micSwitcher.reactToSelection(this.audioDeviceService.selectedDeviceId()),
+    );
     effect(() => {
       if (!this.authService.currentUser() && this.connectedChannelState()) void this.leave();
     });
@@ -141,10 +141,12 @@ export class VoiceConnectionService {
    * Joins a voice channel; joining while connected elsewhere performs a
    * seamless switch (full leave, then join). A full channel only shows the
    * capacity toast — client-enforced, a simultaneous-join race above the
-   * cap is tolerated.
+   * cap is tolerated. The join tap doubles as the defensive unlock gesture
+   * for the UI-sound context (mobile browsers may have re-suspended it).
    * @param channel Id and name of the voice channel to join.
    */
   async join(channel: ConnectedVoiceChannel): Promise<void> {
+    this.soundService.unlockFromGesture();
     if (this.isJoiningState() || this.connectedChannelState()?.id === channel.id) return;
     if (this.rejectIfFull(channel.id)) return;
     this.isJoiningState.set(true);
@@ -236,22 +238,10 @@ export class VoiceConnectionService {
 
 
   /**
-   * Applies a changed microphone selection to the live connection via the
-   * switcher; outside a call the choice simply applies on the next join.
-   * Only the selection signal is tracked — connecting or leaving must not
-   * re-trigger a switch.
-   */
-  private applyDeviceSelection(): void {
-    this.audioDeviceService.selectedDeviceId();
-    untracked(() => {
-      if (this.connectedChannelState()) void this.micSwitcher.switch();
-    });
-  }
-
-
-  /**
-   * Creates the mesh, subscribes the connection-scoped signal inbox and
-   * starts the lastSeen heartbeat (writes only while connected, §14).
+   * Creates the mesh, then opens the extracted plumbing: the
+   * connection-scoped signal inbox and the lastSeen heartbeat (writes only
+   * while connected, §14). Received soundboard broadcasts dispatch on the
+   * connection's AudioContext the mesh hands along.
    * @param channelId Channel being joined.
    * @param stream Captured microphone stream.
    */
@@ -266,14 +256,13 @@ export class VoiceConnectionService {
       gainForUid: uid => this.volumeService.effectiveGain(uid),
       onSpeakingChange: speaking => this.speakingSessionsState.set(speaking),
       onRemoteScreensChange: screens => this.remoteScreensState.set(screens),
-      onSoundSignal: (fromSession, soundId) => this.soundboardDispatch.dispatch(fromSession, soundId),
+      onSoundSignal: (fromSession, soundId, context) =>
+        this.soundboardDispatch.dispatch(fromSession, soundId, context),
     });
-    this.inboxSubscription = this.signalingService
-      .streamInbox(channelId)
-      .subscribe(signals => this.mesh?.applySignals(signals));
-    this.heartbeatTimer = setInterval(
+    this.plumbing.open(
+      this.signalingService.streamInbox(channelId),
+      signals => this.mesh?.applySignals(signals),
       () => this.participantService.heartbeat(channelId),
-      VOICE_HEARTBEAT_MS,
     );
   }
 
@@ -298,10 +287,7 @@ export class VoiceConnectionService {
   private teardownLocal(): void {
     this.mesh?.dispose();
     this.mesh = null;
-    this.inboxSubscription?.unsubscribe();
-    this.inboxSubscription = null;
-    if (this.heartbeatTimer !== null) clearInterval(this.heartbeatTimer);
-    this.heartbeatTimer = null;
+    this.plumbing.close();
     this.localStream?.getTracks().forEach(track => track.stop());
     this.localStream = null;
     this.rosterChimes.reset();

@@ -178,7 +178,11 @@ export class SettingsDialogComponent {
   /**
    * Loads the current audio inputs; labels are only readable after the
    * microphone permission was granted once, which drives the dropdown's
-   * disabled state and the hint visibility.
+   * disabled state and whether the hint (with its two-line reserve)
+   * renders at all. The state is effectively fixed at dialog open; a
+   * permission granted while the dialog is open drops the hint slot and
+   * relayouts the section once — an accepted mode change, not CLS within
+   * a state.
    */
   private async refreshDevices(): Promise<void> {
     const inputs = await this.audioDeviceService.listInputs();
