@@ -52,7 +52,7 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 
 **Sound-Design**
 
-- Zentrale **Web-Audio-Engine**: alle UI-Sounds (Senden, Empfangen, Löschen, Reaktion, Fehler, Voice-Join/-Leave) werden **zur Laufzeit synthetisiert** (kein einziges UI-Sound-Asset), melodische Klänge laufen durch einen **code-generierten Convolver-Reverb**; die Soundboard-Presets werden lazy dekodiert und laufen durch denselben Master-Gain
+- Zentrale **Web-Audio-Engine**: alle UI-Sounds (Senden, Empfangen, Löschen, Reaktion, Fehler, Voice-Join/-Leave) werden **zur Laufzeit synthetisiert** (kein einziges UI-Sound-Asset), melodische Klänge laufen durch einen **code-generierten Convolver-Reverb**; die Soundboard-Presets werden lazy dekodiert und folgen derselben Master-Lautstärke — empfangene Broadcasts rendern auf dem AudioContext der Voice-Verbindung, damit sie auch auf Mobilgeräten zuverlässig hörbar sind
 - Einstellungen mit Master-Toggle, eigenem Lautstärke-Slider und Opt-in-Seitenleisten-Sound
 
 **PWA**
@@ -64,7 +64,7 @@ Das Interessante ist weniger die Feature-Liste als die Entscheidungen dahinter: 
 
 - **WCAG 2.1 AA in beiden Themes** — Kontraste gemessen, nicht angenommen; durchgängig tastaturbedienbar; korrekte Dialog-/Combobox-Semantik; `prefers-reduced-motion` und `prefers-reduced-transparency` respektiert
 - **Responsiv bis 320 px**, mobile Bottom-Sheets mit echter Drag-Physik, **CLS = 0** überall
-- **Lighthouse (Production-Build, final):** Desktop **99 / 100 / 100 / 100**, Mobil **72–78 / 100 / 100 / 100** (Performance/Accessibility/Best Practices/SEO). Die mobile Lücke ist der dokumentierte Preis des eager geladenen Firebase-SDK; Channel-Views mit GIF-Embeds erreichen Best Practices 96 statt 100 — der akzeptierte Preis der byte-sparenden GIF-Renditions. Beides ist in [DEVIATIONS.md](DEVIATIONS.md) begründet, nichts davon versteckt.
+- **Lighthouse:** lokaler Production-Build-Closeout Desktop **99 / 100 / 100 / 100**, Mobil **72–78 / 100 / 100 / 100**; gegen das Live-Deployment gemessen **95 / 100 / 96 / 100** (dokumentierter v1.0-Finalstand) bzw. **96 / 100 / 96 / 100** (späterer owner-gemessener Spot-Check) — jeweils Performance/Accessibility/Best Practices/SEO. Die mobile Lücke ist der dokumentierte Preis des eager geladenen Firebase-SDK; Channel-Views mit GIF-Embeds erreichen Best Practices 96 statt 100 — der akzeptierte Preis der byte-sparenden GIF-Renditions. Beides ist in [DEVIATIONS.md](DEVIATIONS.md) begründet, nichts davon versteckt.
 
 ---
 
@@ -112,7 +112,7 @@ Roster streamen"| P
 nach Anwenden gelöscht"| B
 ```
 
-Die Kapazitätsgrenze (5) ist ehrliche Mathematik: jeder sendet an jeden, im Worst Case 4 × 128 kbit/s Audio-Uplink plus — beim Screen-Sharing — 4 × 2 Mbit/s Video, die Obergrenze üblicher Consumer-Uplinks. Deshalb auch genau **ein** Sharer pro Kanal.
+Die Kapazitätsgrenze (5) ist ehrliche Mathematik: jeder sendet an jeden, im Worst Case 4 × 384 kbit/s Audio-Uplink (das Opus-VBR-Ceiling — die reale Sprachlast bleibt ein Bruchteil davon) plus — beim Screen-Sharing — 4 × 2 Mbit/s Video, die Obergrenze üblicher Consumer-Uplinks. Deshalb auch genau **ein** Sharer pro Kanal.
 
 ### Das Listener-Inventar (§14 des Projektbudgets)
 
