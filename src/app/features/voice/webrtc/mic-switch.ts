@@ -7,6 +7,8 @@
  * replaces the old one. Outside a call there is nothing to swap — the
  * changed selection simply applies on the next join.
  */
+import { untracked } from '@angular/core';
+
 import { VoiceMesh } from './voice-mesh';
 
 /** Accessors the switcher uses to reach the live connection state. */
@@ -39,6 +41,21 @@ export class MicSwitcher {
    */
   constructor(hooks: MicSwitchHooks) {
     this.hooks = hooks;
+  }
+
+
+  /**
+   * Reacts to a changed device-selection signal from the caller's effect:
+   * switches live only while a mesh exists. The selection value is unused
+   * here — the caller reads it into this parameter so its effect tracks
+   * exactly that one signal; everything downstream runs untracked so
+   * connection state or capture internals never re-trigger the effect.
+   * @param _selectedDeviceId Currently selected device id (tracked by the caller).
+   */
+  reactToSelection(_selectedDeviceId: string | null): void {
+    untracked(() => {
+      if (this.hooks.mesh()) void this.switch();
+    });
   }
 
 
